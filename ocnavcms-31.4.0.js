@@ -174,18 +174,24 @@ var CSS=[
   '.ocnav-top svg{width:10px;height:10px;fill:#fff;opacity:.7;}',
   '.ocnav-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:220px;padding:8px 0;z-index:100000;}',
   '.ocnav-dropdown.right{left:auto;right:0;}',
-  '.ocnav-item:hover .ocnav-dropdown{display:block;}',
+  '.ocnav-item.open .ocnav-dropdown{display:block;}',
   '.ocnav-dropdown a{display:block;padding:8px 16px;color:#1B3A5C;font-family:Inter,sans-serif;font-size:13px;font-weight:400;text-decoration:none;white-space:nowrap;}',
   '.ocnav-dropdown a:hover{background:#F2F4F8;}',
   '.ocnav-dropdown-section{padding:4px 0;border-top:1px solid #E5E7EB;}',
   '.ocnav-dropdown-section:first-child{border-top:none;}',
   '.ocnav-section-label{display:block;padding:6px 16px 2px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#999;font-family:Inter,sans-serif;}',
+  '.ocnav-dropdown.cols{min-width:560px;}',
+  '.ocnav-dropdown.cols .ocnav-dropdown-section{border-top:none;}',
+  '.ocnav-dropdown-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:8px 0;}',
+  '.ocnav-col-head{display:block;padding:8px 16px 4px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#999;font-family:Inter,sans-serif;}',
+  '.ocnav-col a{display:block;padding:7px 16px;color:#1B3A5C;font-family:Inter,sans-serif;font-size:13px;font-weight:400;text-decoration:none;white-space:nowrap;}',
+  '.ocnav-col a:hover{background:#F2F4F8;}',
   '.ocnav-state-item{position:relative;}',
   '.ocnav-state-btn{color:#C7A24B;font-family:Inter,sans-serif;font-size:13px;font-weight:600;padding:6px 10px;border:1px solid rgba(199,162,75,.6);border-radius:4px;cursor:pointer;background:none;white-space:nowrap;display:flex;align-items:center;gap:5px;}',
   '.ocnav-state-btn:hover{background:rgba(199,162,75,.12);}',
   '.ocnav-state-btn svg{width:10px;height:10px;fill:#C7A24B;}',
   '.ocnav-state-dropdown{display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:200px;padding:8px 0;z-index:100000;}',
-  '.ocnav-state-item:hover .ocnav-state-dropdown{display:block;}',
+  '.ocnav-state-item.open .ocnav-state-dropdown{display:block;}',
   '.ocnav-state-option{display:flex;align-items:center;gap:10px;padding:10px 16px;color:#1B3A5C;font-family:Inter,sans-serif;font-size:14px;text-decoration:none;cursor:pointer;border:none;background:none;width:100%;text-align:left;}',
   '.ocnav-state-option:hover{background:#F2F4F8;}',
   '.ocnav-state-option.active{font-weight:700;background:#F9F7F3;}',
@@ -220,6 +226,17 @@ var CSS=[
 function li(items){return items.map(function(i){return'<a href="'+i.href+'">'+i.label+'</a>';}).join('');}
 function sec(label,items){return'<div class="ocnav-dropdown-section">'+(label?'<span class="ocnav-section-label">'+label+'</span>':'')+li(items)+'</div>';}
 function dd(cls,html){return'<div class="ocnav-dropdown'+(cls?' '+cls:'')+'">'+html+'</div>';}
+function coldd(cols3,r){
+  var html='<div class="ocnav-dropdown-cols">';
+  cols3.forEach(function(col){
+    html+='<div class="ocnav-col">';
+    if(col.head) html+='<span class="ocnav-col-head">'+col.head+'</span>';
+    col.items.forEach(function(i){html+='<a href="'+i.href+'">'+i.label+'</a>';});
+    html+='</div>';
+  });
+  html+='</div>';
+  return'<div class="ocnav-dropdown cols'+(r?' right':'')+'">'+html+'</div>';
+}
 function btn(label,content,r){return'<div class="ocnav-item"><button class="ocnav-top">'+label+' '+chevron+'</button>'+dd(r?'right':'',content)+'</div>';}
 
 /* ── Build state dropdown HTML ───────────────────────────── */
@@ -277,9 +294,9 @@ function buildNav(){
 
   /* Build with loading placeholder for state switcher */
   var links = [
-    btn('Personal Lines', sec('Personal Lines',p.slice(0,7))+sec('More Coverage',p.slice(7))),
-    btn('Commercial Lines', sec('Commercial Lines',NAV.commercial.global.slice(0,5))+sec('More Commercial',NAV.commercial.global.slice(5))),
-    btn('Carriers', sec('Carriers',c)),
+    '<div class="ocnav-item"><button class="ocnav-top">Personal Lines '+chevron+'</button>'+coldd([{head:'Home & Property',items:p.slice(0,5)},{head:'Auto & Recreation',items:p.slice(5,9)},{head:'More Coverage',items:p.slice(9)}])+'</div>',
+    '<div class="ocnav-item"><button class="ocnav-top">Commercial Lines '+chevron+'</button>'+coldd([{head:'Core Lines',items:NAV.commercial.global.slice(0,4)},{head:'Specialty Lines',items:NAV.commercial.global.slice(4,7)},{head:'More',items:NAV.commercial.global.slice(7)}])+'</div>',
+    '<div class="ocnav-item"><button class="ocnav-top">Carriers '+chevron+'</button>'+coldd([{head:'Top Carriers',items:c.slice(0,5)},{head:'More Carriers',items:c.slice(5,10)},{head:'',items:c.slice(10)}])+'</div>',
     btn('Locations', sec('Locations',l)),
     btn('About', sec('',NAV.about), true),
     '<a id="ocnav-cta" href="/coverage-review">Coverage Review</a>',
@@ -320,6 +337,40 @@ function buildNav(){
   document.body.insertBefore(bar, document.body.firstChild);
 
   window.__ocSetState = setStateAndNavigate;
+
+  /* ── Hover with delay so mouse can travel to dropdown ── */
+  var _timer = null;
+  document.querySelectorAll('.ocnav-item, .ocnav-state-item').forEach(function(item){
+    item.addEventListener('mouseenter', function(){
+      clearTimeout(_timer);
+      // Close all others
+      document.querySelectorAll('.ocnav-item.open, .ocnav-state-item.open').forEach(function(o){
+        if(o !== item) o.classList.remove('open');
+      });
+      item.classList.add('open');
+    });
+    item.addEventListener('mouseleave', function(){
+      var self = item;
+      _timer = setTimeout(function(){ self.classList.remove('open'); }, 150);
+    });
+    // Keep open when mouse enters the dropdown
+    var dd = item.querySelector('.ocnav-dropdown, .ocnav-state-dropdown');
+    if(dd){
+      dd.addEventListener('mouseenter', function(){ clearTimeout(_timer); });
+      dd.addEventListener('mouseleave', function(){
+        _timer = setTimeout(function(){ item.classList.remove('open'); }, 150);
+      });
+    }
+  });
+
+  /* Close dropdowns on outside click */
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.ocnav-item') && !e.target.closest('.ocnav-state-item')){
+      document.querySelectorAll('.ocnav-item.open, .ocnav-state-item.open').forEach(function(o){
+        o.classList.remove('open');
+      });
+    }
+  });
 
   /* Fetch states from CMS and update switcher */
   if(token){
