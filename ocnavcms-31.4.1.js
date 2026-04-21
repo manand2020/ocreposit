@@ -6,10 +6,10 @@ var COLLECTION_ID = '69e2c474742df85703a42d14';
 var LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
 var chevron = '<svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg>';
 
-/* ── State flags map ─────────────────────────────────────── */
-var FLAGS = {georgia:'🍑',california:'🌴',texas:'⭐',florida:'🌊',nevada:'🎲',arizona:'🌵',colorado:'⛰️',oregon:'🌲',washington:'🌧️'};
+/* ââ State flags map âââââââââââââââââââââââââââââââââââââââ */
+var FLAGS = {georgia:'ð',california:'ð´',texas:'â­',florida:'ð',nevada:'ð²',arizona:'ðµ',colorado:'â°ï¸',oregon:'ð²',washington:'ð§ï¸'};
 
-/* ── State detection ─────────────────────────────────────── */
+/* ââ State detection âââââââââââââââââââââââââââââââââââââââ */
 function detectState(states){
   var path = window.location.pathname;
   var stored = localStorage.getItem('oc_state');
@@ -22,7 +22,7 @@ function detectState(states){
   return stored||'georgia';
 }
 
-/* ── Fetch states from CMS ───────────────────────────────── */
+/* ââ Fetch states from CMS âââââââââââââââââââââââââââââââââ */
 function fetchStates(token, cb){
   var cached = sessionStorage.getItem('oc_states');
   if(cached){try{return cb(JSON.parse(cached));}catch(e){}}
@@ -35,7 +35,7 @@ function fetchStates(token, cb){
       .map(function(i){return{
         slug: i.fieldData.slug,
         name: i.fieldData.name,
-        flag: FLAGS[i.fieldData.slug]||'📍',
+        flag: FLAGS[i.fieldData.slug]||'ð',
         path: '/states/'+i.fieldData.slug
       };});
     if(items.length){sessionStorage.setItem('oc_states',JSON.stringify(items));}
@@ -45,12 +45,12 @@ function fetchStates(token, cb){
 
 function fallbackStates(){
   return[
-    {slug:'georgia',name:'Georgia',flag:'🍑',path:'/states/georgia'},
-    {slug:'california',name:'California',flag:'🌴',path:'/states/california'}
+    {slug:'georgia',name:'Georgia',flag:'ð',path:'/states/georgia'},
+    {slug:'california',name:'California',flag:'ð´',path:'/states/california'}
   ];
 }
 
-/* ── Nav data ────────────────────────────────────────────── */
+/* ââ Nav data ââââââââââââââââââââââââââââââââââââââââââââââ */
 var NAV = {
   personal:{
     georgia:[
@@ -163,7 +163,7 @@ var NAV = {
   ]
 };
 
-/* ── CSS ─────────────────────────────────────────────────── */
+/* ââ CSS âââââââââââââââââââââââââââââââââââââââââââââââââââ */
 var CSS=[
   '#ocnav-bar{position:fixed;top:0;left:0;right:0;width:100%;max-width:none!important;z-index:99999;background:#1B3A5C;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px;box-shadow:0 2px 8px rgba(0,0,0,.25);box-sizing:border-box;}',
   '#ocnav-logo{display:flex;align-items:center;text-decoration:none;flex-shrink:0;}',
@@ -223,7 +223,7 @@ var CSS=[
   'body{padding-top:64px!important;}.w-nav{display:none!important;}'
 ].join('');
 
-/* ── Helpers ─────────────────────────────────────────────── */
+/* ââ Helpers âââââââââââââââââââââââââââââââââââââââââââââââ */
 function li(items){return items.map(function(i){return'<a href="'+i.href+'">'+i.label+'</a>';}).join('');}
 function sec(label,items){return'<div class="ocnav-dropdown-section">'+(label?'<span class="ocnav-section-label">'+label+'</span>':'')+li(items)+'</div>';}
 function dd(cls,html){return'<div class="ocnav-dropdown'+(cls?' '+cls:'')+'">'+html+'</div>';}
@@ -240,7 +240,7 @@ function coldd(cols3,r){
 }
 function btn(label,content,r){return'<div class="ocnav-item"><button class="ocnav-top">'+label+' '+chevron+'</button>'+dd(r?'right':'',content)+'</div>';}
 
-/* ── Build state dropdown HTML ───────────────────────────── */
+/* ââ Build state dropdown HTML âââââââââââââââââââââââââââââ */
 function buildStateDropdown(states, currentSlug){
   var current = states.filter(function(s){return s.slug===currentSlug;})[0]||states[0];
   var options = states.map(function(s){
@@ -264,7 +264,7 @@ function buildMobileStateSection(states, currentSlug){
   return '<div class="ocnav-mobile-state"><div class="ocnav-mobile-state-label">Select your state</div>'+opts+'</div>';
 }
 
-/* ── Update switcher after CMS fetch ─────────────────────── */
+/* ââ Update switcher after CMS fetch âââââââââââââââââââââââ */
 function updateSwitcher(states, currentSlug){
   var item = document.getElementById('oc-state-switcher');
   if(item) item.outerHTML = buildStateDropdown(states, currentSlug);
@@ -272,14 +272,14 @@ function updateSwitcher(states, currentSlug){
   if(mob) mob.outerHTML = buildMobileStateSection(states, currentSlug);
 }
 
-/* ── Set state ───────────────────────────────────────────── */
+/* ââ Set state âââââââââââââââââââââââââââââââââââââââââââââ */
 function setStateAndNavigate(slug){
   localStorage.setItem('oc_state', slug);
   sessionStorage.removeItem('oc_states');
   window.location.href = '/states/'+slug;
 }
 
-/* ── Build nav ───────────────────────────────────────────── */
+/* ââ Build nav âââââââââââââââââââââââââââââââââââââââââââââ */
 function buildNav(){
   if(document.getElementById('ocnav-bar')) return;
 
@@ -339,7 +339,7 @@ function buildNav(){
 
   window.__ocSetState = setStateAndNavigate;
 
-  /* ── Hover with delay so mouse can travel to dropdown ── */
+  /* ââ Hover with delay so mouse can travel to dropdown ââ */
   var _timer = null;
   document.querySelectorAll('.ocnav-item, .ocnav-state-item').forEach(function(item){
     item.addEventListener('mouseenter', function(){
@@ -454,12 +454,12 @@ function fixAboutPage(){
   });
   var lic=document.querySelector('.oc-about-license');
   if(lic){
-    lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details →</a></p>';
+    lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details â</a></p>';
   }
 }
 
 
-/* ── Fix Insurance Page Carrier Cards ─────────────────── */
+/* ââ Fix Insurance Page Carrier Cards âââââââââââââââââââ */
 function fixInsurancePage(){
   var path = window.location.pathname;
   if(path.indexOf('/personal-insurance/')===-1 && path.indexOf('/commercial-insurance/')===-1) return;
@@ -509,7 +509,7 @@ function fixInsurancePage(){
   document.head.appendChild(s2);
 }
 
-/* ── Fix Home Coverage and Gaps Sections ──────────────── */
+/* ââ Fix Home Coverage and Gaps Sections ââââââââââââââââ */
 function fixHomeSections(){
   if(window.location.pathname !== '/') return;
   if(document.getElementById('oc-homesec-css')) return;
@@ -545,6 +545,19 @@ function fixHomeSections(){
     '@media(max-width:900px){.oc-coverage-grid{grid-template-columns:1fr 1fr!important;}.oc-gaps-inner{grid-template-columns:1fr!important;}}'
   ].join('');
   document.head.appendChild(s);
+
+  // Trust bar: force column layout on each badge
+  document.querySelectorAll('.oc-trust-badge').forEach(function(b){
+    b.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;';
+    var m=b.querySelector('.oc-trust-badge-main');
+    var s=b.querySelector('.oc-trust-badge-sub');
+    if(m)m.style.cssText='display:block;font-size:15px;font-weight:700;color:#1B3A5C;';
+    if(s)s.style.cssText='display:block;font-size:12px;color:#666;';
+  });
+  // Clear dupe text in Bundle & Save card
+  document.querySelectorAll('.oc-coverage-card-sub').forEach(function(el){
+    if(el.textContent.indexOf('simplify')>-1){el.textContent='Combine home and auto. Save 10 to 25% with one agent.';}
+  });
 }
 
 })();
