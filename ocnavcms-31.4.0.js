@@ -395,7 +395,7 @@ if(document.readyState==='loading'){
 } else {
   buildNav();
   // Run fixes with retry on DOM changes
-  function runFixes(){fixFooter();fixCarrierText();fixTrustBar();}
+  function runFixes(){fixFooter();fixCarrierText();fixTrustBar();fixAboutPage();}
   setTimeout(runFixes,300);
   setTimeout(runFixes,800);
   setTimeout(runFixes,2000);
@@ -434,4 +434,15 @@ function fixTrustBar(){
   });
 }
 
+
+function fixAboutPage(){
+  if(window.location.pathname.indexOf('/about')<0)return;
+  document.querySelectorAll('.oc-about-section p').forEach(function(p){
+    if(/We also serve Georgia|hold a California/i.test(p.textContent)){p.remove();}
+  });
+  var lic=document.querySelector('.oc-about-license');
+  if(lic){
+    lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details →</a></p>';
+  }
+}
 })();
