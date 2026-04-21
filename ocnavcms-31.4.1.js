@@ -613,3 +613,102 @@ function fixBindPlaceholders(){
   });
 }
 })();
+
+
+// ============================================================
+// INSIGHTS PAGE - ocinsights v1.0.1
+// Fetches CMS articles, renders state-aware grid with filters
+// ============================================================
+(function(){
+  if(window.location.pathname.indexOf('/insights')===-1)return;
+  var COLL='69e7aab3da8662897ee1211f';
+  var activeFilter='all';
+  var s=document.createElement('style');
+  s.textContent=[
+    '#oc-insights-hero{background:#1B3A5C;padding:80px 24px 0;position:relative;overflow:hidden}',
+    '#oc-insights-hero::before{content:"";position:absolute;inset:0;background:url(https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1600&q=80) center/cover;opacity:0.18}',
+    '#oc-insights-hero>*{position:relative;z-index:1}',
+    '#oc-insights-hero p:first-child{font-family:Inter,sans-serif;font-size:12px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#C7A24B;margin:0 0 10px}',
+    '#oc-insights-hero h1{font-family:\"Playfair Display\",serif;font-size:clamp(36px,5vw,56px);font-weight:700;color:#fff;margin:0 0 14px;line-height:1.1}',
+    '#oc-insights-filters{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:32px;margin-top:16px}',
+    '.oc-filter-btn{font-family:Inter,sans-serif;font-size:13px;font-weight:500;padding:7px 16px;border-radius:99px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.75);text-decoration:none;border:1px solid rgba(255,255,255,0.2);transition:all 0.15s;cursor:pointer;display:inline-block}',
+    '.oc-filter-btn.active,.oc-filter-btn:hover{background:#C7A24B;color:#fff;border-color:#C7A24B}',
+    '#oc-insights-body{background:#F2F4F8;padding:60px 24px 80px}',
+    '#oc-insights-state-bar{max-width:1200px;margin:0 auto 24px;display:flex;align-items:center;gap:8px;font-size:14px;color:#666;font-family:Inter,sans-serif}',
+    '#oc-insights-state-bar a{color:#1B3A5C;font-weight:600;text-decoration:none}',
+    '#oc-insights-loading{text-align:center;padding:40px;color:#666;font-family:Inter,sans-serif}',
+    '#oc-insights-empty{text-align:center;padding:40px;color:#666;font-family:Inter,sans-serif;display:none}',
+    '#oc-insights-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}',
+    '.oc-insight-card{background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.2s,transform 0.2s}',
+    '.oc-insight-card:hover{box-shadow:0 6px 20px rgba(27,58,92,0.12);transform:translateY(-2px)}',
+    '.oc-ic-meta{display:flex;align-items:center;gap:10px}',
+    '.oc-ic-cat{font-family:Inter,sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#C7A24B}',
+    '.oc-ic-time{font-size:12px;color:#999;margin-left:auto}',
+    '.oc-ic-title{font-family:\"Playfair Display\",serif;font-size:20px;font-weight:700;color:#1B3A5C;margin:0;line-height:1.3}',
+    '.oc-ic-excerpt{font-family:Inter,sans-serif;font-size:14px;color:#555;line-height:1.65;margin:0;flex:1}',
+    '.oc-ic-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:12px;border-top:1px solid #E5E7EB}',
+    '.oc-ic-date{font-size:12px;color:#999}',
+    '.oc-ic-link{font-size:13px;font-weight:600;color:#1B3A5C;text-decoration:none}',
+    '.oc-ic-link:hover{text-decoration:underline}',
+    '@media(max-width:900px){#oc-insights-grid{grid-template-columns:1fr 1fr}}',
+    '@media(max-width:600px){#oc-insights-grid{grid-template-columns:1fr}}'
+  ].join('');
+  document.head.appendChild(s);
+  function getState(){return(localStorage.getItem('oc_state')||'georgia').toLowerCase();}
+  function buildCard(item){
+    var f=item.fieldData||{};
+    var slug=f.slug||item.slug||'';
+    var cat=f.category||'';
+    var scope=(f.scope||'national').toLowerCase();
+    var stateSlug=(f['state-slug']||'all').toLowerCase();
+    var readTime=f['read-time']||'5 min read';
+    var date=f['published-date']?new Date(f['published-date']).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    return '<article class="oc-insight-card" data-category="'+cat+'" data-scope="'+scope+'" data-state="'+stateSlug+'">'+
+      '<div class="oc-ic-meta"><span class="oc-ic-cat">'+cat+'</span><span class="oc-ic-time">'+readTime+'</span></div>'+
+      '<h3 class="oc-ic-title">'+(f.name||'')+'</h3>'+
+      '<p class="oc-ic-excerpt">'+(f.excerpt||'')+'</p>'+
+      '<div class="oc-ic-footer"><span class="oc-ic-date">'+date+'</span><a href="/insights/'+slug+'" class="oc-ic-link">Read more &rarr;</a></div>'+
+      '</article>';
+  }
+  function filterCards(){
+    var st=getState();
+    var vis=0;
+    document.querySelectorAll('.oc-insight-card').forEach(function(c){
+      var ok=(c.getAttribute('data-scope')==='national'||c.getAttribute('data-scope')===''||c.getAttribute('data-state')===st||c.getAttribute('data-state')==='all')&&(activeFilter==='all'||c.getAttribute('data-category')===activeFilter);
+      c.style.display=ok?'':' none';
+      if(ok)vis++;
+    });
+    var e=document.getElementById('oc-insights-empty');
+    if(e)e.style.display=vis===0?'block':'none';
+    var sn=document.getElementById('oc-insights-state-name');
+    if(sn){var s=getState();sn.textContent=s.charAt(0).toUpperCase()+s.slice(1);}
+  }
+  function render(items){
+    var grid=document.getElementById('oc-insights-grid');
+    var loading=document.getElementById('oc-insights-loading');
+    if(loading)loading.style.display='none';
+    if(!grid)return;
+    grid.innerHTML=items.map(buildCard).join('');
+    filterCards();
+  }
+  function load(){
+    fetch('https://api.webflow.com/v2/collections/'+COLL+'/items?limit=100',{
+      headers:{'Authorization':'Bearer '+(window._ocToken||''),'accept':'application/json'}
+    }).then(function(r){return r.json();})
+    .then(function(d){render(d.items||[]);})
+    .catch(function(){var l=document.getElementById('oc-insights-loading');if(l)l.textContent='Unable to load articles.';});
+  }
+  document.querySelectorAll('[data-filter]').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      activeFilter=btn.getAttribute('data-filter')||'all';
+      document.querySelectorAll('[data-filter]').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      filterCards();
+    });
+  });
+  window.addEventListener('storage',function(e){
+    if(e.key==='oc_state')filterCards();
+  });
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',load);}else{load();}
+})();
