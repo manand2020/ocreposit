@@ -394,7 +394,15 @@ if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', buildNav);
 } else {
   buildNav();
-  setTimeout(function(){fixFooter();fixCarrierText();fixTrustBar();},600);
+  // Run fixes with retry on DOM changes
+  function runFixes(){fixFooter();fixCarrierText();fixTrustBar();}
+  setTimeout(runFixes,300);
+  setTimeout(runFixes,800);
+  setTimeout(runFixes,2000);
+  setTimeout(runFixes,4000);
+  var obs=new MutationObserver(function(){runFixes();});
+  obs.observe(document.body,{childList:true,subtree:true});
+  setTimeout(function(){obs.disconnect();},8000);
 }
 
 function fixFooter(){
