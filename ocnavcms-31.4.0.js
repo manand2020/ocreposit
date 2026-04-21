@@ -158,7 +158,8 @@ var NAV = {
     {label:'About Olive Cover',href:'/about'},
     {label:'FAQ',href:'/faq'},
     {label:'Contact Us',href:'/contact'},
-    {label:'Coverage Review',href:'/coverage-review'}
+    {label:'Coverage Review',href:'/coverage-review'},
+    {label:'Where We Do Business',href:'/where-we-do-business'}
   ]
 };
 
@@ -393,6 +394,36 @@ if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', buildNav);
 } else {
   buildNav();
+  setTimeout(function(){fixFooter();fixCarrierText();fixTrustBar();},600);
+}
+
+function fixFooter(){
+  document.querySelectorAll("a").forEach(function(a){
+    if(a.textContent.trim()==="About Mahesh"){a.textContent="About Olive Cover";}
+  });
+}
+function fixCarrierText(){
+  var p=window.location.pathname;
+  var isCA=p.indexOf("california")>-1||p.indexOf("-california")>-1;
+  if(!isCA)return;
+  document.querySelectorAll("p,span,div,h2,h3").forEach(function(el){
+    if(el.children.length===0){
+      if(el.textContent.indexOf("appointed in Georgia")>-1){
+        el.textContent=el.textContent.replace("appointed in Georgia","available for this coverage");
+      }
+      if(el.textContent.trim()==="Georgia Range"){el.textContent="Coverage Cost";}
+    }
+  });
+}
+function fixTrustBar(){
+  document.querySelectorAll("*").forEach(function(el){
+    if(el.children.length===0){
+      var t=el.textContent;
+      if(t.indexOf("Agency NPN")>-1&&t.indexOf("Georgia licensed")>-1&&t.indexOf(" | ")===-1){
+        el.textContent=t.replace("Georgia licensed"," | Georgia Licensed");
+      }
+    }
+  });
 }
 
 })();
