@@ -394,7 +394,17 @@ if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', buildNav);
 } else {
   buildNav();
-  setTimeout(function(){fixFooter();fixCarrierText();fixTrustBar();},600);
+  // Run fixes with retry on DOM changes
+  function runFixes(){fixFooter();fixCarrierText();fixTrustBar();fixAboutPage();
+  fixInsurancePage();
+  fixHomeSections();fixHomePage();}
+  setTimeout(runFixes,300);
+  setTimeout(runFixes,800);
+  setTimeout(runFixes,2000);
+  setTimeout(runFixes,4000);
+  var obs=new MutationObserver(function(){runFixes();});
+  obs.observe(document.body,{childList:true,subtree:true});
+  setTimeout(function(){obs.disconnect();},8000);
 }
 
 function fixFooter(){
@@ -424,6 +434,117 @@ function fixTrustBar(){
       }
     }
   });
+}
+
+
+
+function fixHomePage(){
+  if(window.location.pathname!=='/')return;
+  if(document.getElementById('oc-home-css-injected'))return;
+  var s=document.createElement('style');
+  s.id='oc-home-css-injected';
+  s.textContent='.oc-coverage-section{background:#fff!important;padding:80px 0!important}.oc-coverage-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important}.oc-coverage-header{text-align:center!important;margin-bottom:40px!important}.oc-coverage-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin-bottom:12px!important}.oc-coverage-h2{font-family:"Playfair Display",serif!important;font-size:38px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 8px!important}.oc-coverage-view-all{color:#1B3A5C!important;font-weight:600!important;font-size:14px!important}.oc-coverage-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:24px!important}.oc-coverage-card{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;cursor:pointer!important}.oc-coverage-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important}.oc-coverage-card-icon{font-size:28px!important;margin-bottom:12px!important;display:block!important}.oc-coverage-card-title{font-family:"Playfair Display",serif!important;font-size:18px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 8px!important;display:block!important}.oc-coverage-card-sub{font-size:14px!important;color:#444!important;line-height:1.55!important;display:block!important}.oc-coverage-card-learn{display:block!important;margin-top:12px!important;color:#1B3A5C!important;font-size:13px!important;font-weight:600!important;text-decoration:none!important}.oc-gaps-section{background:#1B3A5C!important;padding:80px 0!important}.oc-gaps-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important;display:grid!important;grid-template-columns:1fr 2fr!important;gap:48px!important;align-items:start!important}.oc-gaps-header{}.oc-gaps-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 12px!important;display:block!important}.oc-gaps-h2{font-family:"Playfair Display",serif!important;font-size:34px!important;font-weight:700!important;color:#fff!important;margin:0 0 16px!important}.oc-gaps-p{color:rgba(255,255,255,.75)!important;font-size:16px!important;line-height:1.65!important;margin:0 0 24px!important}.oc-gaps-cta{background:#C7A24B!important;color:#fff!important;padding:12px 24px!important;border-radius:4px!important;font-weight:600!important;text-decoration:none!important;display:inline-block!important;font-size:14px!important}.oc-gaps-list{}.oc-gap-item{padding:16px 0!important;border-bottom:1px solid rgba(255,255,255,.12)!important}.oc-gap-item:last-child{border-bottom:none!important}.oc-gap-item-title{color:#fff!important;font-weight:600!important;font-size:15px!important;margin:0 0 6px!important;display:block!important}.oc-gap-item-body{color:rgba(255,255,255,.7)!important;font-size:14px!important;line-height:1.55!important}.oc-gap-item-link{color:#C7A24B!important;font-weight:600!important;text-decoration:none!important}.oc-why-section{background:#F2F4F8!important;padding:80px 0!important}.oc-why-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:64px!important;align-items:start!important}.oc-why-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 12px!important;display:block!important}.oc-why-h2{font-family:"Playfair Display",serif!important;font-size:34px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 16px!important}.oc-why-sub{color:#444!important;font-size:16px!important;line-height:1.65!important;margin:0 0 32px!important}.oc-why-point{display:flex!important;gap:16px!important;margin-bottom:24px!important}.oc-why-point-icon{font-size:24px!important;flex-shrink:0!important;margin-top:2px!important}.oc-why-point-title{font-weight:600!important;color:#1B3A5C!important;font-size:15px!important;margin:0 0 4px!important;display:block!important}.oc-why-point-body{color:#444!important;font-size:14px!important;line-height:1.55!important}.oc-why-photo{height:420px!important;width:100%!important;overflow:hidden!important;border-radius:12px!important;margin-bottom:24px!important}.oc-why-cta-box{background:#1B3A5C!important;border-radius:8px!important;padding:24px!important}.oc-why-cta-title{color:#fff!important;font-weight:600!important;font-size:16px!important;margin:0 0 8px!important;display:block!important}.oc-why-cta-line{color:rgba(255,255,255,.75)!important;font-size:14px!important;padding:6px 0!important;display:block!important}#oc-why-photo-img{background-image:url(https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=840&q=80)!important;}.oc-testimonials-section{background:#fff!important;padding:80px 0!important}.oc-testi-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important}.oc-testi-header{display:flex!important;justify-content:space-between!important;align-items:baseline!important;margin-bottom:40px!important}.oc-testi-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 8px!important;display:block!important}.oc-testi-h2{font-family:"Playfair Display",serif!important;font-size:34px!important;font-weight:700!important;color:#1B3A5C!important;margin:0!important}.oc-testi-header-cta{color:#1B3A5C!important;font-weight:600!important;font-size:14px!important;text-decoration:none!important}.oc-testi-grid{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:24px!important}.oc-testi-card{background:#F9F7F3!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:28px!important}.oc-testi-stars{color:#C7A24B!important;font-size:18px!important;margin-bottom:12px!important}.oc-testi-quote{font-size:15px!important;color:#444!important;line-height:1.65!important;margin:0 0 20px!important;font-style:italic!important}.oc-testi-name{font-weight:600!important;color:#1B3A5C!important;font-size:14px!important}.oc-testi-location{color:#666!important;font-size:13px!important}.oc-cta-section{position:relative!important;padding:80px 0!important;overflow:hidden!important}.oc-cta-bg{position:absolute!important;inset:0!important;background:url(https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=80) center/cover!important}.oc-cta-overlay{position:absolute!important;inset:0!important;background:rgba(27,58,92,.88)!important}.oc-cta-content{position:relative!important;max-width:700px!important;margin:0 auto!important;padding:0 32px!important;text-align:center!important}.oc-cta-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 16px!important;display:block!important}.oc-cta-h2{font-family:"Playfair Display",serif!important;font-size:38px!important;font-weight:700!important;color:#fff!important;margin:0 0 16px!important}.oc-cta-sub{color:rgba(255,255,255,.82)!important;font-size:16px!important;line-height:1.65!important;margin:0 0 32px!important}.oc-cta-primary{background:#C7A24B!important;color:#fff!important;padding:14px 32px!important;border-radius:4px!important;font-weight:600!important;font-size:16px!important;text-decoration:none!important;display:inline-block!important}.oc-cta-footer-line{color:rgba(255,255,255,.55)!important;font-size:13px!important;margin-top:16px!important}@media(max-width:900px){.oc-coverage-grid{grid-template-columns:1fr 1fr!important}.oc-gaps-inner{grid-template-columns:1fr!important}.oc-why-inner{grid-template-columns:1fr!important}.oc-testi-grid{grid-template-columns:1fr!important}}';
+  document.head.appendChild(s);
+}
+
+function fixAboutPage(){
+  if(window.location.pathname.indexOf('/about')<0)return;
+  document.querySelectorAll('.oc-about-section p').forEach(function(p){
+    if(/We also serve Georgia|hold a California/i.test(p.textContent)){p.remove();}
+  });
+  var lic=document.querySelector('.oc-about-license');
+  if(lic){
+    lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details →</a></p>';
+  }
+}
+
+
+/* ── Fix Insurance Page Carrier Cards ─────────────────── */
+function fixInsurancePage(){
+  var path = window.location.pathname;
+  if(path.indexOf('/personal-insurance/')===-1 && path.indexOf('/commercial-insurance/')===-1) return;
+  if(document.getElementById('oc-ins-css')) return;
+  var s=document.createElement('style');
+  s.id='oc-ins-css';
+  s.textContent=[
+    /* Section wrapper */
+    '.oc-carriers-section{background:#F2F4F8;padding:72px 24px;}',
+    '.oc-carriers-inner{max-width:1200px;margin:0 auto;}',
+    '.oc-carriers-eyebrow{font-family:Inter,sans-serif;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#C7A24B;margin-bottom:12px;}',
+    '.oc-carriers-h2{font-family:"Playfair Display",serif;font-size:36px;font-weight:700;color:#1B3A5C;margin:0 0 8px;}',
+    '.oc-carriers-sub{font-family:Inter,sans-serif;font-size:16px;color:#666;margin:0 0 40px;}',
+    /* Grid */
+    '.w-dyn-items{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:20px!important;padding:0!important;margin:0!important;list-style:none!important;}',
+    '.w-dyn-item{list-style:none!important;padding:0!important;margin:0!important;}',
+    /* Card */
+    '.w-dyn-item > div, .w-dyn-item > a{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;display:flex!important;flex-direction:column!important;gap:6px!important;text-decoration:none!important;transition:box-shadow .2s!important;}',
+    '.w-dyn-item > div:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important;}',
+    /* LOB eyebrow */
+    '.w-dyn-item p:first-child, .oc-carrier-lob{font-family:Inter,sans-serif!important;font-size:11px!important;font-weight:600!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:#C7A24B!important;margin:0 0 4px!important;}',
+    /* Carrier name h3 */
+    '.w-dyn-item h3{font-family:"Playfair Display",serif!important;font-size:22px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 4px!important;}',
+    /* AM Best pill */
+    '.oc-am-best, .w-dyn-item p:nth-child(3){display:inline-block!important;background:#EEF2F7!important;color:#1B3A5C!important;font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;padding:3px 10px!important;border-radius:20px!important;margin:0 0 10px!important;}',
+    /* Appetite text */
+    '.w-dyn-item p:nth-child(4){font-family:Inter,sans-serif!important;font-size:14px!important;line-height:1.6!important;color:#444!important;margin:0 0 12px!important;flex:1!important;}',
+    /* View link */
+    '.w-dyn-item a{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600!important;color:#1B3A5C!important;text-decoration:none!important;display:inline-flex!important;align-items:center!important;gap:4px!important;}',
+    '.w-dyn-item a:hover{color:#C7A24B!important;}',
+    '@media(max-width:900px){.w-dyn-items{grid-template-columns:1fr!important;}}'
+  ].join('');
+  document.head.appendChild(s);
+
+  /* Also fix coverage/exclusion sections on insurance pages */
+  if(document.getElementById('oc-cov-css')) return;
+  var s2=document.createElement('style');
+  s2.id='oc-cov-css';
+  s2.textContent=[
+    '.oc-coverage-section,.oc-exclusions-section{padding:72px 24px;max-width:1200px;margin:0 auto;}',
+    '.oc-coverage-grid,.oc-exclusions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px;}',
+    '.oc-coverage-card,.oc-exclusion-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:24px;}',
+    '.oc-coverage-card h3,.oc-exclusion-card h3{font-family:"Playfair Display",serif;font-size:18px;font-weight:700;color:#1B3A5C;margin:0 0 10px;}',
+    '.oc-coverage-card p,.oc-exclusion-card p{font-family:Inter,sans-serif;font-size:14px;line-height:1.6;color:#444;margin:0;}',
+    '@media(max-width:900px){.oc-coverage-grid,.oc-exclusions-grid{grid-template-columns:1fr;}}'
+  ].join('');
+  document.head.appendChild(s2);
+}
+
+/* ── Fix Home Coverage and Gaps Sections ──────────────── */
+function fixHomeSections(){
+  if(window.location.pathname !== '/') return;
+  if(document.getElementById('oc-homesec-css')) return;
+  var s=document.createElement('style');
+  s.id='oc-homesec-css';
+  s.textContent=[
+    /* Coverage section */
+    '.oc-coverage-section{background:#fff!important;padding:80px 24px!important;}',
+    '.oc-coverage-inner{max-width:1200px!important;margin:0 auto!important;}',
+    '.oc-coverage-header{display:flex!important;justify-content:space-between!important;align-items:flex-end!important;margin-bottom:40px!important;}',
+    '.oc-coverage-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;}',
+    '.oc-coverage-card{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;text-decoration:none!important;display:block!important;transition:box-shadow .2s!important;}',
+    '.oc-coverage-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important;}',
+    '.oc-coverage-card-icon{font-size:28px!important;margin-bottom:12px!important;display:block!important;}',
+    '.oc-coverage-card-title{font-family:"Playfair Display",serif!important;font-size:18px!important;font-weight:700!important;color:#1B3A5C!important;display:block!important;margin-bottom:8px!important;}',
+    '.oc-coverage-card-sub{font-family:Inter,sans-serif!important;font-size:14px!important;color:#666!important;line-height:1.5!important;display:block!important;margin-bottom:12px!important;}',
+    '.oc-coverage-card-learn{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600!important;color:#1B3A5C!important;}',
+    '.oc-coverage-eyebrow{font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#C7A24B!important;margin-bottom:8px!important;display:block!important;}',
+    '.oc-coverage-h2{font-family:"Playfair Display",serif!important;font-size:40px!important;font-weight:700!important;color:#1B3A5C!important;margin:0!important;}',
+    '.oc-coverage-view-all{font-family:Inter,sans-serif!important;font-size:14px!important;color:#1B3A5C!important;text-decoration:none!important;font-weight:600!important;}',
+    /* Gaps section */
+    '.oc-gaps-section{background:#1B3A5C!important;padding:80px 24px!important;}',
+    '.oc-gaps-inner{max-width:1200px!important;margin:0 auto!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:64px!important;align-items:start!important;}',
+    '.oc-gaps-eyebrow{font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#C7A24B!important;margin-bottom:12px!important;display:block!important;}',
+    '.oc-gaps-h2{font-family:"Playfair Display",serif!important;font-size:36px!important;font-weight:700!important;color:#fff!important;margin:0 0 16px!important;}',
+    '.oc-gaps-p{font-family:Inter,sans-serif!important;font-size:16px!important;color:rgba(255,255,255,.75)!important;margin:0 0 28px!important;line-height:1.6!important;}',
+    '.oc-gaps-cta{background:#C7A24B!important;color:#fff!important;font-family:Inter,sans-serif!important;font-size:14px!important;font-weight:600!important;padding:12px 24px!important;border-radius:6px!important;text-decoration:none!important;display:inline-block!important;}',
+    '.oc-gaps-list{display:flex!important;flex-direction:column!important;gap:16px!important;}',
+    '.oc-gap-item{background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;padding:20px!important;}',
+    '.oc-gap-item-title{font-family:Inter,sans-serif!important;font-size:15px!important;font-weight:600!important;color:#fff!important;margin-bottom:6px!important;display:block!important;}',
+    '.oc-gap-item-body{font-family:Inter,sans-serif!important;font-size:13px!important;color:rgba(255,255,255,.65)!important;line-height:1.5!important;display:block!important;}',
+    '.oc-gap-item-link{font-family:Inter,sans-serif!important;font-size:13px!important;color:#C7A24B!important;text-decoration:none!important;font-weight:600!important;margin-top:8px!important;display:inline-block!important;}',
+    '@media(max-width:900px){.oc-coverage-grid{grid-template-columns:1fr 1fr!important;}.oc-gaps-inner{grid-template-columns:1fr!important;}}'
+  ].join('');
+  document.head.appendChild(s);
 }
 
 })();
