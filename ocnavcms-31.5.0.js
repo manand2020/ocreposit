@@ -1,4 +1,4 @@
-/* ocnavcms v31.4.0 | Olive Cover | CMS-driven multistate nav */
+/* ocnavcms v31.5.0 | Olive Cover | CMS-driven multistate nav + gradient hero overlays */
 (function(){
 'use strict';
 
@@ -6,10 +6,8 @@ var COLLECTION_ID = '69e2c474742df85703a42d14';
 var LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
 var chevron = '<svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg>';
 
-/* ── State flags map ─────────────────────────────────────── */
-var FLAGS = {georgia:'🍑',california:'🌴',texas:'⭐',florida:'🌊',nevada:'🎲',arizona:'🌵',colorado:'⛰️',oregon:'🌲',washington:'🌧️'};
+var FLAGS = {georgia:'🇺🇸',california:'🏄',texas:'⭐',florida:'🌴',nevada:'🎲',arizona:'🌵',colorado:'⛰️',oregon:'🌲',washington:'🌧️'};
 
-/* ── State detection ─────────────────────────────────────── */
 function detectState(states){
   var path = window.location.pathname;
   var stored = localStorage.getItem('oc_state');
@@ -22,7 +20,6 @@ function detectState(states){
   return stored||'georgia';
 }
 
-/* ── Fetch states from CMS ───────────────────────────────── */
 function fetchStates(token, cb){
   var cached = sessionStorage.getItem('oc_states');
   if(cached){try{return cb(JSON.parse(cached));}catch(e){}}
@@ -35,7 +32,7 @@ function fetchStates(token, cb){
       .map(function(i){return{
         slug: i.fieldData.slug,
         name: i.fieldData.name,
-        flag: FLAGS[i.fieldData.slug]||'📍',
+        flag: FLAGS[i.fieldData.slug]||'🏳️',
         path: '/states/'+i.fieldData.slug
       };});
     if(items.length){sessionStorage.setItem('oc_states',JSON.stringify(items));}
@@ -45,12 +42,11 @@ function fetchStates(token, cb){
 
 function fallbackStates(){
   return[
-    {slug:'georgia',name:'Georgia',flag:'🍑',path:'/states/georgia'},
-    {slug:'california',name:'California',flag:'🌴',path:'/states/california'}
+    {slug:'georgia',name:'Georgia',flag:'🇺🇸',path:'/states/georgia'},
+    {slug:'california',name:'California',flag:'🏄',path:'/states/california'}
   ];
 }
 
-/* ── Nav data ────────────────────────────────────────────── */
 var NAV = {
   personal:{
     georgia:[
@@ -163,7 +159,6 @@ var NAV = {
   ]
 };
 
-/* ── CSS ─────────────────────────────────────────────────── */
 var CSS=[
   '#ocnav-bar{position:fixed;top:0;left:0;right:0;width:100%;max-width:none!important;z-index:99999;background:#1B3A5C;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px;box-shadow:0 2px 8px rgba(0,0,0,.25);box-sizing:border-box;}',
   '#ocnav-logo{display:flex;align-items:center;text-decoration:none;flex-shrink:0;}',
@@ -223,7 +218,6 @@ var CSS=[
   'body{padding-top:64px!important;}.w-nav{display:none!important;}'
 ].join('');
 
-/* ── Helpers ─────────────────────────────────────────────── */
 function li(items){return items.map(function(i){return'<a href="'+i.href+'">'+i.label+'</a>';}).join('');}
 function sec(label,items){return'<div class="ocnav-dropdown-section">'+(label?'<span class="ocnav-section-label">'+label+'</span>':'')+li(items)+'</div>';}
 function dd(cls,html){return'<div class="ocnav-dropdown'+(cls?' '+cls:'')+'">'+html+'</div>';}
@@ -240,7 +234,6 @@ function coldd(cols3,r){
 }
 function btn(label,content,r){return'<div class="ocnav-item"><button class="ocnav-top">'+label+' '+chevron+'</button>'+dd(r?'right':'',content)+'</div>';}
 
-/* ── Build state dropdown HTML ───────────────────────────── */
 function buildStateDropdown(states, currentSlug){
   var current = states.filter(function(s){return s.slug===currentSlug;})[0]||states[0];
   var options = states.map(function(s){
@@ -264,7 +257,6 @@ function buildMobileStateSection(states, currentSlug){
   return '<div class="ocnav-mobile-state"><div class="ocnav-mobile-state-label">Select your state</div>'+opts+'</div>';
 }
 
-/* ── Update switcher after CMS fetch ─────────────────────── */
 function updateSwitcher(states, currentSlug){
   var item = document.getElementById('oc-state-switcher');
   if(item) item.outerHTML = buildStateDropdown(states, currentSlug);
@@ -272,17 +264,14 @@ function updateSwitcher(states, currentSlug){
   if(mob) mob.outerHTML = buildMobileStateSection(states, currentSlug);
 }
 
-/* ── Set state ───────────────────────────────────────────── */
 function setStateAndNavigate(slug){
   localStorage.setItem('oc_state', slug);
   sessionStorage.removeItem('oc_states');
   window.location.href = '/states/'+slug;
 }
 
-/* ── Build nav ───────────────────────────────────────────── */
 function buildNav(){
   if(document.getElementById('ocnav-bar')) return;
-
   var token = window._ocToken;
   var currentSlug = detectState([{slug:'georgia'},{slug:'california'}]);
   var p = NAV.personal[currentSlug]||NAV.personal.georgia;
@@ -293,7 +282,6 @@ function buildNav(){
   style.textContent = CSS;
   document.head.appendChild(style);
 
-  /* Build with loading placeholder for state switcher */
   var links = [
     '<div class="ocnav-item"><button class="ocnav-top">Personal Lines '+chevron+'</button>'+coldd([{head:'Home & Property',items:p.slice(0,5)},{head:'Auto & Recreation',items:p.slice(5,9)},{head:'More Coverage',items:p.slice(9)}])+'</div>',
     '<div class="ocnav-item"><button class="ocnav-top">Commercial Lines '+chevron+'</button>'+coldd([{head:'Core Lines',items:NAV.commercial.global.slice(0,4)},{head:'Specialty Lines',items:NAV.commercial.global.slice(4,7)},{head:'More',items:NAV.commercial.global.slice(7)}])+'</div>',
@@ -304,247 +292,321 @@ function buildNav(){
     '<div id="oc-state-switcher"><div class="ocnav-state-item"><button class="ocnav-state-btn"><span class="ocnav-state-loading">...</span></button></div></div>'
   ].join('');
 
-  function msec(title,items){
-    return '<div class="ocnav-mobile-section">'+
-      '<div class="ocnav-mobile-head" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+title+' '+chevron+'</div>'+
-      '<div class="ocnav-mobile-links">'+items.map(function(i){return'<a href="'+i.href+'">'+i.label+'</a>';}).join('')+'</div>'+
-    '</div>';
-  }
-
-  var mob = [
-    msec('Personal Lines',p),
-    msec('Commercial Lines',NAV.commercial.global),
-    msec('Carriers',c),
-    msec('Locations',l),
-    msec('About',NAV.about),
-    '<a class="ocnav-mobile-cta" href="/coverage-review">Start Coverage Review</a>',
-    '<div id="oc-mobile-state"></div>'
+  var mobileSections = [
+    '<div class="ocnav-mobile-section"><div class="ocnav-mobile-head">Personal Lines <svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg></div><div class="ocnav-mobile-links">'+li(p)+'</div></div>',
+    '<div class="ocnav-mobile-section"><div class="ocnav-mobile-head">Commercial Lines <svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg></div><div class="ocnav-mobile-links">'+li(NAV.commercial.global)+'</div></div>',
+    '<div class="ocnav-mobile-section"><div class="ocnav-mobile-head">Carriers <svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg></div><div class="ocnav-mobile-links">'+li(c)+'</div></div>',
+    '<div class="ocnav-mobile-section"><div class="ocnav-mobile-head">Locations <svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg></div><div class="ocnav-mobile-links">'+li(l)+'</div></div>',
+    '<div class="ocnav-mobile-section"><div class="ocnav-mobile-head">About <svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg></div><div class="ocnav-mobile-links">'+li(NAV.about)+'</div></div>',
+    '<a class="ocnav-mobile-cta" href="/coverage-review">Coverage Review</a>',
+    '<div id="oc-mobile-state"><div class="ocnav-mobile-state"><div class="ocnav-mobile-state-label">Select your state</div></div></div>'
   ].join('');
 
-  var bar = document.createElement('nav');
+  var bar = document.createElement('div');
   bar.id = 'ocnav-bar';
   bar.innerHTML =
     '<a id="ocnav-logo" href="/"><img src="'+LOGO+'" alt="Olive Cover"></a>'+
     '<div id="ocnav-links">'+links+'</div>'+
-    '<button id="ocnav-mobile-toggle" onclick="document.getElementById(\'ocnav-mobile-menu\').classList.toggle(\'open\')">'+
-      '<span></span><span></span><span></span>'+
-    '</button>';
-
-  var mobileMenu = document.createElement('div');
-  mobileMenu.id = 'ocnav-mobile-menu';
-  mobileMenu.innerHTML = mob;
-
-  document.body.insertBefore(mobileMenu, document.body.firstChild);
+    '<button id="ocnav-mobile-toggle" aria-label="Menu"><span></span><span></span><span></span></button>';
   document.body.insertBefore(bar, document.body.firstChild);
 
-  window.__ocSetState = setStateAndNavigate;
+  var mob = document.createElement('div');
+  mob.id = 'ocnav-mobile-menu';
+  mob.innerHTML = mobileSections;
+  document.body.insertBefore(mob, bar.nextSibling);
 
-  /* ── Hover with delay so mouse can travel to dropdown ── */
-  var _timer = null;
-  document.querySelectorAll('.ocnav-item, .ocnav-state-item').forEach(function(item){
+  /* Hover with delay */
+  var delay = 150, timers = {};
+  document.querySelectorAll('.ocnav-item').forEach(function(item){
     item.addEventListener('mouseenter', function(){
-      clearTimeout(_timer);
-      // Close all others
-      document.querySelectorAll('.ocnav-item.open, .ocnav-state-item.open').forEach(function(o){
-        if(o !== item) o.classList.remove('open');
-      });
-      item.classList.add('open');
+      clearTimeout(timers[item]);
+      timers[item] = setTimeout(function(){item.classList.add('open');}, delay);
     });
     item.addEventListener('mouseleave', function(){
-      var self = item;
-      _timer = setTimeout(function(){ self.classList.remove('open'); }, 150);
+      clearTimeout(timers[item]);
+      timers[item] = setTimeout(function(){item.classList.remove('open');}, delay);
     });
-    // Keep open when mouse enters the dropdown
-    var dd = item.querySelector('.ocnav-dropdown, .ocnav-state-dropdown');
-    if(dd){
-      dd.addEventListener('mouseenter', function(){ clearTimeout(_timer); });
-      dd.addEventListener('mouseleave', function(){
-        _timer = setTimeout(function(){ item.classList.remove('open'); }, 150);
-      });
-    }
+  });
+  document.querySelectorAll('.ocnav-state-item').forEach(function(item){
+    item.addEventListener('mouseenter', function(){item.classList.add('open');});
+    item.addEventListener('mouseleave', function(){item.classList.remove('open');});
   });
 
-  /* Close dropdowns on outside click */
+  /* Mobile toggles */
+  document.getElementById('ocnav-mobile-toggle').addEventListener('click', function(){
+    document.getElementById('ocnav-mobile-menu').classList.toggle('open');
+  });
+  document.querySelectorAll('.ocnav-mobile-head').forEach(function(h){
+    h.addEventListener('click', function(){
+      h.classList.toggle('open');
+      var links = h.nextElementSibling;
+      if(links) links.classList.toggle('open');
+    });
+  });
+
+  /* Close on outside click */
   document.addEventListener('click', function(e){
-    if(!e.target.closest('.ocnav-item') && !e.target.closest('.ocnav-state-item')){
-      document.querySelectorAll('.ocnav-item.open, .ocnav-state-item.open').forEach(function(o){
-        o.classList.remove('open');
-      });
-    }
+    if(!e.target.closest('.ocnav-item')) document.querySelectorAll('.ocnav-item').forEach(function(i){i.classList.remove('open');});
+    if(!e.target.closest('.ocnav-state-item')) document.querySelectorAll('.ocnav-state-item').forEach(function(i){i.classList.remove('open');});
   });
 
-  /* Fetch states from CMS and update switcher */
+  /* State switcher */
+  window.__ocSetState = setStateAndNavigate;
   if(token){
     fetchStates(token, function(states){
       var slug = detectState(states);
       updateSwitcher(states, slug);
-      /* Also update nav links if state changed after detection */
-      var p2 = NAV.personal[slug]||NAV.personal.georgia;
-      var c2 = NAV.carriers[slug]||NAV.carriers.georgia;
-      var l2 = NAV.locations[slug]||NAV.locations.georgia;
-      /* Links already built correctly from initial detection -- no rebuild needed */
+      /* Update nav links for detected state */
+      var np = NAV.personal[slug]||NAV.personal.georgia;
+      var nc = NAV.carriers[slug]||NAV.carriers.georgia;
+      var nl = NAV.locations[slug]||NAV.locations.georgia;
+      /* Rebuild personal/carriers/locations cols */
+      var cols = document.querySelectorAll('.ocnav-dropdown.cols');
+      if(cols[0]) cols[0].querySelector('.ocnav-dropdown-cols').innerHTML =
+        [{head:'Home & Property',items:np.slice(0,5)},{head:'Auto & Recreation',items:np.slice(5,9)},{head:'More Coverage',items:np.slice(9)}]
+        .map(function(col){return'<div class="ocnav-col"><span class="ocnav-col-head">'+col.head+'</span>'+col.items.map(function(i){return'<a href="'+i.href+'">'+i.label+'</a>';}).join('')+'</div>';}).join('');
+      if(cols[2]) cols[2].querySelector('.ocnav-dropdown-cols').innerHTML =
+        [{head:'Top Carriers',items:nc.slice(0,5)},{head:'More Carriers',items:nc.slice(5,10)},{head:'',items:nc.slice(10)}]
+        .map(function(col){return'<div class="ocnav-col">'+(col.head?'<span class="ocnav-col-head">'+col.head+'</span>':'')+col.items.map(function(i){return'<a href="'+i.href+'">'+i.label+'</a>';}).join('')+'</div>';}).join('');
+      var locdd = document.querySelectorAll('.ocnav-dropdown')[3];
+      if(locdd) locdd.innerHTML = sec('Locations', nl);
     });
-  } else {
-    /* No token -- use fallback states */
-    updateSwitcher(fallbackStates(), currentSlug);
   }
+}
+
+/* ── fixFooter ──────────────────────────────────────────────────────────── */
+function fixFooter(){
+  document.querySelectorAll('a').forEach(function(a){
+    if(a.textContent.trim()==='About Mahesh') a.textContent = 'About Olive Cover';
+  });
+}
+
+/* ── fixCarrierText ─────────────────────────────────────────────────────── */
+function fixCarrierText(){
+  var state = localStorage.getItem('oc_state')||'georgia';
+  if(state!=='california') return;
+  document.querySelectorAll('*').forEach(function(el){
+    if(el.children.length) return;
+    if(el.textContent.indexOf('appointed in Georgia')>-1)
+      el.textContent = el.textContent.replace(/appointed in Georgia/g,'appointed in California');
+    if(el.textContent.indexOf('Georgia Range')>-1)
+      el.textContent = el.textContent.replace(/Georgia Range/g,'California Range');
+  });
+}
+
+/* ── fixTrustBar ────────────────────────────────────────────────────────── */
+function fixTrustBar(){
+  var badges = document.querySelectorAll('.oc-trust-badge');
+  badges.forEach(function(b,i){
+    if(i>0 && !b.previousElementSibling.classList.contains('oc-trust-sep')){
+      var sep = document.createElement('span');
+      sep.className = 'oc-trust-sep';
+      sep.style.cssText = 'color:rgba(255,255,255,.4);margin:0 4px;';
+      sep.textContent = '|';
+      b.parentNode.insertBefore(sep, b);
+    }
+  });
+}
+
+/* ── fixAboutPage ───────────────────────────────────────────────────────── */
+function fixAboutPage(){
+  if(window.location.pathname !== '/about') return;
+  setTimeout(function(){
+    document.querySelectorAll('p,div').forEach(function(el){
+      if(el.textContent.indexOf('We also serve Georgia broadly')>-1) el.remove();
+    });
+    var licSection = document.querySelector('.oc-about-license');
+    if(licSection){
+      licSection.innerHTML = '<a href="/where-we-do-business" style="color:#C7A24B;font-family:Inter,sans-serif;font-size:14px;">View licensed states and compliance details</a>';
+    }
+  }, 300);
+}
+
+/* ── fixHomePage (redundant backup to ochomefaq) ────────────────────────── */
+function fixHomePage(){
+  if(window.location.pathname !== '/') return;
+  if(document.getElementById('oc-hcss-backup')) return;
+  var s = document.createElement('style');
+  s.id = 'oc-hcss-backup';
+  s.textContent = [
+    /* Gradient overlay -- photo visible, text legible */
+    '.oc-hero-overlay{position:absolute!important;inset:0!important;background:linear-gradient(105deg,rgba(27,58,92,0.82) 0%,rgba(27,58,92,0.48) 55%,rgba(27,58,92,0.18) 100%)!important;z-index:1!important;}',
+    '.oc-cta-overlay{position:absolute!important;inset:0!important;background:linear-gradient(180deg,rgba(27,58,92,0.55) 0%,rgba(27,58,92,0.80) 100%)!important;z-index:1!important;}',
+    '.oc-coverage-section{background:#fff!important;padding:80px 24px!important;}',
+    '.oc-coverage-inner{max-width:1200px;margin:0 auto;}',
+    '.oc-coverage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:32px;}',
+    '.oc-coverage-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:24px;}',
+    '.oc-gaps-section{background:#1B3A5C!important;padding:80px 24px!important;color:#fff!important;}',
+    '.oc-gaps-inner{max-width:1200px;margin:0 auto;}',
+    '.oc-why-section{background:#F2F4F8!important;padding:80px 24px!important;}',
+    '.oc-why-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;}',
+    '#oc-why-photo-img{background-image:url("https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=840&q=80");background-size:cover;background-position:center;border-radius:8px;min-height:400px;}',
+    '.oc-testimonials-section{background:#fff!important;padding:80px 24px!important;}',
+    '.oc-testi-inner{max-width:1200px;margin:0 auto;}',
+    '.oc-testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:32px;}',
+    '.oc-testi-card{background:#F9F7F3;border:1px solid #E5E7EB;border-radius:8px;padding:24px;}',
+    '.oc-cta-section{position:relative!important;overflow:hidden!important;padding:80px 24px!important;}',
+    '.oc-cta-bg{position:absolute!important;inset:0!important;background-image:url("https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1200&q=80")!important;background-size:cover!important;background-position:center!important;}',
+    '@media(max-width:900px){.oc-coverage-grid,.oc-testi-grid{grid-template-columns:1fr!important;}.oc-why-inner{grid-template-columns:1fr!important;}}'
+  ].join('');
+  document.head.appendChild(s);
+}
+
+/* ── fixInsights ────────────────────────────────────────────────────────── */
+function fixInsights(){
+  if(window.location.pathname.indexOf('/insights')<0) return;
+  var state = localStorage.getItem('oc_state')||'georgia';
+  document.querySelectorAll('.oc-ic').forEach(function(card){
+    var scope = card.getAttribute('data-scope')||'national';
+    card.style.display = (scope==='national'||scope===state) ? '' : 'none';
+  });
+  var label = document.getElementById('oc-insights-state-label');
+  if(label) label.textContent = state.charAt(0).toUpperCase()+state.slice(1);
+}
+
+/* ── fixCards ───────────────────────────────────────────────────────────── */
+function fixCards(){
+  var s = document.querySelector('style#oc-card-fix');
+  if(s) return;
+  s = document.createElement('style');
+  s.id = 'oc-card-fix';
+  s.textContent = '.oc-carrier-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:24px;}.oc-carrier-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}';
+  document.head.appendChild(s);
+}
+
+/* ── fixInlineHeroes (v31.5.0 NEW) ─────────────────────────────────────── */
+/*
+ * Replaces solid navy hero backgrounds on inline pages with real Unsplash
+ * photos + a gradient overlay so images show through while text stays legible.
+ * Pages covered: /contact, /faq, /coverage-review, /about
+ */
+function fixInlineHeroes(){
+  var path = window.location.pathname;
+
+  /* Page config: hero element id, unsplash photo id, gradient direction */
+  var pages = {
+    '/contact':{
+      id:'oc-contact-hero',
+      photo:'photo-1521791136064-7986c2920216', /* handshake / meeting */
+      grad:'linear-gradient(105deg,rgba(27,58,92,0.88) 0%,rgba(27,58,92,0.55) 55%,rgba(27,58,92,0.22) 100%)'
+    },
+    '/faq':{
+      id:'oc-faq-hero',
+      photo:'photo-1507003211169-0a1dd7228f2d', /* desk / questions */
+      grad:'linear-gradient(105deg,rgba(27,58,92,0.88) 0%,rgba(27,58,92,0.55) 55%,rgba(27,58,92,0.22) 100%)'
+    },
+    '/coverage-review':{
+      id:'oc-cr-hero',
+      photo:'photo-1450101499163-c8848c66ca85', /* documents review */
+      grad:'linear-gradient(105deg,rgba(27,58,92,0.88) 0%,rgba(27,58,92,0.55) 55%,rgba(27,58,92,0.22) 100%)'
+    },
+    '/about':{
+      id:'oc-about-hero',
+      photo:'photo-1497366216548-37526070297c', /* modern office */
+      grad:'linear-gradient(105deg,rgba(27,58,92,0.85) 0%,rgba(27,58,92,0.50) 60%,rgba(27,58,92,0.20) 100%)'
+    }
+  };
+
+  var cfg = pages[path];
+  if(!cfg) return;
+
+  /* Inject override CSS */
+  if(!document.getElementById('oc-hero-photo-css')){
+    var s = document.createElement('style');
+    s.id = 'oc-hero-photo-css';
+    s.textContent =
+      '#'+cfg.id+'{' +
+        'position:relative!important;' +
+        'background-image:url("https://images.unsplash.com/'+cfg.photo+'?w=1400&q=80")!important;' +
+        'background-size:cover!important;' +
+        'background-position:center top!important;' +
+        'min-height:420px!important;' +
+      '}' +
+      '#'+cfg.id+'::before{' +
+        'content:"";' +
+        'position:absolute;' +
+        'inset:0;' +
+        'background:'+cfg.grad+';' +
+        'z-index:0;' +
+        'pointer-events:none;' +
+      '}' +
+      '#'+cfg.id+' > *{position:relative;z-index:1;}';
+    document.head.appendChild(s);
+  }
+
+  /* About page: inject a hero section if none exists */
+  if(path==='/about'){
+    var existing = document.getElementById('oc-about-hero');
+    if(!existing){
+      /* Find the first section after nav and prepend a hero */
+      var pageRoot = document.getElementById('oc-page-root');
+      if(pageRoot){
+        var heroDiv = document.createElement('section');
+        heroDiv.id = 'oc-about-hero';
+        heroDiv.style.cssText = 'padding:80px 24px 64px;';
+        heroDiv.innerHTML =
+          '<div style="max-width:760px;">' +
+            '<p style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-bottom:12px;">Independent Insurance Agency</p>' +
+            '<h1 style="font-family:\'Playfair Display\',serif;font-size:52px;font-weight:700;color:#fff;line-height:1.15;margin-bottom:16px;">About Olive Cover</h1>' +
+            '<p style="font-family:Inter,sans-serif;font-size:18px;color:rgba(255,255,255,.88);line-height:1.6;margin-bottom:28px;">We are an independent P&amp;C agency based in Johns Creek, Georgia. We work for you, not for one insurance company.</p>' +
+            '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
+              '<a href="/coverage-review" style="background:#C7A24B;color:#fff;font-family:Inter,sans-serif;font-size:15px;font-weight:600;padding:12px 24px;border-radius:4px;text-decoration:none;">Start your coverage review</a>' +
+              '<a href="/where-we-do-business" style="background:transparent;color:#fff;font-family:Inter,sans-serif;font-size:15px;font-weight:500;padding:12px 24px;border:1px solid rgba(255,255,255,.5);border-radius:4px;text-decoration:none;">Where we do business</a>' +
+            '</div>' +
+          '</div>';
+        pageRoot.insertBefore(heroDiv, pageRoot.firstChild);
+      }
+    }
+  }
+}
+
+/* ── CMS template hero overlay: gradient instead of solid ────────────────
+ * Targets .oc-hero-overlay on all CMS template pages
+ * (insurance pages, carrier pages, local, state, city, FAQ detail)
+ */
+function fixCmsHeroOverlay(){
+  /* Only run on CMS-driven pages, not inline pages */
+  var inlinePages = ['/','/about','/contact','/faq','/coverage-review','/where-we-do-business','/insights','/licensing','/privacy-policy','/terms-of-service'];
+  var path = window.location.pathname;
+  for(var i=0;i<inlinePages.length;i++){
+    if(path===inlinePages[i]) return;
+  }
+  if(document.getElementById('oc-cms-overlay-fix')) return;
+  var s = document.createElement('style');
+  s.id = 'oc-cms-overlay-fix';
+  s.textContent =
+    '.oc-hero-overlay{' +
+      'background:linear-gradient(105deg,rgba(27,58,92,0.82) 0%,rgba(27,58,92,0.48) 55%,rgba(27,58,92,0.16) 100%)!important;' +
+    '}';
+  document.head.appendChild(s);
+}
+
+/* ── Init ───────────────────────────────────────────────────────────────── */
+function init(){
+  buildNav();
+  fixFooter();
+  fixCarrierText();
+  fixTrustBar();
+  fixAboutPage();
+  fixHomePage();
+  fixInsights();
+  fixCards();
+  fixInlineHeroes();
+  fixCmsHeroOverlay();
 }
 
 if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', buildNav);
+  document.addEventListener('DOMContentLoaded', init);
 } else {
-  buildNav();
-  // Run fixes with retry on DOM changes
-  function runFixes(){fixFooter();fixCarrierText();fixTrustBar();fixAboutPage();
-  fixInsurancePage();
-  fixHomeSections();fixHomePage();}
-  setTimeout(runFixes,300);
-  setTimeout(runFixes,800);
-  setTimeout(runFixes,2000);
-  setTimeout(runFixes,4000);
-  var obs=new MutationObserver(function(){runFixes();});
-  obs.observe(document.body,{childList:true,subtree:true});
-  setTimeout(function(){obs.disconnect();},8000);
+  init();
 }
 
-function fixFooter(){
-  document.querySelectorAll("a").forEach(function(a){
-    if(a.textContent.trim()==="About Mahesh"){a.textContent="About Olive Cover";}
-  });
-}
-function fixCarrierText(){
-  var p=window.location.pathname;
-  var isCA=p.indexOf("california")>-1||p.indexOf("-california")>-1;
-  if(!isCA)return;
-  document.querySelectorAll("p,span,div,h2,h3").forEach(function(el){
-    if(el.children.length===0){
-      if(el.textContent.indexOf("appointed in Georgia")>-1){
-        el.textContent=el.textContent.replace("appointed in Georgia","available for this coverage");
-      }
-      if(el.textContent.trim()==="Georgia Range"){el.textContent="Coverage Cost";}
-    }
-  });
-}
-function fixTrustBar(){
-  document.querySelectorAll("*").forEach(function(el){
-    if(el.children.length===0){
-      var t=el.textContent;
-      if(t.indexOf("Agency NPN")>-1&&t.indexOf("Georgia licensed")>-1&&t.indexOf(" | ")===-1){
-        el.textContent=t.replace("Georgia licensed"," | Georgia Licensed");
-      }
-    }
-  });
-}
-
-
-
-function fixHomePage(){
-  if(window.location.pathname!=='/')return;
-  if(document.getElementById('oc-home-css-injected'))return;
-  var s=document.createElement('style');
-  s.id='oc-home-css-injected';
-  s.textContent='.oc-coverage-section{background:#fff!important;padding:80px 0!important}.oc-coverage-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important}.oc-coverage-header{text-align:center!important;margin-bottom:40px!important}.oc-coverage-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin-bottom:12px!important}.oc-coverage-h2{font-family:"Playfair Display",serif!important;font-size:38px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 8px!important}.oc-coverage-view-all{color:#1B3A5C!important;font-weight:600!important;font-size:14px!important}.oc-coverage-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:24px!important}.oc-coverage-card{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;cursor:pointer!important}.oc-coverage-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important}.oc-coverage-card-icon{font-size:28px!important;margin-bottom:12px!important;display:block!important}.oc-coverage-card-title{font-family:"Playfair Display",serif!important;font-size:18px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 8px!important;display:block!important}.oc-coverage-card-sub{font-size:14px!important;color:#444!important;line-height:1.55!important;display:block!important}.oc-coverage-card-learn{display:block!important;margin-top:12px!important;color:#1B3A5C!important;font-size:13px!important;font-weight:600!important;text-decoration:none!important}.oc-gaps-section{background:#1B3A5C!important;padding:80px 0!important}.oc-gaps-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important;display:grid!important;grid-template-columns:1fr 2fr!important;gap:48px!important;align-items:start!important}.oc-gaps-header{}.oc-gaps-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 12px!important;display:block!important}.oc-gaps-h2{font-family:"Playfair Display",serif!important;font-size:34px!important;font-weight:700!important;color:#fff!important;margin:0 0 16px!important}.oc-gaps-p{color:rgba(255,255,255,.75)!important;font-size:16px!important;line-height:1.65!important;margin:0 0 24px!important}.oc-gaps-cta{background:#C7A24B!important;color:#fff!important;padding:12px 24px!important;border-radius:4px!important;font-weight:600!important;text-decoration:none!important;display:inline-block!important;font-size:14px!important}.oc-gaps-list{}.oc-gap-item{padding:16px 0!important;border-bottom:1px solid rgba(255,255,255,.12)!important}.oc-gap-item:last-child{border-bottom:none!important}.oc-gap-item-title{color:#fff!important;font-weight:600!important;font-size:15px!important;margin:0 0 6px!important;display:block!important}.oc-gap-item-body{color:rgba(255,255,255,.7)!important;font-size:14px!important;line-height:1.55!important}.oc-gap-item-link{color:#C7A24B!important;font-weight:600!important;text-decoration:none!important}.oc-why-section{background:#F2F4F8!important;padding:80px 0!important}.oc-why-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:64px!important;align-items:start!important}.oc-why-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 12px!important;display:block!important}.oc-why-h2{font-family:"Playfair Display",serif!important;font-size:34px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 16px!important}.oc-why-sub{color:#444!important;font-size:16px!important;line-height:1.65!important;margin:0 0 32px!important}.oc-why-point{display:flex!important;gap:16px!important;margin-bottom:24px!important}.oc-why-point-icon{font-size:24px!important;flex-shrink:0!important;margin-top:2px!important}.oc-why-point-title{font-weight:600!important;color:#1B3A5C!important;font-size:15px!important;margin:0 0 4px!important;display:block!important}.oc-why-point-body{color:#444!important;font-size:14px!important;line-height:1.55!important}.oc-why-photo{height:420px!important;width:100%!important;overflow:hidden!important;border-radius:12px!important;margin-bottom:24px!important}.oc-why-cta-box{background:#1B3A5C!important;border-radius:8px!important;padding:24px!important}.oc-why-cta-title{color:#fff!important;font-weight:600!important;font-size:16px!important;margin:0 0 8px!important;display:block!important}.oc-why-cta-line{color:rgba(255,255,255,.75)!important;font-size:14px!important;padding:6px 0!important;display:block!important}#oc-why-photo-img{background-image:url(https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=840&q=80)!important;}.oc-testimonials-section{background:#fff!important;padding:80px 0!important}.oc-testi-inner{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important}.oc-testi-header{display:flex!important;justify-content:space-between!important;align-items:baseline!important;margin-bottom:40px!important}.oc-testi-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 8px!important;display:block!important}.oc-testi-h2{font-family:"Playfair Display",serif!important;font-size:34px!important;font-weight:700!important;color:#1B3A5C!important;margin:0!important}.oc-testi-header-cta{color:#1B3A5C!important;font-weight:600!important;font-size:14px!important;text-decoration:none!important}.oc-testi-grid{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:24px!important}.oc-testi-card{background:#F9F7F3!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:28px!important}.oc-testi-stars{color:#C7A24B!important;font-size:18px!important;margin-bottom:12px!important}.oc-testi-quote{font-size:15px!important;color:#444!important;line-height:1.65!important;margin:0 0 20px!important;font-style:italic!important}.oc-testi-name{font-weight:600!important;color:#1B3A5C!important;font-size:14px!important}.oc-testi-location{color:#666!important;font-size:13px!important}.oc-cta-section{position:relative!important;padding:80px 0!important;overflow:hidden!important}.oc-cta-bg{position:absolute!important;inset:0!important;background:url(https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=80) center/cover!important}.oc-cta-overlay{position:absolute!important;inset:0!important;background:rgba(27,58,92,.88)!important}.oc-cta-content{position:relative!important;max-width:700px!important;margin:0 auto!important;padding:0 32px!important;text-align:center!important}.oc-cta-eyebrow{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#C7A24B!important;margin:0 0 16px!important;display:block!important}.oc-cta-h2{font-family:"Playfair Display",serif!important;font-size:38px!important;font-weight:700!important;color:#fff!important;margin:0 0 16px!important}.oc-cta-sub{color:rgba(255,255,255,.82)!important;font-size:16px!important;line-height:1.65!important;margin:0 0 32px!important}.oc-cta-primary{background:#C7A24B!important;color:#fff!important;padding:14px 32px!important;border-radius:4px!important;font-weight:600!important;font-size:16px!important;text-decoration:none!important;display:inline-block!important}.oc-cta-footer-line{color:rgba(255,255,255,.55)!important;font-size:13px!important;margin-top:16px!important}@media(max-width:900px){.oc-coverage-grid{grid-template-columns:1fr 1fr!important}.oc-gaps-inner{grid-template-columns:1fr!important}.oc-why-inner{grid-template-columns:1fr!important}.oc-testi-grid{grid-template-columns:1fr!important}}';
-  document.head.appendChild(s);
-}
-
-function fixAboutPage(){
-  if(window.location.pathname.indexOf('/about')<0)return;
-  document.querySelectorAll('.oc-about-section p').forEach(function(p){
-    if(/We also serve Georgia|hold a California/i.test(p.textContent)){p.remove();}
-  });
-  var lic=document.querySelector('.oc-about-license');
-  if(lic){
-    lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details →</a></p>';
+window.addEventListener('storage', function(e){
+  if(e.key==='oc_state'){
+    fixCarrierText();
+    fixInsights();
+    fixInlineHeroes();
   }
-}
-
-
-/* ── Fix Insurance Page Carrier Cards ─────────────────── */
-function fixInsurancePage(){
-  var path = window.location.pathname;
-  if(path.indexOf('/personal-insurance/')===-1 && path.indexOf('/commercial-insurance/')===-1) return;
-  if(document.getElementById('oc-ins-css')) return;
-  var s=document.createElement('style');
-  s.id='oc-ins-css';
-  s.textContent=[
-    /* Section wrapper */
-    '.oc-carriers-section{background:#F2F4F8;padding:72px 24px;}',
-    '.oc-carriers-inner{max-width:1200px;margin:0 auto;}',
-    '.oc-carriers-eyebrow{font-family:Inter,sans-serif;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#C7A24B;margin-bottom:12px;}',
-    '.oc-carriers-h2{font-family:"Playfair Display",serif;font-size:36px;font-weight:700;color:#1B3A5C;margin:0 0 8px;}',
-    '.oc-carriers-sub{font-family:Inter,sans-serif;font-size:16px;color:#666;margin:0 0 40px;}',
-    /* Grid */
-    '.w-dyn-items{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:20px!important;padding:0!important;margin:0!important;list-style:none!important;}',
-    '.w-dyn-item{list-style:none!important;padding:0!important;margin:0!important;}',
-    /* Card */
-    '.w-dyn-item > div, .w-dyn-item > a{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;display:flex!important;flex-direction:column!important;gap:6px!important;text-decoration:none!important;transition:box-shadow .2s!important;}',
-    '.w-dyn-item > div:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important;}',
-    /* LOB eyebrow */
-    '.w-dyn-item p:first-child, .oc-carrier-lob{font-family:Inter,sans-serif!important;font-size:11px!important;font-weight:600!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:#C7A24B!important;margin:0 0 4px!important;}',
-    /* Carrier name h3 */
-    '.w-dyn-item h3{font-family:"Playfair Display",serif!important;font-size:22px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 4px!important;}',
-    /* AM Best pill */
-    '.oc-am-best, .w-dyn-item p:nth-child(3){display:inline-block!important;background:#EEF2F7!important;color:#1B3A5C!important;font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;padding:3px 10px!important;border-radius:20px!important;margin:0 0 10px!important;}',
-    /* Appetite text */
-    '.w-dyn-item p:nth-child(4){font-family:Inter,sans-serif!important;font-size:14px!important;line-height:1.6!important;color:#444!important;margin:0 0 12px!important;flex:1!important;}',
-    /* View link */
-    '.w-dyn-item a{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600!important;color:#1B3A5C!important;text-decoration:none!important;display:inline-flex!important;align-items:center!important;gap:4px!important;}',
-    '.w-dyn-item a:hover{color:#C7A24B!important;}',
-    '@media(max-width:900px){.w-dyn-items{grid-template-columns:1fr!important;}}'
-  ].join('');
-  document.head.appendChild(s);
-
-  /* Also fix coverage/exclusion sections on insurance pages */
-  if(document.getElementById('oc-cov-css')) return;
-  var s2=document.createElement('style');
-  s2.id='oc-cov-css';
-  s2.textContent=[
-    '.oc-coverage-section,.oc-exclusions-section{padding:72px 24px;max-width:1200px;margin:0 auto;}',
-    '.oc-coverage-grid,.oc-exclusions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px;}',
-    '.oc-coverage-card,.oc-exclusion-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:24px;}',
-    '.oc-coverage-card h3,.oc-exclusion-card h3{font-family:"Playfair Display",serif;font-size:18px;font-weight:700;color:#1B3A5C;margin:0 0 10px;}',
-    '.oc-coverage-card p,.oc-exclusion-card p{font-family:Inter,sans-serif;font-size:14px;line-height:1.6;color:#444;margin:0;}',
-    '@media(max-width:900px){.oc-coverage-grid,.oc-exclusions-grid{grid-template-columns:1fr;}}'
-  ].join('');
-  document.head.appendChild(s2);
-}
-
-/* ── Fix Home Coverage and Gaps Sections ──────────────── */
-function fixHomeSections(){
-  if(window.location.pathname !== '/') return;
-  if(document.getElementById('oc-homesec-css')) return;
-  var s=document.createElement('style');
-  s.id='oc-homesec-css';
-  s.textContent=[
-    /* Coverage section */
-    '.oc-coverage-section{background:#fff!important;padding:80px 24px!important;}',
-    '.oc-coverage-inner{max-width:1200px!important;margin:0 auto!important;}',
-    '.oc-coverage-header{display:flex!important;justify-content:space-between!important;align-items:flex-end!important;margin-bottom:40px!important;}',
-    '.oc-coverage-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;}',
-    '.oc-coverage-card{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;text-decoration:none!important;display:block!important;transition:box-shadow .2s!important;}',
-    '.oc-coverage-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important;}',
-    '.oc-coverage-card-icon{font-size:28px!important;margin-bottom:12px!important;display:block!important;}',
-    '.oc-coverage-card-title{font-family:"Playfair Display",serif!important;font-size:18px!important;font-weight:700!important;color:#1B3A5C!important;display:block!important;margin-bottom:8px!important;}',
-    '.oc-coverage-card-sub{font-family:Inter,sans-serif!important;font-size:14px!important;color:#666!important;line-height:1.5!important;display:block!important;margin-bottom:12px!important;}',
-    '.oc-coverage-card-learn{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600!important;color:#1B3A5C!important;}',
-    '.oc-coverage-eyebrow{font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#C7A24B!important;margin-bottom:8px!important;display:block!important;}',
-    '.oc-coverage-h2{font-family:"Playfair Display",serif!important;font-size:40px!important;font-weight:700!important;color:#1B3A5C!important;margin:0!important;}',
-    '.oc-coverage-view-all{font-family:Inter,sans-serif!important;font-size:14px!important;color:#1B3A5C!important;text-decoration:none!important;font-weight:600!important;}',
-    /* Gaps section */
-    '.oc-gaps-section{background:#1B3A5C!important;padding:80px 24px!important;}',
-    '.oc-gaps-inner{max-width:1200px!important;margin:0 auto!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:64px!important;align-items:start!important;}',
-    '.oc-gaps-eyebrow{font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#C7A24B!important;margin-bottom:12px!important;display:block!important;}',
-    '.oc-gaps-h2{font-family:"Playfair Display",serif!important;font-size:36px!important;font-weight:700!important;color:#fff!important;margin:0 0 16px!important;}',
-    '.oc-gaps-p{font-family:Inter,sans-serif!important;font-size:16px!important;color:rgba(255,255,255,.75)!important;margin:0 0 28px!important;line-height:1.6!important;}',
-    '.oc-gaps-cta{background:#C7A24B!important;color:#fff!important;font-family:Inter,sans-serif!important;font-size:14px!important;font-weight:600!important;padding:12px 24px!important;border-radius:6px!important;text-decoration:none!important;display:inline-block!important;}',
-    '.oc-gaps-list{display:flex!important;flex-direction:column!important;gap:16px!important;}',
-    '.oc-gap-item{background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;padding:20px!important;}',
-    '.oc-gap-item-title{font-family:Inter,sans-serif!important;font-size:15px!important;font-weight:600!important;color:#fff!important;margin-bottom:6px!important;display:block!important;}',
-    '.oc-gap-item-body{font-family:Inter,sans-serif!important;font-size:13px!important;color:rgba(255,255,255,.65)!important;line-height:1.5!important;display:block!important;}',
-    '.oc-gap-item-link{font-family:Inter,sans-serif!important;font-size:13px!important;color:#C7A24B!important;text-decoration:none!important;font-weight:600!important;margin-top:8px!important;display:inline-block!important;}',
-    '@media(max-width:900px){.oc-coverage-grid{grid-template-columns:1fr 1fr!important;}.oc-gaps-inner{grid-template-columns:1fr!important;}}'
-  ].join('');
-  document.head.appendChild(s);
-}
+});
 
 })();
