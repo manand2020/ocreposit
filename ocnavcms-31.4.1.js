@@ -6,10 +6,10 @@ var COLLECTION_ID = '69e2c474742df85703a42d14';
 var LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
 var chevron = '<svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg>';
 
-/* ââ State flags map âââââââââââââââââââââââââââââââââââââââ */
-var FLAGS = {georgia:'ð',california:'ð´',texas:'â­',florida:'ð',nevada:'ð²',arizona:'ðµ',colorado:'â°ï¸',oregon:'ð²',washington:'ð§ï¸'};
+/* Ã¢ÂÂÃ¢ÂÂ State flags map Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+var FLAGS = {georgia:'Ã°ÂÂÂ',california:'Ã°ÂÂÂ´',texas:'Ã¢Â­Â',florida:'Ã°ÂÂÂ',nevada:'Ã°ÂÂÂ²',arizona:'Ã°ÂÂÂµ',colorado:'Ã¢ÂÂ°Ã¯Â¸Â',oregon:'Ã°ÂÂÂ²',washington:'Ã°ÂÂÂ§Ã¯Â¸Â'};
 
-/* ââ State detection âââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ State detection Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function detectState(states){
   var path = window.location.pathname;
   var stored = localStorage.getItem('oc_state');
@@ -22,7 +22,7 @@ function detectState(states){
   return stored||'georgia';
 }
 
-/* ââ Fetch states from CMS âââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Fetch states from CMS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fetchStates(token, cb){
   var cached = sessionStorage.getItem('oc_states');
   if(cached){try{return cb(JSON.parse(cached));}catch(e){}}
@@ -35,7 +35,7 @@ function fetchStates(token, cb){
       .map(function(i){return{
         slug: i.fieldData.slug,
         name: i.fieldData.name,
-        flag: FLAGS[i.fieldData.slug]||'ð',
+        flag: FLAGS[i.fieldData.slug]||'Ã°ÂÂÂ',
         path: '/states/'+i.fieldData.slug
       };});
     if(items.length){sessionStorage.setItem('oc_states',JSON.stringify(items));}
@@ -45,12 +45,12 @@ function fetchStates(token, cb){
 
 function fallbackStates(){
   return[
-    {slug:'georgia',name:'Georgia',flag:'ð',path:'/states/georgia'},
-    {slug:'california',name:'California',flag:'ð´',path:'/states/california'}
+    {slug:'georgia',name:'Georgia',flag:'Ã°ÂÂÂ',path:'/states/georgia'},
+    {slug:'california',name:'California',flag:'Ã°ÂÂÂ´',path:'/states/california'}
   ];
 }
 
-/* ââ Nav data ââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Nav data Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 var NAV = {
   personal:{
     georgia:[
@@ -163,7 +163,7 @@ var NAV = {
   ]
 };
 
-/* ââ CSS âââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ CSS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 var CSS=[
   '#ocnav-bar{position:fixed;top:0;left:0;right:0;width:100%;max-width:none!important;z-index:99999;background:#1B3A5C;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px;box-shadow:0 2px 8px rgba(0,0,0,.25);box-sizing:border-box;}',
   '#ocnav-logo{display:flex;align-items:center;text-decoration:none;flex-shrink:0;}',
@@ -223,7 +223,7 @@ var CSS=[
   'body{padding-top:64px!important;}.w-nav{display:none!important;}'
 ].join('');
 
-/* ââ Helpers âââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Helpers Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function li(items){return items.map(function(i){return'<a href="'+i.href+'">'+i.label+'</a>';}).join('');}
 function sec(label,items){return'<div class="ocnav-dropdown-section">'+(label?'<span class="ocnav-section-label">'+label+'</span>':'')+li(items)+'</div>';}
 function dd(cls,html){return'<div class="ocnav-dropdown'+(cls?' '+cls:'')+'">'+html+'</div>';}
@@ -240,7 +240,7 @@ function coldd(cols3,r){
 }
 function btn(label,content,r){return'<div class="ocnav-item"><button class="ocnav-top">'+label+' '+chevron+'</button>'+dd(r?'right':'',content)+'</div>';}
 
-/* ââ Build state dropdown HTML âââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Build state dropdown HTML Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function buildStateDropdown(states, currentSlug){
   var current = states.filter(function(s){return s.slug===currentSlug;})[0]||states[0];
   var options = states.map(function(s){
@@ -264,7 +264,7 @@ function buildMobileStateSection(states, currentSlug){
   return '<div class="ocnav-mobile-state"><div class="ocnav-mobile-state-label">Select your state</div>'+opts+'</div>';
 }
 
-/* ââ Update switcher after CMS fetch âââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Update switcher after CMS fetch Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function updateSwitcher(states, currentSlug){
   var item = document.getElementById('oc-state-switcher');
   if(item) item.outerHTML = buildStateDropdown(states, currentSlug);
@@ -272,14 +272,14 @@ function updateSwitcher(states, currentSlug){
   if(mob) mob.outerHTML = buildMobileStateSection(states, currentSlug);
 }
 
-/* ââ Set state âââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Set state Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function setStateAndNavigate(slug){
   localStorage.setItem('oc_state', slug);
   sessionStorage.removeItem('oc_states');
   window.location.href = '/states/'+slug;
 }
 
-/* ââ Build nav âââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Build nav Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function buildNav(){
   if(document.getElementById('ocnav-bar')) return;
 
@@ -339,7 +339,7 @@ function buildNav(){
 
   window.__ocSetState = setStateAndNavigate;
 
-  /* ââ Hover with delay so mouse can travel to dropdown ââ */
+  /* Ã¢ÂÂÃ¢ÂÂ Hover with delay so mouse can travel to dropdown Ã¢ÂÂÃ¢ÂÂ */
   var _timer = null;
   document.querySelectorAll('.ocnav-item, .ocnav-state-item').forEach(function(item){
     item.addEventListener('mouseenter', function(){
@@ -396,6 +396,8 @@ if(document.readyState==='loading'){
   buildNav();
   // Run fixes with retry on DOM changes
   function runFixes(){fixFooter();fixCarrierText();fixTrustBar();fixAboutPage();
+  fixMobile();
+  removeErgo();
   fixInsurancePage();
   fixHomeSections();fixHomePage();}
   setTimeout(runFixes,300);
@@ -454,12 +456,12 @@ function fixAboutPage(){
   });
   var lic=document.querySelector('.oc-about-license');
   if(lic){
-    lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details â</a></p>';
+    lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details Ã¢ÂÂ</a></p>';
   }
 }
 
 
-/* ââ Fix Insurance Page Carrier Cards âââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Fix Insurance Page Carrier Cards Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixInsurancePage(){
   var path = window.location.pathname;
   if(path.indexOf('/personal-insurance/')===-1 && path.indexOf('/commercial-insurance/')===-1) return;
@@ -509,7 +511,7 @@ function fixInsurancePage(){
   document.head.appendChild(s2);
 }
 
-/* ââ Fix Home Coverage and Gaps Sections ââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Fix Home Coverage and Gaps Sections Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixHomeSections(){
   if(window.location.pathname !== '/') return;
   if(document.getElementById('oc-homesec-css')) return;
@@ -560,4 +562,30 @@ function fixHomeSections(){
   });
 }
 
+
+function fixMobile(){
+  if(window.innerWidth>900)return;
+  document.documentElement.style.cssText='max-width:100%!important;overflow-x:hidden!important';
+  document.body.style.overflowX='hidden';
+  document.body.style.maxWidth='100%';
+  var vw=window.innerWidth;
+  document.querySelectorAll('section,div,header,footer,nav').forEach(function(el){
+    try{if(el.getBoundingClientRect().width>vw+4){el.style.maxWidth='100%';el.style.overflowX='hidden';el.style.boxSizing='border-box';}}catch(e){}
+  });
+  var cg=document.querySelector('.oc-coverage-grid');if(cg){cg.style.gridTemplateColumns='1fr 1fr';cg.style.gap='12px';}
+  var hg=document.querySelector('.oc-hero-cards-grid');if(hg){hg.style.gridTemplateColumns='1fr 1fr';hg.style.gap='8px';}
+  var gg=document.querySelector('.oc-gaps-grid');if(gg){gg.style.gridTemplateColumns='1fr';gg.style.gap='24px';}
+  var wi=document.querySelector('.oc-why-inner');if(wi){wi.style.gridTemplateColumns='1fr';wi.style.gap='24px';}
+  var tg=document.querySelector('.oc-testi-grid');if(tg){tg.style.gridTemplateColumns='1fr';}
+  document.querySelectorAll('.w-dyn-items').forEach(function(g){g.style.gridTemplateColumns='1fr';});
+}
+function removeErgo(){
+  var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  var node;
+  while((node=walker.nextNode())){
+    if(node.nodeValue&&node.nodeValue.indexOf('ERGO')>-1){
+      node.nodeValue=node.nodeValue.replace(/[·|]s*E&O:s*ERGO Next/gi,'').replace(/E&O:s*ERGO Nexts*[·|]?/gi,'').replace(/E&O:s*ERGOs*Next/gi,'').trim();
+    }
+  }
+}
 })();
