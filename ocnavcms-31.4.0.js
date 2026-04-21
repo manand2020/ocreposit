@@ -1,4 +1,4 @@
-/* ocnavcms v31.4.0 | Olive Cover | CMS-driven multistate nav */
+/* ocnavcms v31.4.1 | Olive Cover | CMS-driven multistate nav + insurance page + home section CSS */
 (function(){
 'use strict';
 
@@ -395,7 +395,9 @@ if(document.readyState==='loading'){
 } else {
   buildNav();
   // Run fixes with retry on DOM changes
-  function runFixes(){fixFooter();fixCarrierText();fixTrustBar();fixAboutPage();fixHomePage();}
+  function runFixes(){fixFooter();fixCarrierText();fixTrustBar();fixAboutPage();
+  fixInsurancePage();
+  fixHomeSections();fixHomePage();}
   setTimeout(runFixes,300);
   setTimeout(runFixes,800);
   setTimeout(runFixes,2000);
@@ -455,4 +457,94 @@ function fixAboutPage(){
     lic.innerHTML='<p style="font-family:Inter,sans-serif;font-size:15px;line-height:1.6;color:#444;">Olive Cover is a licensed property and casualty insurance agency. <a href="/where-we-do-business" style="color:#1B3A5C;font-weight:600;">View licensed states and compliance details →</a></p>';
   }
 }
+
+
+/* ── Fix Insurance Page Carrier Cards ─────────────────── */
+function fixInsurancePage(){
+  var path = window.location.pathname;
+  if(path.indexOf('/personal-insurance/')===-1 && path.indexOf('/commercial-insurance/')===-1) return;
+  if(document.getElementById('oc-ins-css')) return;
+  var s=document.createElement('style');
+  s.id='oc-ins-css';
+  s.textContent=[
+    /* Section wrapper */
+    '.oc-carriers-section{background:#F2F4F8;padding:72px 24px;}',
+    '.oc-carriers-inner{max-width:1200px;margin:0 auto;}',
+    '.oc-carriers-eyebrow{font-family:Inter,sans-serif;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#C7A24B;margin-bottom:12px;}',
+    '.oc-carriers-h2{font-family:"Playfair Display",serif;font-size:36px;font-weight:700;color:#1B3A5C;margin:0 0 8px;}',
+    '.oc-carriers-sub{font-family:Inter,sans-serif;font-size:16px;color:#666;margin:0 0 40px;}',
+    /* Grid */
+    '.w-dyn-items{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:20px!important;padding:0!important;margin:0!important;list-style:none!important;}',
+    '.w-dyn-item{list-style:none!important;padding:0!important;margin:0!important;}',
+    /* Card */
+    '.w-dyn-item > div, .w-dyn-item > a{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;display:flex!important;flex-direction:column!important;gap:6px!important;text-decoration:none!important;transition:box-shadow .2s!important;}',
+    '.w-dyn-item > div:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important;}',
+    /* LOB eyebrow */
+    '.w-dyn-item p:first-child, .oc-carrier-lob{font-family:Inter,sans-serif!important;font-size:11px!important;font-weight:600!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:#C7A24B!important;margin:0 0 4px!important;}',
+    /* Carrier name h3 */
+    '.w-dyn-item h3{font-family:"Playfair Display",serif!important;font-size:22px!important;font-weight:700!important;color:#1B3A5C!important;margin:0 0 4px!important;}',
+    /* AM Best pill */
+    '.oc-am-best, .w-dyn-item p:nth-child(3){display:inline-block!important;background:#EEF2F7!important;color:#1B3A5C!important;font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;padding:3px 10px!important;border-radius:20px!important;margin:0 0 10px!important;}',
+    /* Appetite text */
+    '.w-dyn-item p:nth-child(4){font-family:Inter,sans-serif!important;font-size:14px!important;line-height:1.6!important;color:#444!important;margin:0 0 12px!important;flex:1!important;}',
+    /* View link */
+    '.w-dyn-item a{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600!important;color:#1B3A5C!important;text-decoration:none!important;display:inline-flex!important;align-items:center!important;gap:4px!important;}',
+    '.w-dyn-item a:hover{color:#C7A24B!important;}',
+    '@media(max-width:900px){.w-dyn-items{grid-template-columns:1fr!important;}}'
+  ].join('');
+  document.head.appendChild(s);
+
+  /* Also fix coverage/exclusion sections on insurance pages */
+  if(document.getElementById('oc-cov-css')) return;
+  var s2=document.createElement('style');
+  s2.id='oc-cov-css';
+  s2.textContent=[
+    '.oc-coverage-section,.oc-exclusions-section{padding:72px 24px;max-width:1200px;margin:0 auto;}',
+    '.oc-coverage-grid,.oc-exclusions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px;}',
+    '.oc-coverage-card,.oc-exclusion-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:24px;}',
+    '.oc-coverage-card h3,.oc-exclusion-card h3{font-family:"Playfair Display",serif;font-size:18px;font-weight:700;color:#1B3A5C;margin:0 0 10px;}',
+    '.oc-coverage-card p,.oc-exclusion-card p{font-family:Inter,sans-serif;font-size:14px;line-height:1.6;color:#444;margin:0;}',
+    '@media(max-width:900px){.oc-coverage-grid,.oc-exclusions-grid{grid-template-columns:1fr;}}'
+  ].join('');
+  document.head.appendChild(s2);
+}
+
+/* ── Fix Home Coverage and Gaps Sections ──────────────── */
+function fixHomeSections(){
+  if(window.location.pathname !== '/') return;
+  if(document.getElementById('oc-homesec-css')) return;
+  var s=document.createElement('style');
+  s.id='oc-homesec-css';
+  s.textContent=[
+    /* Coverage section */
+    '.oc-coverage-section{background:#fff!important;padding:80px 24px!important;}',
+    '.oc-coverage-inner{max-width:1200px!important;margin:0 auto!important;}',
+    '.oc-coverage-header{display:flex!important;justify-content:space-between!important;align-items:flex-end!important;margin-bottom:40px!important;}',
+    '.oc-coverage-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;}',
+    '.oc-coverage-card{background:#fff!important;border:1px solid #E5E7EB!important;border-radius:8px!important;padding:24px!important;text-decoration:none!important;display:block!important;transition:box-shadow .2s!important;}',
+    '.oc-coverage-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)!important;}',
+    '.oc-coverage-card-icon{font-size:28px!important;margin-bottom:12px!important;display:block!important;}',
+    '.oc-coverage-card-title{font-family:"Playfair Display",serif!important;font-size:18px!important;font-weight:700!important;color:#1B3A5C!important;display:block!important;margin-bottom:8px!important;}',
+    '.oc-coverage-card-sub{font-family:Inter,sans-serif!important;font-size:14px!important;color:#666!important;line-height:1.5!important;display:block!important;margin-bottom:12px!important;}',
+    '.oc-coverage-card-learn{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600!important;color:#1B3A5C!important;}',
+    '.oc-coverage-eyebrow{font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#C7A24B!important;margin-bottom:8px!important;display:block!important;}',
+    '.oc-coverage-h2{font-family:"Playfair Display",serif!important;font-size:40px!important;font-weight:700!important;color:#1B3A5C!important;margin:0!important;}',
+    '.oc-coverage-view-all{font-family:Inter,sans-serif!important;font-size:14px!important;color:#1B3A5C!important;text-decoration:none!important;font-weight:600!important;}',
+    /* Gaps section */
+    '.oc-gaps-section{background:#1B3A5C!important;padding:80px 24px!important;}',
+    '.oc-gaps-inner{max-width:1200px!important;margin:0 auto!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:64px!important;align-items:start!important;}',
+    '.oc-gaps-eyebrow{font-family:Inter,sans-serif!important;font-size:12px!important;font-weight:600!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#C7A24B!important;margin-bottom:12px!important;display:block!important;}',
+    '.oc-gaps-h2{font-family:"Playfair Display",serif!important;font-size:36px!important;font-weight:700!important;color:#fff!important;margin:0 0 16px!important;}',
+    '.oc-gaps-p{font-family:Inter,sans-serif!important;font-size:16px!important;color:rgba(255,255,255,.75)!important;margin:0 0 28px!important;line-height:1.6!important;}',
+    '.oc-gaps-cta{background:#C7A24B!important;color:#fff!important;font-family:Inter,sans-serif!important;font-size:14px!important;font-weight:600!important;padding:12px 24px!important;border-radius:6px!important;text-decoration:none!important;display:inline-block!important;}',
+    '.oc-gaps-list{display:flex!important;flex-direction:column!important;gap:16px!important;}',
+    '.oc-gap-item{background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;padding:20px!important;}',
+    '.oc-gap-item-title{font-family:Inter,sans-serif!important;font-size:15px!important;font-weight:600!important;color:#fff!important;margin-bottom:6px!important;display:block!important;}',
+    '.oc-gap-item-body{font-family:Inter,sans-serif!important;font-size:13px!important;color:rgba(255,255,255,.65)!important;line-height:1.5!important;display:block!important;}',
+    '.oc-gap-item-link{font-family:Inter,sans-serif!important;font-size:13px!important;color:#C7A24B!important;text-decoration:none!important;font-weight:600!important;margin-top:8px!important;display:inline-block!important;}',
+    '@media(max-width:900px){.oc-coverage-grid{grid-template-columns:1fr 1fr!important;}.oc-gaps-inner{grid-template-columns:1fr!important;}}'
+  ].join('');
+  document.head.appendChild(s);
+}
+
 })();
