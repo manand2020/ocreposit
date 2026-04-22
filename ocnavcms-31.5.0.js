@@ -1,4 +1,4 @@
-/* ocnavcms v31.5.0 | Olive Cover | CMS-driven multistate nav + gradient hero overlays */
+/* ocnavcms v31.5.2 | Olive Cover | CMS-driven multistate nav + gradient hero overlays | city URL fix Apr22 */
 (function(){
 'use strict';
 
@@ -6,7 +6,7 @@ var COLLECTION_ID = '69e2c474742df85703a42d14';
 var LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
 var chevron = '<svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg>';
 
-var FLAGS = {georgia:'ðºð¸',california:'ð',texas:'â­',florida:'ð´',nevada:'ð²',arizona:'ðµ',colorado:'â°ï¸',oregon:'ð²',washington:'ð§ï¸'};
+var FLAGS = {georgia:'Ã°ÂÂÂºÃ°ÂÂÂ¸',california:'Ã°ÂÂÂ',texas:'Ã¢Â­Â',florida:'Ã°ÂÂÂ´',nevada:'Ã°ÂÂÂ²',arizona:'Ã°ÂÂÂµ',colorado:'Ã¢ÂÂ°Ã¯Â¸Â',oregon:'Ã°ÂÂÂ²',washington:'Ã°ÂÂÂ§Ã¯Â¸Â'};
 
 function detectState(states){
   var path = window.location.pathname;
@@ -32,7 +32,7 @@ function fetchStates(token, cb){
       .map(function(i){return{
         slug: i.fieldData.slug,
         name: i.fieldData.name,
-        flag: FLAGS[i.fieldData.slug]||'ð³ï¸',
+        flag: FLAGS[i.fieldData.slug]||'Ã°ÂÂÂ³Ã¯Â¸Â',
         path: '/states/'+i.fieldData.slug
       };});
     if(items.length){sessionStorage.setItem('oc_states',JSON.stringify(items));}
@@ -42,8 +42,8 @@ function fetchStates(token, cb){
 
 function fallbackStates(){
   return[
-    {slug:'georgia',name:'Georgia',flag:'ðºð¸',path:'/states/georgia'},
-    {slug:'california',name:'California',flag:'ð',path:'/states/california'}
+    {slug:'georgia',name:'Georgia',flag:'Ã°ÂÂÂºÃ°ÂÂÂ¸',path:'/states/georgia'},
+    {slug:'california',name:'California',flag:'Ã°ÂÂÂ',path:'/states/california'}
   ];
 }
 
@@ -132,14 +132,14 @@ var NAV = {
       {label:'Cherokee & Forsyth',href:'/locations/cherokee-forsyth-county'},
       {label:'Savannah',href:'/locations/savannah'},
       {label:'Columbus',href:'/locations/columbus'},
-      {label:'Johns Creek',href:'/cities/fulton-county-johns-creek'},
-      {label:'Alpharetta',href:'/cities/fulton-county-alpharetta'},
-      {label:'Cumming',href:'/cities/forsyth-county-cumming'},
-      {label:'Duluth',href:'/cities/gwinnett-county-duluth'},
-      {label:'Lawrenceville',href:'/cities/gwinnett-county-lawrenceville'},
-      {label:'Suwanee',href:'/cities/gwinnett-county-suwanee'},
-      {label:'Sugar Hill',href:'/cities/gwinnett-county-sugar-hill'},
-      {label:'Buford',href:'/cities/gwinnett-county-buford'}
+      {label:'Johns Creek',href:'/cities/georgia-johns-creek'},
+      {label:'Alpharetta',href:'/cities/georgia-alpharetta'},
+      {label:'Cumming',href:'/cities/georgia-cumming'},
+      {label:'Duluth',href:'/cities/georgia-duluth'},
+      {label:'Lawrenceville',href:'/cities/georgia-lawrenceville'},
+      {label:'Suwanee',href:'/cities/georgia-suwanee'},
+      {label:'Sugar Hill',href:'/cities/georgia-sugar-hill'},
+      {label:'Buford',href:'/cities/georgia-buford'}
     ],
     california:[
       {label:'Insurance in California',href:'/states/california'},
@@ -374,14 +374,14 @@ function buildNav(){
   }
 }
 
-/* ââ fixFooter ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixFooter Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixFooter(){
   document.querySelectorAll('a').forEach(function(a){
     if(a.textContent.trim()==='About Mahesh') a.textContent = 'About Olive Cover';
   });
 }
 
-/* ââ fixCarrierText âââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixCarrierText Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixCarrierText(){
   var state = localStorage.getItem('oc_state')||'georgia';
   if(state!=='california') return;
@@ -394,7 +394,7 @@ function fixCarrierText(){
   });
 }
 
-/* ââ fixTrustBar ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixTrustBar Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixTrustBar(){
   var badges = document.querySelectorAll('.oc-trust-badge');
   badges.forEach(function(b,i){
@@ -408,7 +408,7 @@ function fixTrustBar(){
   });
 }
 
-/* ââ fixAboutPage âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixAboutPage Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixAboutPage(){
   if(window.location.pathname !== '/about') return;
   setTimeout(function(){
@@ -422,7 +422,7 @@ function fixAboutPage(){
   }, 300);
 }
 
-/* ââ fixHomePage (redundant backup to ochomefaq) ââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixHomePage (redundant backup to ochomefaq) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixHomePage(){
   if(window.location.pathname !== '/') return;
   if(document.getElementById('oc-hcss-backup')) return;
@@ -452,7 +452,7 @@ function fixHomePage(){
   document.head.appendChild(s);
 }
 
-/* ââ fixInsights ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixInsights Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixInsights(){
   if(window.location.pathname.indexOf('/insights')<0) return;
   var state = localStorage.getItem('oc_state')||'georgia';
@@ -464,7 +464,7 @@ function fixInsights(){
   if(label) label.textContent = state.charAt(0).toUpperCase()+state.slice(1);
 }
 
-/* ââ fixCards âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixCards Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function fixCards(){
   var s = document.querySelector('style#oc-card-fix');
   if(s) return;
@@ -474,7 +474,7 @@ function fixCards(){
   document.head.appendChild(s);
 }
 
-/* ââ fixInlineHeroes (v31.5.0 NEW) âââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ fixInlineHeroes (v31.5.0 NEW) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 /*
  * Replaces solid navy hero backgrounds on inline pages with real Unsplash
  * photos + a gradient overlay so images show through while text stays legible.
@@ -560,7 +560,7 @@ function fixInlineHeroes(){
   }
 }
 
-/* ââ CMS template hero overlay: gradient instead of solid ââââââââââââââââ
+/* Ã¢ÂÂÃ¢ÂÂ CMS template hero overlay: gradient instead of solid Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
  * Targets .oc-hero-overlay on all CMS template pages
  * (insurance pages, carrier pages, local, state, city, FAQ detail)
  */
@@ -581,7 +581,7 @@ function fixCmsHeroOverlay(){
   document.head.appendChild(s);
 }
 
-/* ââ Init âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* Ã¢ÂÂÃ¢ÂÂ Init Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 function init(){
   buildNav();
   fixFooter();
@@ -612,7 +612,7 @@ window.addEventListener('storage', function(e){
 })();
 
 
-// ── v31.5.1 additions ──────────────────────────────────────────────────────
+// ââ v31.5.1 additions ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function fixPhoneLinks(){
   var t='tel:+16788881011';
