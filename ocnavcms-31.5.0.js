@@ -6,7 +6,7 @@ var COLLECTION_ID = '69e2c474742df85703a42d14';
 var LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
 var chevron = '<svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg>';
 
-var FLAGS = {georgia:'🇺🇸',california:'🏄',texas:'⭐',florida:'🌴',nevada:'🎲',arizona:'🌵',colorado:'⛰️',oregon:'🌲',washington:'🌧️'};
+var FLAGS = {georgia:'ðºð¸',california:'ð',texas:'â­',florida:'ð´',nevada:'ð²',arizona:'ðµ',colorado:'â°ï¸',oregon:'ð²',washington:'ð§ï¸'};
 
 function detectState(states){
   var path = window.location.pathname;
@@ -32,7 +32,7 @@ function fetchStates(token, cb){
       .map(function(i){return{
         slug: i.fieldData.slug,
         name: i.fieldData.name,
-        flag: FLAGS[i.fieldData.slug]||'🏳️',
+        flag: FLAGS[i.fieldData.slug]||'ð³ï¸',
         path: '/states/'+i.fieldData.slug
       };});
     if(items.length){sessionStorage.setItem('oc_states',JSON.stringify(items));}
@@ -42,8 +42,8 @@ function fetchStates(token, cb){
 
 function fallbackStates(){
   return[
-    {slug:'georgia',name:'Georgia',flag:'🇺🇸',path:'/states/georgia'},
-    {slug:'california',name:'California',flag:'🏄',path:'/states/california'}
+    {slug:'georgia',name:'Georgia',flag:'ðºð¸',path:'/states/georgia'},
+    {slug:'california',name:'California',flag:'ð',path:'/states/california'}
   ];
 }
 
@@ -374,14 +374,14 @@ function buildNav(){
   }
 }
 
-/* ── fixFooter ──────────────────────────────────────────────────────────── */
+/* ââ fixFooter ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 function fixFooter(){
   document.querySelectorAll('a').forEach(function(a){
     if(a.textContent.trim()==='About Mahesh') a.textContent = 'About Olive Cover';
   });
 }
 
-/* ── fixCarrierText ─────────────────────────────────────────────────────── */
+/* ââ fixCarrierText âââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 function fixCarrierText(){
   var state = localStorage.getItem('oc_state')||'georgia';
   if(state!=='california') return;
@@ -394,7 +394,7 @@ function fixCarrierText(){
   });
 }
 
-/* ── fixTrustBar ────────────────────────────────────────────────────────── */
+/* ââ fixTrustBar ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 function fixTrustBar(){
   var badges = document.querySelectorAll('.oc-trust-badge');
   badges.forEach(function(b,i){
@@ -408,7 +408,7 @@ function fixTrustBar(){
   });
 }
 
-/* ── fixAboutPage ───────────────────────────────────────────────────────── */
+/* ââ fixAboutPage âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 function fixAboutPage(){
   if(window.location.pathname !== '/about') return;
   setTimeout(function(){
@@ -422,7 +422,7 @@ function fixAboutPage(){
   }, 300);
 }
 
-/* ── fixHomePage (redundant backup to ochomefaq) ────────────────────────── */
+/* ââ fixHomePage (redundant backup to ochomefaq) ââââââââââââââââââââââââââ */
 function fixHomePage(){
   if(window.location.pathname !== '/') return;
   if(document.getElementById('oc-hcss-backup')) return;
@@ -452,7 +452,7 @@ function fixHomePage(){
   document.head.appendChild(s);
 }
 
-/* ── fixInsights ────────────────────────────────────────────────────────── */
+/* ââ fixInsights ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 function fixInsights(){
   if(window.location.pathname.indexOf('/insights')<0) return;
   var state = localStorage.getItem('oc_state')||'georgia';
@@ -464,7 +464,7 @@ function fixInsights(){
   if(label) label.textContent = state.charAt(0).toUpperCase()+state.slice(1);
 }
 
-/* ── fixCards ───────────────────────────────────────────────────────────── */
+/* ââ fixCards âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 function fixCards(){
   var s = document.querySelector('style#oc-card-fix');
   if(s) return;
@@ -474,7 +474,7 @@ function fixCards(){
   document.head.appendChild(s);
 }
 
-/* ── fixInlineHeroes (v31.5.0 NEW) ─────────────────────────────────────── */
+/* ââ fixInlineHeroes (v31.5.0 NEW) âââââââââââââââââââââââââââââââââââââââ */
 /*
  * Replaces solid navy hero backgrounds on inline pages with real Unsplash
  * photos + a gradient overlay so images show through while text stays legible.
@@ -560,7 +560,7 @@ function fixInlineHeroes(){
   }
 }
 
-/* ── CMS template hero overlay: gradient instead of solid ────────────────
+/* ââ CMS template hero overlay: gradient instead of solid ââââââââââââââââ
  * Targets .oc-hero-overlay on all CMS template pages
  * (insurance pages, carrier pages, local, state, city, FAQ detail)
  */
@@ -581,7 +581,7 @@ function fixCmsHeroOverlay(){
   document.head.appendChild(s);
 }
 
-/* ── Init ───────────────────────────────────────────────────────────────── */
+/* ââ Init âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 function init(){
   buildNav();
   fixFooter();
@@ -610,3 +610,59 @@ window.addEventListener('storage', function(e){
 });
 
 })();
+
+
+// ── v31.5.1 additions ──────────────────────────────────────────────────────
+
+function fixPhoneLinks(){
+  var t='tel:+16788881011';
+  var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  var n,ns=[];
+  while((n=w.nextNode()))ns.push(n);
+  ns.forEach(function(n){
+    if(n.textContent.indexOf('(678) 888-1011')>-1&&n.parentNode&&n.parentNode.tagName!=='A'){
+      var s=document.createElement('span');
+      s.innerHTML=n.textContent.replace(/\(678\) 888-1011/g,'<a href="'+t+'" style="color:inherit;text-decoration:none">(678) 888-1011</a>');
+      n.parentNode.replaceChild(s,n);
+    }
+  });
+}
+
+function fixCarrierCards(){
+  if(!location.pathname.match(/\/(personal-insurance|commercial-insurance|carriers|commercial-carriers)\//)|| document.getElementById('oc-cc'))return;
+  var s=document.createElement('style');s.id='oc-cc';
+  s.textContent='.w-dyn-list{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}@media(max-width:900px){.w-dyn-list{grid-template-columns:1fr}}.w-dyn-item{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:24px;transition:box-shadow .15s}.w-dyn-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}';
+  document.head.appendChild(s);
+}
+
+function fixSocialIcons(){
+  var fb='<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>';
+  var ig='<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/></svg>';
+  var li='<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>';
+  document.querySelectorAll('footer a').forEach(function(a){
+    var t=(a.textContent||'').trim();
+    if(t==='f'){a.innerHTML=fb;a.setAttribute('aria-label','Facebook');}
+    else if(t==='ig'){a.innerHTML=ig;a.setAttribute('aria-label','Instagram');}
+    else if(t==='in'){a.innerHTML=li;a.setAttribute('aria-label','LinkedIn');}
+  });
+}
+
+function fixFooterCarriersLink(){
+  document.querySelectorAll('a').forEach(function(a){
+    if((a.textContent||'').trim()==='Our Carriers'&&(a.href||'').indexOf('homeowners')>-1)
+      a.href='/carriers/travelers-insurance';
+  });
+}
+
+function fixGeoFallback(){
+  if(!localStorage.getItem('oc_state'))
+    setTimeout(function(){if(!localStorage.getItem('oc_state'))localStorage.setItem('oc_state','georgia');},3000);
+}
+
+// v31.5.1 init calls
+fixPhoneLinks();
+fixCarrierCards();
+fixSocialIcons();
+fixFooterCarriersLink();
+fixGeoFallback();
+document.addEventListener('DOMContentLoaded',function(){fixGeoFallback();});
