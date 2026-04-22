@@ -6,7 +6,7 @@ var COLLECTION_ID = '69e2c474742df85703a42d14';
 var LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
 var chevron = '<svg viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z"/></svg>';
 
-var FLAGS = {georgia:'Ã°ÂÂÂºÃ°ÂÂÂ¸',california:'Ã°ÂÂÂ',texas:'Ã¢Â­Â',florida:'Ã°ÂÂÂ´',nevada:'Ã°ÂÂÂ²',arizona:'Ã°ÂÂÂµ',colorado:'Ã¢ÂÂ°Ã¯Â¸Â',oregon:'Ã°ÂÂÂ²',washington:'Ã°ÂÂÂ§Ã¯Â¸Â'};
+var FLAGS = {georgia:'',california:'',texas:'',florida:'',nevada:'',arizona:'',colorado:'',oregon:'',washington:''};
 
 function detectState(states){
   var path = window.location.pathname;
@@ -32,7 +32,7 @@ function fetchStates(token, cb){
       .map(function(i){return{
         slug: i.fieldData.slug,
         name: i.fieldData.name,
-        flag: FLAGS[i.fieldData.slug]||'Ã°ÂÂÂ³Ã¯Â¸Â',
+        flag: FLAGS[i.fieldData.slug]||'',
         path: '/states/'+i.fieldData.slug
       };});
     if(items.length){sessionStorage.setItem('oc_states',JSON.stringify(items));}
@@ -42,8 +42,8 @@ function fetchStates(token, cb){
 
 function fallbackStates(){
   return[
-    {slug:'georgia',name:'Georgia',flag:'Ã°ÂÂÂºÃ°ÂÂÂ¸',path:'/states/georgia'},
-    {slug:'california',name:'California',flag:'Ã°ÂÂÂ',path:'/states/california'}
+    {slug:'georgia',name:'Georgia',flag:'',path:'/states/georgia'},
+    {slug:'california',name:'California',flag:'',path:'/states/california'}
   ];
 }
 
@@ -238,10 +238,10 @@ function buildStateDropdown(states, currentSlug){
   var current = states.filter(function(s){return s.slug===currentSlug;})[0]||states[0];
   var options = states.map(function(s){
     var active = s.slug===currentSlug;
-    return '<button class="ocnav-state-option'+(active?' active':'')+'" onclick="window.__ocSetState(\''+s.slug+'\')">'+'<span class="oc-flag">'+s.flag+'</span>'+'<span class="oc-name">'+s.name+'</span>'+(active?'<span class="oc-check">&#10003;</span>':'')+'</button>';
+    return '<button class="ocnav-state-option'+(active?' active':'')+'" onclick="window.__ocSetState(\''+s.slug+'\')">'+''+'<span class="oc-name">'+s.name+'</span>'+(active?'<span class="oc-check">&#10003;</span>':'')+'</button>';
   }).join('');
   return '<div class="ocnav-state-item">'+
-    '<button class="ocnav-state-btn">'+current.flag+' '+current.name+' '+chevron+'</button>'+
+    '<button class="ocnav-state-btn">'+current.name+' '+chevron+'</button>'+
     '<div class="ocnav-state-dropdown">'+
       '<span class="ocnav-state-header">Select your state</span>'+
       options+
@@ -252,7 +252,7 @@ function buildStateDropdown(states, currentSlug){
 function buildMobileStateSection(states, currentSlug){
   var opts = states.map(function(s){
     var active = s.slug===currentSlug;
-    return '<button class="ocnav-mobile-state-opt'+(active?' active':'')+'" onclick="window.__ocSetState(\''+s.slug+'\')">'+s.flag+' '+s.name+(active?' &#10003;':'')+'</button>';
+    return '<button class="ocnav-mobile-state-opt'+(active?' active':'')+'" onclick="window.__ocSetState(\''+s.slug+'\')">'+s.name+(active?' &#10003;':'')+'</button>';
   }).join('');
   return '<div class="ocnav-mobile-state"><div class="ocnav-mobile-state-label">Select your state</div>'+opts+'</div>';
 }
@@ -474,7 +474,7 @@ function fixCards(){
   document.head.appendChild(s);
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ fixInlineHeroes (v31.5.0 NEW) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
+/* Ã¢ÂÂÃ¢ÂÂ fixInlineHeroes (v31.5.3 - Olive Cover Nav (no flag emojis)
 /*
  * Replaces solid navy hero backgrounds on inline pages with real Unsplash
  * photos + a gradient overlay so images show through while text stays legible.
