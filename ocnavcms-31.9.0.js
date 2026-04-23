@@ -345,10 +345,7 @@ function buildNav(){
   // Logo injection handled by oclogofix polling
 }
 
-function hideOldNav(){
-  var nav=document.getElementById('oc-nav');
-  if(nav)nav.style.display='none';
-}
+function hideOldNav(){var n=document.getElementById("oc-nav");if(n)n.style.display="none";var m=document.getElementById("ocnav-mobile");if(m)m.style.display="none";document.querySelectorAll("[id^=ocnav-]:not(#ocnav-bar):not(#ocnav-spacer):not(#ocnav-logo)").forEach(function(el){el.style.display="none";});}
 
 function fixFooter(){
   // Fix footer carrier link
