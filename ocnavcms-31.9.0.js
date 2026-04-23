@@ -130,6 +130,8 @@ function injectCSS(){
     '#ocnav-bar .ocn-phone{color:rgba(255,255,255,.75);font-size:12px;text-decoration:none;}',
     '#ocnav-bar .ocn-phone:hover{color:#fff;}',
     '@media(max-width:900px){#ocnav-bar .ocn-links{display:none;}#ocnav-bar .ocn-phone{display:none;}#ocn-hamburger{display:flex !important;}}'
+    '#ocnav-mobile{display:none!important;}',
+    '#ocnav-bar + #ocnav-mobile{display:none!important;}',
   ].join('');
   document.head.appendChild(s);
 }
