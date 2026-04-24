@@ -1,0 +1,39 @@
+#oc-hero{position:relative!important;min-height:92vh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;background:#1B3A5C!important}
+#oc-hero-bg{position:absolute!important;top:0!important;left:0!important;right:0!important;bottom:0!important;background-size:cover!important;background-position:center center!important;background-repeat:no-repeat!important;z-index:0!important;min-height:92vh!important}
+.oc-hero-overlay{position:absolute!important;top:0!important;left:0!important;right:0!important;bottom:0!important;background:linear-gradient(105deg,rgba(27,58,92,0.88) 0%,rgba(27,58,92,0.58) 55%,rgba(27,58,92,0.2) 100%)!important;z-index:1!important}
+.oc-hero-content{position:relative!important;z-index:2!important;display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:space-between!important;gap:48px!important;max-width:1200px!important;margin:0 auto!important;padding:120px 48px 80px!important;width:100%!important;box-sizing:border-box!important}
+.oc-hero-left{flex:1!important;max-width:580px!important}
+.oc-hero-eyebrow{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:20px!important}
+.oc-hero-eyebrow-dot{width:8px!important;height:8px!important;border-radius:50%!important;background:#C7A24B!important;display:inline-block!important;flex-shrink:0!important}
+.oc-hero-eyebrow-text{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:500!important;letter-spacing:0.06em!important;text-transform:uppercase!important;color:rgba(255,255,255,0.8)!important}
+.oc-hero-headline-h1{font-family:'Playfair Display',serif!important;font-size:56px!important;font-weight:700!important;line-height:1.1!important;color:#fff!important;margin:0 0 20px!important}
+.oc-hero-sub{font-family:Inter,sans-serif!important;font-size:18px!important;font-weight:400!important;line-height:1.6!important;color:rgba(255,255,255,0.85)!important;margin:0 0 32px!important}
+.oc-hero-cta-row{display:flex!important;flex-wrap:wrap!important;gap:16px!important;align-items:center!important}
+.oc-hero-cta-primary{display:inline-flex!important;align-items:center!important;gap:8px!important;padding:14px 28px!important;background:#C7A24B!important;color:#fff!important;font-family:Inter,sans-serif!important;font-size:16px!important;font-weight:600!important;border-radius:6px!important;text-decoration:none!important;transition:background 0.2s!important}
+.oc-hero-cta-primary:hover{background:#b8934a!important}
+.oc-hero-cta-secondary{display:inline-flex!important;align-items:center!important;padding:14px 20px!important;background:rgba(255,255,255,0.1)!important;color:#fff!important;font-family:Inter,sans-serif!important;font-size:15px!important;font-weight:500!important;border-radius:6px!important;text-decoration:none!important;border:1px solid rgba(255,255,255,0.25)!important;transition:background 0.2s!important}
+.oc-hero-cta-secondary:hover{background:rgba(255,255,255,0.2)!important}
+.oc-hero-cards{flex-shrink:0!important;width:300px!important;background:rgba(255,255,255,0.08)!important;border:1px solid rgba(255,255,255,0.15)!important;border-radius:12px!important;padding:20px!important;margin-top:40px!important;backdrop-filter:blur(8px)!important}
+.oc-hero-cards-header{margin-bottom:12px!important}
+.oc-hero-cards-title{font-family:Inter,sans-serif!important;font-size:11px!important;font-weight:700!important;letter-spacing:0.08em!important;text-transform:uppercase!important;color:#C7A24B!important;margin-bottom:4px!important}
+.oc-hero-cards-sub{font-family:Inter,sans-serif!important;font-size:12px!important;color:rgba(255,255,255,0.55)!important}
+.oc-hero-cards-grid{display:flex!important;flex-direction:column!important;gap:2px!important}
+.oc-hero-card{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:10px 12px!important;border-radius:8px!important;text-decoration:none!important;background:transparent!important;transition:background 0.15s!important}
+.oc-hero-card:hover{background:rgba(255,255,255,0.1)!important}
+.oc-hero-card-body{flex:1!important}
+.oc-hero-card-title{font-family:Inter,sans-serif!important;font-size:14px!important;font-weight:600!important;color:#fff!important;margin-bottom:2px!important}
+.oc-hero-card-sub{font-family:Inter,sans-serif!important;font-size:12px!important;color:rgba(255,255,255,0.6)!important}
+.oc-hero-card-arrow{color:#C7A24B!important;font-size:18px!important;margin-left:8px!important;flex-shrink:0!important}
+.oc-hero-cards-footer{margin-top:12px!important;padding-top:12px!important;border-top:1px solid rgba(255,255,255,0.12)!important}
+.oc-hero-cards-footer-link{font-family:Inter,sans-serif!important;font-size:13px!important;color:rgba(255,255,255,0.7)!important;text-decoration:none!important;display:flex!important;align-items:center!important;gap:4px!important}
+.oc-hero-cards-footer-link:hover{color:#fff!important}
+.oc-hero-cta-arrow{color:#C7A24B!important}
+@media(max-width:900px){
+.oc-hero-content{flex-direction:column!important;padding:90px 20px 48px!important;gap:28px!important}
+.oc-hero-left{max-width:100%!important}
+.oc-hero-headline-h1{font-size:36px!important;line-height:1.15!important}
+.oc-hero-sub{font-size:16px!important}
+.oc-hero-cards{width:100%!important;margin-top:0!important;box-sizing:border-box!important}
+.oc-hero-cta-row{flex-direction:column!important;align-items:stretch!important}
+.oc-hero-cta-primary,.oc-hero-cta-secondary{width:100%!important;justify-content:center!important;box-sizing:border-box!important}
+}
