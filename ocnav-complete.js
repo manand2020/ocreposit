@@ -1,4 +1,4 @@
-/* ocnav-complete.js v2.0.0
+/* ocnav-complete.js v2.0.1
  * Olive Cover - Nav only.
  * Scope: everything inside #ocnav-bar and #ocnav-mobile.
  * Nothing else. No hero, no footer, no site globals.
