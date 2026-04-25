@@ -1,27 +1,370 @@
-/* ocnav-complete.js v2.0.1
- * Olive Cover - Nav only.
+/* ocnav-complete.js v2.0.0
+ * Olive Cover — Nav only.
  * Scope: everything inside #ocnav-bar and #ocnav-mobile.
  * Nothing else. No hero, no footer, no site globals.
  */
 (function(){
 'use strict';
+
 if(window._ocNavComplete) return;
 window._ocNavComplete = true;
-var NAV={personal:[{name:'Homeowners Insurance',href:'/personal-insurance/homeowners-insurance'},{name:'Auto Insurance',href:'/personal-insurance/auto-insurance'},{name:'Umbrella Insurance',href:'/personal-insurance/umbrella-insurance'},{name:'Renters Insurance',href:'/personal-insurance/renters-insurance'},{name:'Landlord Insurance',href:'/personal-insurance/landlord-insurance'},{name:'Flood Insurance',href:'/personal-insurance/flood-insurance'},{name:'Motorcycle Insurance',href:'/personal-insurance/motorcycle-insurance'},{name:'Boat Insurance',href:'/personal-insurance/boat-insurance'},{name:'Collector Auto',href:'/personal-insurance/collector-auto-insurance'},{name:'Scheduled Articles',href:'/personal-insurance/scheduled-articles-insurance'}],commercial:[{name:'Business Owners Policy',href:'/commercial-insurance/bop-insurance'},{name:'General Liability',href:'/commercial-insurance/general-liability-insurance'},{name:'Commercial Auto',href:'/commercial-insurance/commercial-auto-insurance'},{name:'Workers Compensation',href:'/commercial-insurance/workers-comp-insurance'},{name:'Professional Liability',href:'/commercial-insurance/professional-liability-insurance'},{name:'Cyber Liability',href:'/commercial-insurance/cyber-liability-insurance'},{name:'Management Liability',href:'/commercial-insurance/management-liability-insurance'},{name:'Habitational',href:'/commercial-insurance/habitational-insurance'},{name:'Surety Bonds',href:'/commercial-insurance/surety-bonds-insurance'}],carriers:[{name:'Travelers',href:'/carriers/travelers-insurance'},{name:'Progressive',href:'/carriers/progressive-insurance'},{name:'Nationwide',href:'/carriers/nationwide-insurance'},{name:'Safeco',href:'/carriers/safeco-insurance'},{name:'The Hartford',href:'/carriers/hartford-insurance'},{name:'Openly',href:'/carriers/openly-insurance'},{name:'Hippo',href:'/carriers/hippo-insurance'},{name:'Stillwater',href:'/carriers/stillwater-insurance'}],locations:{georgia:[{name:'Johns Creek',href:'/cities/georgia-johns-creek'},{name:'Alpharetta',href:'/cities/georgia-alpharetta'},{name:'Cumming',href:'/cities/georgia-cumming'},{name:'Duluth',href:'/cities/georgia-duluth'},{name:'Lawrenceville',href:'/cities/georgia-lawrenceville'},{name:'Suwanee',href:'/cities/georgia-suwanee'},{name:'Sugar Hill',href:'/cities/georgia-sugar-hill'},{name:'Buford',href:'/cities/georgia-buford'}],california:[{name:'Los Angeles',href:'/locations/los-angeles-metro'},{name:'San Diego',href:'/locations/san-diego'},{name:'Bay Area',href:'/locations/bay-area'},{name:'Sacramento',href:'/locations/sacramento'},{name:'Inland Empire',href:'/locations/inland-empire'}]},states:[{name:'Georgia',slug:'georgia',flag:'&#127468;&#127463;'},{name:'California',slug:'california',flag:'&#127464;&#127462;'}]};
-var LOGO='https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
-function getState(){try{return localStorage.getItem('oc_state')||'georgia';}catch(e){return'georgia';}}
-function setState(s){try{localStorage.setItem('oc_state',s);window.dispatchEvent(new CustomEvent('oc_state_changed',{detail:{state:s}}));}catch(e){}}
-(function detectGeo(){try{if(localStorage.getItem('oc_state'))return;var x=new XMLHttpRequest();x.open('GET','https://ip-api.com/json/?fields=regionName',true);x.onload=function(){try{var d=JSON.parse(x.responseText);var r=(d.regionName||'').toLowerCase();localStorage.setItem('oc_state',r.indexOf('california')>-1?'california':'georgia');}catch(e){}};x.send();}catch(e){}})();
-function injectNavCSS(){if(document.getElementById('ocnav-css'))return;var s=document.createElement('style');s.id='ocnav-css';s.textContent='body{padding-top:64px!important;}#ocnav-bar{position:fixed!important;top:0!important;left:0!important;width:100%!important;height:64px!important;background:#1B3A5C!important;display:flex!important;align-items:center!important;padding:0 32px!important;box-sizing:border-box!important;z-index:9999!important;border-bottom:1px solid rgba(199,162,75,0.25)!important;}#ocnav-bar .ocn-logo{text-decoration:none;display:flex;align-items:center;flex-shrink:0;margin-right:32px;}#ocnav-bar .ocn-logo img{height:32px!important;width:auto!important;display:block!important;}#ocnav-bar .ocn-links{display:flex;align-items:center;gap:2px;flex:1;height:64px;}#ocnav-bar .ocn-flat{color:rgba(255,255,255,0.82);font-family:Inter,sans-serif;font-size:14px;font-weight:500;text-decoration:none;padding:0 14px;height:64px;display:flex;align-items:center;white-space:nowrap;transition:color 0.15s;}#ocnav-bar .ocn-flat:hover{color:#fff;}#ocnav-bar .ocn-item{position:relative;height:64px;display:flex;align-items:center;}#ocnav-bar .ocn-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.82);font-family:Inter,sans-serif;font-size:14px;font-weight:500;padding:0 14px;height:64px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:color 0.15s;}#ocnav-bar .ocn-btn:hover{color:#fff;}#ocnav-bar .ocn-chev{font-size:9px;opacity:0.7;transition:transform 0.2s;display:inline-block;}#ocnav-bar .ocn-item.ocn-open .ocn-chev{transform:rotate(180deg);}#ocnav-bar .ocn-mega{display:none;position:fixed;top:64px;left:0;width:100%;background:#fff;border-top:2px solid #C7A24B;box-shadow:0 12px 40px rgba(27,58,92,0.14);z-index:9998;padding:28px 40px 32px;box-sizing:border-box;}#ocnav-bar .ocn-item.ocn-open .ocn-mega{display:block;}.ocn-mega-inner{display:flex;max-width:1100px;margin:0 auto;}.ocn-mega-col{flex:1;padding:0 28px;border-right:1px solid #eef1f5;}.ocn-mega-col:first-child{padding-left:0;}.ocn-mega-col:last-child{border-right:none;}.ocn-mega-col-hd{font-family:Inter,sans-serif;font-size:10px;font-weight:700;color:#C7A24B;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f0ebe0;}.ocn-mega-col a{display:block;padding:7px 0;color:#1B3A5C;font-family:Inter,sans-serif;font-size:13.5px;font-weight:500;text-decoration:none;border-bottom:1px solid #f8f8f8;transition:color 0.12s,padding-left 0.12s;}.ocn-mega-col a:hover{color:#C7A24B;padding-left:4px;}.ocn-mega-col a:last-child{border-bottom:none;}.ocn-viewall{color:#C7A24B!important;font-weight:600!important;}#ocnav-bar .ocn-drop{display:none;position:absolute;top:calc(100% + 2px);left:0;min-width:200px;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(27,58,92,0.15);padding:6px 0;z-index:10000;}#ocnav-bar .ocn-item.ocn-open .ocn-drop{display:block;}#ocnav-bar .ocn-drop a{display:block;padding:9px 16px;font-family:Inter,sans-serif;font-size:13px;color:#1B3A5C;text-decoration:none;transition:background 0.1s;}#ocnav-bar .ocn-drop a:hover{background:#F2F4F8;color:#C7A24B;}#ocnav-bar .ocn-drop .ocn-drop-hd{padding:10px 16px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;border-top:1px solid #f1f5f9;}#ocnav-bar .ocn-drop .ocn-drop-hd:first-child{border-top:none;}#ocnav-bar .ocn-state{margin-left:8px;display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;cursor:pointer;font-family:Inter,sans-serif;font-size:12px;font-weight:600;color:#fff;transition:background 0.15s;white-space:nowrap;}#ocnav-bar .ocn-state:hover{background:rgba(255,255,255,0.18);}#ocnav-bar .ocn-cta{margin-left:auto;flex-shrink:0;padding:0 20px;height:38px;background:#C7A24B;color:#fff;border-radius:7px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;text-decoration:none;display:flex;align-items:center;white-space:nowrap;transition:background 0.15s;}#ocnav-bar .ocn-cta:hover{background:#b8914a;}#ocnav-mob-btn{display:none;background:none;border:none;cursor:pointer;padding:8px;flex-direction:column;gap:5px;margin-left:auto;}#ocnav-mob-btn span{display:block;width:22px;height:2px;background:#C7A24B;border-radius:2px;}#ocnav-mobile{display:none;position:fixed;top:64px;left:0;width:100%;background:#1B3A5C;z-index:9998;padding:8px 16px 24px;max-height:calc(100vh - 64px);overflow-y:auto;}#ocnav-mobile.ocn-mob-open{display:block;}#ocnav-mobile .ocn-mob-hd{padding:14px 0 6px;font-family:Inter,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);}#ocnav-mobile a{display:block;padding:10px 0;font-family:Inter,sans-serif;font-size:14px;font-weight:500;color:rgba(255,255,255,0.85);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.07);}#ocnav-mobile a:hover{color:#C7A24B;}#ocnav-mobile .ocn-mob-cta{display:block;margin:16px 0 0;padding:13px;background:#C7A24B;color:#fff;font-family:Inter,sans-serif;font-size:14px;font-weight:600;text-decoration:none;border-radius:7px;text-align:center;border-bottom:none!important;}@media(max-width:960px){#ocnav-bar .ocn-links{display:none!important;}#ocnav-bar .ocn-state{display:none!important;}#ocnav-bar .ocn-cta{display:none!important;}#ocnav-mob-btn{display:flex!important;}}';document.head.insertBefore(s,document.head.firstChild);}
-function hideCanvasNav(){['oc-static-nav','oc-static-nav-bar','oc-nav'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.cssText='display:none!important;';});}
-function buildNav(){var state=getState();var stateInfo=NAV.states.find(function(s){return s.slug===state;})||NAV.states[0];var locs=NAV.locations[state]||NAV.locations.georgia;['ocnav-bar','ocnav-mobile'].forEach(function(id){var el=document.getElementById(id);if(el)el.remove();});function megaHTML(cols){return '<div class="ocn-mega"><div class="ocn-mega-inner">'+cols.map(function(col){return '<div class="ocn-mega-col"><div class="ocn-mega-col-hd">'+col.title+'</div>'+col.items.map(function(i){return '<a href="'+i.href+'"'+(i.cls?' class="'+i.cls+'"':'')+'>'+i.name+'</a>';}).join('')+'</div>';}).join('')+'</div></div>';}
-var perCols=[{title:'Home & Property',items:NAV.personal.slice(0,5)},{title:'Auto & Vehicle',items:NAV.personal.slice(5,10)},{title:'Liability',items:[{name:'Umbrella Insurance',href:'/personal-insurance/umbrella-insurance'}]}];var comCols=[{title:'Business Property',items:NAV.commercial.slice(0,3)},{title:'Liability',items:NAV.commercial.slice(3,6)},{title:'Auto & Workforce',items:NAV.commercial.slice(6,9)}];var carCols=[{title:'Personal Lines',items:NAV.carriers.slice(0,4)},{title:'Commercial Lines',items:NAV.carriers.slice(4,8)},{title:'All Carriers',items:[{name:'View all carriers →',href:'/carriers/travelers-insurance',cls:'ocn-viewall'}]}];
-var bar=document.createElement('div');bar.id='ocnav-bar';bar.innerHTML='<a href="/" class="ocn-logo"><img src="'+LOGO+'" alt="Olive Cover"></a><div class="ocn-links"><div class="ocn-item" id="ocn-personal"><button class="ocn-btn">Personal <span class="ocn-chev">&#9660;</span></button>'+megaHTML(perCols)+'</div><div class="ocn-item" id="ocn-commercial"><button class="ocn-btn">Commercial <span class="ocn-chev">&#9660;</span></button>'+megaHTML(comCols)+'</div><div class="ocn-item" id="ocn-carriers"><button class="ocn-btn">Carriers <span class="ocn-chev">&#9660;</span></button>'+megaHTML(carCols)+'</div><div class="ocn-item" id="ocn-locations"><button class="ocn-btn">Locations <span class="ocn-chev">&#9660;</span></button><div class="ocn-drop"><div class="ocn-drop-hd">'+stateInfo.name+'</div>'+locs.map(function(l){return'<a href="'+l.href+'">'+l.name+'</a>';}).join('')+'</div></div><a href="/insights" class="ocn-flat">Insights</a><a href="/about" class="ocn-flat">About</a></div><button class="ocn-state" id="ocn-state-btn">'+stateInfo.flag+' <span>'+stateInfo.name+'</span></button><a href="/coverage-review" class="ocn-cta">Start your coverage review</a><button id="ocnav-mob-btn" aria-label="Menu"><span></span><span></span><span></span></button>';
-document.body.insertBefore(bar,document.body.firstChild);var mob=document.createElement('div');mob.id='ocnav-mobile';var mh='';mh+='<div class="ocn-mob-hd">Personal Lines</div>';NAV.personal.forEach(function(i){mh+='<a href="'+i.href+'">'+i.name+'</a>';});mh+='<div class="ocn-mob-hd">Commercial Lines</div>';NAV.commercial.forEach(function(i){mh+='<a href="'+i.href+'">'+i.name+'</a>';});mh+='<div class="ocn-mob-hd">Locations</div>';locs.forEach(function(l){mh+='<a href="'+l.href+'">'+l.name+'</a>';});mh+='<div class="ocn-mob-hd">Company</div>';mh+='<a href="/insights">Insights</a><a href="/about">About</a><a href="/faq">FAQ</a><a href="/contact">Contact</a><a href="/coverage-review" class="ocn-mob-cta">Start your coverage review</a>';NAV.states.forEach(function(s){if(s.slug!==state){mh+='<a href="/states/'+s.slug+'" style="margin-top:12px;opacity:0.6;font-size:13px;">'+s.flag+' Switch to '+s.name+'</a>';}});mob.innerHTML=mh;document.body.insertBefore(mob,bar.nextSibling);
-var items=document.querySelectorAll('#ocnav-bar .ocn-item');items.forEach(function(item){item.querySelector('.ocn-btn').addEventListener('click',function(e){e.stopPropagation();var open=item.classList.contains('ocn-open');items.forEach(function(i){i.classList.remove('ocn-open');});if(!open)item.classList.add('ocn-open');});});document.addEventListener('click',function(){items.forEach(function(i){i.classList.remove('ocn-open');});});
-var hbtn=document.getElementById('ocnav-mob-btn');if(hbtn)hbtn.onclick=function(e){e.stopPropagation();mob.classList.toggle('ocn-mob-open');};
-var sbtn=document.getElementById('ocn-state-btn');if(sbtn)sbtn.onclick=function(){var next=getState()==='georgia'?'california':'georgia';setState(next);window.location.href='/states/'+next;};}
-function init(){injectNavCSS();hideCanvasNav();buildNav();}
-window.addEventListener('oc_state_changed',function(){buildNav();});
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+
+/* ============================================================
+   NAV DATA
+   ============================================================ */
+var NAV = {
+  personal: [
+    {name:'Homeowners Insurance', href:'/personal-insurance/homeowners-insurance'},
+    {name:'Auto Insurance',       href:'/personal-insurance/auto-insurance'},
+    {name:'Umbrella Insurance',   href:'/personal-insurance/umbrella-insurance'},
+    {name:'Renters Insurance',    href:'/personal-insurance/renters-insurance'},
+    {name:'Landlord Insurance',   href:'/personal-insurance/landlord-insurance'},
+    {name:'Flood Insurance',      href:'/personal-insurance/flood-insurance'},
+    {name:'Motorcycle Insurance', href:'/personal-insurance/motorcycle-insurance'},
+    {name:'Boat Insurance',       href:'/personal-insurance/boat-insurance'},
+    {name:'Collector Auto',       href:'/personal-insurance/collector-auto-insurance'},
+    {name:'Scheduled Articles',   href:'/personal-insurance/scheduled-articles-insurance'}
+  ],
+  commercial: [
+    {name:'Business Owners Policy', href:'/commercial-insurance/bop-insurance'},
+    {name:'General Liability',      href:'/commercial-insurance/general-liability-insurance'},
+    {name:'Commercial Auto',        href:'/commercial-insurance/commercial-auto-insurance'},
+    {name:'Workers Compensation',   href:'/commercial-insurance/workers-comp-insurance'},
+    {name:'Professional Liability', href:'/commercial-insurance/professional-liability-insurance'},
+    {name:'Cyber Liability',        href:'/commercial-insurance/cyber-liability-insurance'},
+    {name:'Management Liability',   href:'/commercial-insurance/management-liability-insurance'},
+    {name:'Habitational',           href:'/commercial-insurance/habitational-insurance'},
+    {name:'Surety Bonds',           href:'/commercial-insurance/surety-bonds-insurance'}
+  ],
+  carriers: [
+    {name:'Travelers',    href:'/carriers/travelers-insurance'},
+    {name:'Progressive',  href:'/carriers/progressive-insurance'},
+    {name:'Nationwide',   href:'/carriers/nationwide-insurance'},
+    {name:'Safeco',       href:'/carriers/safeco-insurance'},
+    {name:'The Hartford', href:'/carriers/hartford-insurance'},
+    {name:'Openly',       href:'/carriers/openly-insurance'},
+    {name:'Hippo',        href:'/carriers/hippo-insurance'},
+    {name:'Stillwater',   href:'/carriers/stillwater-insurance'}
+  ],
+  states: [
+    {name:'Georgia',    slug:'georgia',    flag:'&#127468;&#127463;'},
+    {name:'California', slug:'california', flag:'&#127464;&#127462;'}
+  ]
+};
+
+var LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
+
+/* ============================================================
+   STATE
+   ============================================================ */
+function getState(){
+  try{ return localStorage.getItem('oc_state') || 'georgia'; }
+  catch(e){ return 'georgia'; }
+}
+function setState(s){
+  try{
+    localStorage.setItem('oc_state', s);
+    window.dispatchEvent(new CustomEvent('oc_state_changed',{detail:{state:s}}));
+  }catch(e){}
+}
+
+/* IP state detection */
+(function detectGeo(){
+  try{
+    if(localStorage.getItem('oc_state')) return;
+    var x = new XMLHttpRequest();
+    x.open('GET','https://ip-api.com/json/?fields=regionName',true);
+    x.onload = function(){
+      try{
+        var d = JSON.parse(x.responseText);
+        var r = (d.regionName||'').toLowerCase();
+        var s = r.indexOf('california') > -1 ? 'california' : 'georgia';
+        localStorage.setItem('oc_state', s);
+      }catch(e){}
+    };
+    x.send();
+  }catch(e){}
+})();
+
+/* ============================================================
+   NAV CSS — nav elements only
+   ============================================================ */
+function injectNavCSS(){
+  if(document.getElementById('ocnav-css')) return;
+  var s = document.createElement('style');
+  s.id = 'ocnav-css';
+  s.textContent = [
+    'body{padding-top:64px!important;}',
+
+    /* Bar */
+    '#ocnav-bar{position:fixed!important;top:0!important;left:0!important;',
+      'width:100%!important;height:64px!important;background:#1B3A5C!important;',
+      'display:flex!important;align-items:center!important;',
+      'padding:0 32px!important;box-sizing:border-box!important;',
+      'z-index:9999!important;border-bottom:1px solid rgba(199,162,75,0.25)!important;}',
+
+    /* Logo */
+    '#ocnav-bar .ocn-logo{text-decoration:none;display:flex;align-items:center;',
+      'flex-shrink:0;margin-right:32px;}',
+    '#ocnav-bar .ocn-logo img{height:32px!important;width:auto!important;display:block!important;}',
+
+    /* Desktop links */
+    '#ocnav-bar .ocn-links{display:flex;align-items:center;gap:2px;flex:1;height:64px;}',
+
+    /* Flat links */
+    '#ocnav-bar .ocn-flat{color:rgba(255,255,255,0.82);font-family:Inter,sans-serif;',
+      'font-size:14px;font-weight:500;text-decoration:none;padding:0 14px;height:64px;',
+      'display:flex;align-items:center;white-space:nowrap;transition:color 0.15s;}',
+    '#ocnav-bar .ocn-flat:hover{color:#fff;}',
+
+    /* Dropdown item wrapper */
+    '#ocnav-bar .ocn-item{position:relative;height:64px;display:flex;align-items:center;}',
+    '#ocnav-bar .ocn-btn{background:none;border:none;cursor:pointer;',
+      'color:rgba(255,255,255,0.82);font-family:Inter,sans-serif;font-size:14px;font-weight:500;',
+      'padding:0 14px;height:64px;display:flex;align-items:center;gap:5px;',
+      'white-space:nowrap;transition:color 0.15s;}',
+    '#ocnav-bar .ocn-btn:hover{color:#fff;}',
+    '#ocnav-bar .ocn-chev{font-size:9px;opacity:0.7;transition:transform 0.2s;display:inline-block;}',
+    '#ocnav-bar .ocn-item.ocn-open .ocn-chev{transform:rotate(180deg);}',
+
+    /* Mega menu panel */
+    '#ocnav-bar .ocn-mega{display:none;position:fixed;top:64px;left:0;width:100%;',
+      'background:#fff;border-top:2px solid #C7A24B;',
+      'box-shadow:0 12px 40px rgba(27,58,92,0.14);',
+      'z-index:9998;padding:28px 40px 32px;box-sizing:border-box;}',
+    '#ocnav-bar .ocn-item.ocn-open .ocn-mega{display:block;}',
+    '.ocn-mega-inner{display:flex;max-width:1100px;margin:0 auto;}',
+    '.ocn-mega-col{flex:1;padding:0 28px;border-right:1px solid #eef1f5;}',
+    '.ocn-mega-col:first-child{padding-left:0;}',
+    '.ocn-mega-col:last-child{border-right:none;}',
+    '.ocn-mega-col-hd{font-family:Inter,sans-serif;font-size:10px;font-weight:700;',
+      'color:#C7A24B;letter-spacing:0.1em;text-transform:uppercase;',
+      'margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f0ebe0;}',
+    '.ocn-mega-col a{display:block;padding:7px 0;color:#1B3A5C;',
+      'font-family:Inter,sans-serif;font-size:13.5px;font-weight:500;',
+      'text-decoration:none;border-bottom:1px solid #f8f8f8;',
+      'transition:color 0.12s,padding-left 0.12s;}',
+    '.ocn-mega-col a:hover{color:#C7A24B;padding-left:4px;}',
+    '.ocn-mega-col a:last-child{border-bottom:none;}',
+    '.ocn-viewall{color:#C7A24B!important;font-weight:600!important;}',
+
+    /* Compact dropdown */
+    '#ocnav-bar .ocn-drop{display:none;position:absolute;top:calc(100% + 2px);left:0;',
+      'min-width:200px;background:#fff;border-radius:8px;',
+      'box-shadow:0 8px 32px rgba(27,58,92,0.15);padding:6px 0;z-index:10000;}',
+    '#ocnav-bar .ocn-item.ocn-open .ocn-drop{display:block;}',
+    '#ocnav-bar .ocn-drop a{display:block;padding:9px 16px;',
+      'font-family:Inter,sans-serif;font-size:13px;color:#1B3A5C;',
+      'text-decoration:none;transition:background 0.1s;}',
+    '#ocnav-bar .ocn-drop a:hover{background:#F2F4F8;color:#C7A24B;}',
+    '#ocnav-bar .ocn-drop .ocn-drop-hd{padding:10px 16px 4px;font-size:10px;font-weight:700;',
+      'text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;',
+      'border-top:1px solid #f1f5f9;}',
+    '#ocnav-bar .ocn-drop .ocn-drop-hd:first-child{border-top:none;}',
+
+    /* State switcher */
+    '#ocnav-bar .ocn-state{margin-left:8px;display:flex;align-items:center;gap:6px;',
+      'padding:5px 10px;background:rgba(255,255,255,0.1);',
+      'border:1px solid rgba(255,255,255,0.2);border-radius:20px;',
+      'cursor:pointer;font-family:Inter,sans-serif;font-size:12px;font-weight:600;',
+      'color:#fff;transition:background 0.15s;white-space:nowrap;}',
+    '#ocnav-bar .ocn-state:hover{background:rgba(255,255,255,0.18);}',
+
+    /* CTA */
+    '#ocnav-bar .ocn-cta{margin-left:auto;flex-shrink:0;padding:0 20px;height:38px;',
+      'background:#C7A24B;color:#fff;border-radius:7px;',
+      'font-family:Inter,sans-serif;font-size:13px;font-weight:600;',
+      'text-decoration:none;display:flex;align-items:center;white-space:nowrap;',
+      'transition:background 0.15s;}',
+    '#ocnav-bar .ocn-cta:hover{background:#b8914a;}',
+
+    /* Hamburger */
+    '#ocnav-mob-btn{display:none;background:none;border:none;cursor:pointer;',
+      'padding:8px;flex-direction:column;gap:5px;margin-left:auto;}',
+    '#ocnav-mob-btn span{display:block;width:22px;height:2px;',
+      'background:#C7A24B;border-radius:2px;}',
+
+    /* Mobile menu */
+    '#ocnav-mobile{display:none;position:fixed;top:64px;left:0;width:100%;',
+      'background:#1B3A5C;z-index:9998;padding:8px 16px 24px;',
+      'max-height:calc(100vh - 64px);overflow-y:auto;}',
+    '#ocnav-mobile.ocn-mob-open{display:block;}',
+    '#ocnav-mobile .ocn-mob-hd{padding:14px 0 6px;font-family:Inter,sans-serif;',
+      'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;',
+      'color:rgba(255,255,255,0.4);}',
+    '#ocnav-mobile a{display:block;padding:10px 0;',
+      'font-family:Inter,sans-serif;font-size:14px;font-weight:500;',
+      'color:rgba(255,255,255,0.85);text-decoration:none;',
+      'border-bottom:1px solid rgba(255,255,255,0.07);}',
+    '#ocnav-mobile a:hover{color:#C7A24B;}',
+    '#ocnav-mobile .ocn-mob-cta{display:block;margin:16px 0 0;padding:13px;',
+      'background:#C7A24B;color:#fff;font-family:Inter,sans-serif;',
+      'font-size:14px;font-weight:600;text-decoration:none;',
+      'border-radius:7px;text-align:center;border-bottom:none!important;}',
+
+    /* Responsive */
+    '@media(max-width:960px){',
+      '#ocnav-bar .ocn-links{display:none!important;}',
+      '#ocnav-bar .ocn-state{display:none!important;}',
+      '#ocnav-bar .ocn-cta{display:none!important;}',
+      '#ocnav-mob-btn{display:flex!important;}',
+    '}'
+  ].join('');
+  document.head.insertBefore(s, document.head.firstChild);
+}
+
+/* ============================================================
+   HIDE CANVAS NAV (static nav injected via whtml_builder)
+   ============================================================ */
+function hideCanvasNav(){
+  ['oc-static-nav','oc-static-nav-bar','oc-nav'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.cssText = 'display:none!important;';
+  });
+}
+
+/* ============================================================
+   BUILD NAV
+   ============================================================ */
+function buildNav(){
+  var state = getState();
+  var stateInfo = NAV.states.find(function(s){ return s.slug === state; }) || NAV.states[0];
+
+  /* Remove previous build */
+  ['ocnav-bar','ocnav-mobile'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.remove();
+  });
+
+  /* Mega menu columns helper */
+  function megaHTML(cols){
+    return '<div class="ocn-mega"><div class="ocn-mega-inner">'
+      + cols.map(function(col){
+          return '<div class="ocn-mega-col">'
+            + '<div class="ocn-mega-col-hd">'+col.title+'</div>'
+            + col.items.map(function(i){
+                return '<a href="'+i.href+'"'+(i.cls?' class="'+i.cls+'"':'')+'>'+i.name+'</a>';
+              }).join('')
+            + '</div>';
+        }).join('')
+      + '</div></div>';
+  }
+
+  var perCols = [
+    {title:'Home & Property',    items: NAV.personal.slice(0,5)},
+    {title:'Auto & Vehicle',     items: NAV.personal.slice(5,10)},
+    {title:'Liability',          items:[{name:'Umbrella Insurance',href:'/personal-insurance/umbrella-insurance'}]}
+  ];
+  var comCols = [
+    {title:'Business Property',  items: NAV.commercial.slice(0,3)},
+    {title:'Liability',          items: NAV.commercial.slice(3,6)},
+    {title:'Auto & Workforce',   items: NAV.commercial.slice(6,9)}
+  ];
+  var carCols = [
+    {title:'Personal Lines',     items: NAV.carriers.slice(0,4)},
+    {title:'Commercial Lines',   items: NAV.carriers.slice(4,8)},
+    {title:'All Carriers',       items:[{name:'View all carriers \u2192',href:'/carriers/travelers-insurance',cls:'ocn-viewall'}]}
+  ];
+
+  /* Desktop bar */
+  var bar = document.createElement('div');
+  bar.id = 'ocnav-bar';
+  bar.innerHTML = ''
+    + '<a href="/" class="ocn-logo"><img src="'+LOGO+'" alt="Olive Cover"></a>'
+    + '<div class="ocn-links">'
+      + '<div class="ocn-item" id="ocn-personal">'
+        + '<button class="ocn-btn">Personal <span class="ocn-chev">&#9660;</span></button>'
+        + megaHTML(perCols)
+      + '</div>'
+      + '<div class="ocn-item" id="ocn-commercial">'
+        + '<button class="ocn-btn">Commercial <span class="ocn-chev">&#9660;</span></button>'
+        + megaHTML(comCols)
+      + '</div>'
+      + '<div class="ocn-item" id="ocn-carriers">'
+        + '<button class="ocn-btn">Carriers <span class="ocn-chev">&#9660;</span></button>'
+        + megaHTML(carCols)
+      + '</div>'
+      + '<a href="/insights" class="ocn-flat">Insights</a>'
+      + '<a href="/about" class="ocn-flat">About</a>'
+    + '</div>'
+    + '<button class="ocn-state" id="ocn-state-btn">'
+      + stateInfo.flag+' <span>'+stateInfo.name+'</span>'
+    + '</button>'
+    + '<a href="/coverage-review" class="ocn-cta">Start your coverage review</a>'
+    + '<button id="ocnav-mob-btn" aria-label="Menu">'
+      + '<span></span><span></span><span></span>'
+    + '</button>';
+  document.body.insertBefore(bar, document.body.firstChild);
+
+  /* Mobile menu */
+  var mob = document.createElement('div');
+  mob.id = 'ocnav-mobile';
+  var mh = '';
+  mh += '<div class="ocn-mob-hd">Personal Lines</div>';
+  NAV.personal.forEach(function(i){ mh += '<a href="'+i.href+'">'+i.name+'</a>'; });
+  mh += '<div class="ocn-mob-hd">Commercial Lines</div>';
+  NAV.commercial.forEach(function(i){ mh += '<a href="'+i.href+'">'+i.name+'</a>'; });
+
+  mh += '<div class="ocn-mob-hd">Company</div>';
+  mh += '<a href="/insights">Insights</a>';
+  mh += '<a href="/about">About</a>';
+  mh += '<a href="/faq">FAQ</a>';
+  mh += '<a href="/contact">Contact</a>';
+  mh += '<a href="/coverage-review" class="ocn-mob-cta">Start your coverage review</a>';
+  NAV.states.forEach(function(s){
+    if(s.slug !== state){
+      mh += '<a href="/states/'+s.slug+'" style="margin-top:12px;opacity:0.6;font-size:13px;"'
+        + ' onclick="try{localStorage.setItem(\'oc_state\',\''+s.slug+'\');}catch(e){}">'
+        + s.flag+' Switch to '+s.name+'</a>';
+    }
+  });
+  mob.innerHTML = mh;
+  document.body.insertBefore(mob, bar.nextSibling);
+
+  /* Dropdown click events */
+  var items = document.querySelectorAll('#ocnav-bar .ocn-item');
+  items.forEach(function(item){
+    item.querySelector('.ocn-btn').addEventListener('click', function(e){
+      e.stopPropagation();
+      var open = item.classList.contains('ocn-open');
+      items.forEach(function(i){ i.classList.remove('ocn-open'); });
+      if(!open) item.classList.add('ocn-open');
+    });
+  });
+  document.addEventListener('click', function(){
+    items.forEach(function(i){ i.classList.remove('ocn-open'); });
+  });
+
+  /* Hamburger */
+  var hbtn = document.getElementById('ocnav-mob-btn');
+  if(hbtn) hbtn.onclick = function(e){
+    e.stopPropagation();
+    mob.classList.toggle('ocn-mob-open');
+  };
+
+  /* State toggle */
+  var sbtn = document.getElementById('ocn-state-btn');
+  if(sbtn) sbtn.onclick = function(){
+    var next = getState() === 'georgia' ? 'california' : 'georgia';
+    setState(next);
+    window.location.href = '/states/' + next;
+  };
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init(){
+  injectNavCSS();
+  hideCanvasNav();
+  buildNav();
+}
+
+window.addEventListener('oc_state_changed', function(){ buildNav(); });
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
 })();
