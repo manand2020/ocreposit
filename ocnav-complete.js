@@ -70,7 +70,7 @@ function getCoverageItems(state){
       {name:'Against a Customer Claim',          sub:'Someone got hurt or I caused damage to their property',       href:'/commercial-insurance/general-liability-insurance'},
       {name:'My Business Vehicles',              sub:'My personal auto policy does not cover business use',         href:'/commercial-insurance/commercial-auto-insurance'},
       {name:'My Employees',                      sub:wcLine,                                                        href:'/commercial-insurance/workers-compensation-insurance'},
-      {name:'Against a Data Breach',             sub:'A cyberattack could cost my business $200,000 or more',      href:'/commercial-insurance/cyber-insurance'},
+      {name:'Against a Data Breach',             sub:'A cyberattack could cost my business $200,000 or more',      href:'/commercial-insurance/cyber-liability-insurance'},
       {name:'My Professional Work',              sub:'My advice or service caused a loss and I am being sued',      href:'/commercial-insurance/professional-liability-insurance'}
     ]
   };
