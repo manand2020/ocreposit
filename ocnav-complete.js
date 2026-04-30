@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.2.0
+/* ocnav-complete.js v4.3.0
  * Olive Cover — State manager + dropdown behavior.
  * Nav HTML and CSS are native in Webflow Designer.
  * CSS classes live in Webflow style system — zero CSS in this file.
@@ -9,7 +9,7 @@ if(window._ocNavComplete) return;
 window._ocNavComplete = true;
 
 /* ============================================================
-   STATES — Georgia only. Extend when licensed in new states.
+   STATES
 ============================================================ */
 var STATES = [
   {name:'Georgia', slug:'georgia', flag:'🍑', active:true}
@@ -32,8 +32,7 @@ function getStateInfo(slug){
 }
 
 /* ============================================================
-   IP GEO — Disabled. Only one active state.
-   Re-enable when additional states go live.
+   IP GEO — Disabled. Re-enable when additional states go live.
 ============================================================ */
 /*
 (function detectGeo(){
@@ -75,12 +74,11 @@ document.addEventListener('click', function(e){
 
 /* ============================================================
    DROPDOWN BEHAVIOR
-   Selectors match the actual rendered DOM:
-   - Items: [id^="ocn-item-"] (no class on wrapper divs)
-   - Chevron: .w-button (Webflow assigns its own class to Button elements)
-   - Panels: [id$="-panel"]
+   Uses readyState guard — script loads async after DOMContentLoaded
+   has already fired, so we call initDropdowns() immediately if
+   the document is already interactive or complete.
 ============================================================ */
-document.addEventListener('DOMContentLoaded', function(){
+function initDropdowns(){
   var bar = document.getElementById('oc-static-nav-bar');
   if(!bar) return;
   var items = bar.querySelectorAll('[id^="ocn-item-"]');
@@ -112,6 +110,12 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   document.addEventListener('click', closeAll);
-});
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initDropdowns);
+} else {
+  initDropdowns();
+}
 
 })();
