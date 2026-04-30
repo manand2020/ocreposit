@@ -79,7 +79,7 @@ document.addEventListener('click', function(e){
    the document is already interactive or complete.
 ============================================================ */
 function initDropdowns(){
-  var bar = document.getElementById('oc-static-nav-bar');
+  var bar = document.getElementById('ocnav-bar');
   if(!bar) return;
   var items = bar.querySelectorAll('[id^="ocn-item-"]');
 
