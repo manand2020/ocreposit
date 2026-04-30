@@ -1,7 +1,7 @@
-/* ocnav-complete.js v4.0.0
- * Olive Cover — State manager only.
+/* ocnav-complete.js v4.1.0
+ * Olive Cover — State manager + dropdown behavior.
  * Nav HTML and CSS are native in Webflow Designer.
- * This script only sets body[data-state] for state-aware content.
+ * CSS classes live in Webflow style system — zero CSS in this file.
  *
  * To add a new state:
  *   1. Add to STATES array with active:true
@@ -78,6 +78,44 @@ document.addEventListener('click', function(e){
   if(newState && STATES.find(function(s){ return s.slug===newState && s.active; })){
     setState(newState);
   }
+});
+
+/* ============================================================
+   DROPDOWN BEHAVIOR
+   Direct display toggle avoids compound CSS selector requirement.
+   Opening one panel closes all others. Outside click closes all.
+============================================================ */
+document.addEventListener('DOMContentLoaded', function(){
+  var bar = document.getElementById('oc-static-nav-bar');
+  if(!bar) return;
+  var items = bar.querySelectorAll('.ocn-item');
+
+  function closeAll(){
+    items.forEach(function(item){
+      var panel = item.querySelector('[id$="-panel"]');
+      var svg = item.querySelector('.ocn-chev-btn svg');
+      if(panel) panel.style.display = 'none';
+      if(svg) svg.style.transform = '';
+    });
+  }
+
+  items.forEach(function(item){
+    var btn = item.querySelector('.ocn-chev-btn');
+    var panel = item.querySelector('[id$="-panel"]');
+    if(!btn || !panel) return;
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var isOpen = panel.style.display === 'block';
+      closeAll();
+      if(!isOpen){
+        panel.style.display = 'block';
+        var svg = btn.querySelector('svg');
+        if(svg) svg.style.transform = 'rotate(180deg)';
+      }
+    });
+  });
+
+  document.addEventListener('click', closeAll);
 });
 
 })();
