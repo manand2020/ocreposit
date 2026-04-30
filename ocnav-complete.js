@@ -1,13 +1,7 @@
-/* ocnav-complete.js v4.1.0
+/* ocnav-complete.js v4.2.0
  * Olive Cover — State manager + dropdown behavior.
  * Nav HTML and CSS are native in Webflow Designer.
  * CSS classes live in Webflow style system — zero CSS in this file.
- *
- * To add a new state:
- *   1. Add to STATES array with active:true
- *   2. Add state-specific CMS content
- *   3. Uncomment IP geo block below
- *   4. Add state switcher UI to OC Nav component in Designer
  */
 (function(){
 'use strict';
@@ -67,8 +61,7 @@ function getStateInfo(slug){
 document.body.dataset.state = getState();
 
 /* ============================================================
-   STATE CARD CLICKS — Wired for future state switcher UI.
-   Cards need data-state attribute inside #oc-static-nav.
+   STATE CARD CLICKS
 ============================================================ */
 document.addEventListener('click', function(e){
   var card = e.target.closest('[data-state]');
@@ -82,28 +75,31 @@ document.addEventListener('click', function(e){
 
 /* ============================================================
    DROPDOWN BEHAVIOR
-   Direct display toggle avoids compound CSS selector requirement.
-   Opening one panel closes all others. Outside click closes all.
+   Selectors match the actual rendered DOM:
+   - Items: [id^="ocn-item-"] (no class on wrapper divs)
+   - Chevron: .w-button (Webflow assigns its own class to Button elements)
+   - Panels: [id$="-panel"]
 ============================================================ */
 document.addEventListener('DOMContentLoaded', function(){
   var bar = document.getElementById('oc-static-nav-bar');
   if(!bar) return;
-  var items = bar.querySelectorAll('.ocn-item');
+  var items = bar.querySelectorAll('[id^="ocn-item-"]');
 
   function closeAll(){
     items.forEach(function(item){
       var panel = item.querySelector('[id$="-panel"]');
-      var svg = item.querySelector('.ocn-chev-btn svg');
+      var svg = item.querySelector('svg');
       if(panel) panel.style.display = 'none';
       if(svg) svg.style.transform = '';
     });
   }
 
   items.forEach(function(item){
-    var btn = item.querySelector('.ocn-chev-btn');
+    var btn = item.querySelector('.w-button');
     var panel = item.querySelector('[id$="-panel"]');
     if(!btn || !panel) return;
     btn.addEventListener('click', function(e){
+      e.preventDefault();
       e.stopPropagation();
       var isOpen = panel.style.display === 'block';
       closeAll();
