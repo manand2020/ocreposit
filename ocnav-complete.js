@@ -1,121 +1,110 @@
-/* ocnav-complete.js v4.3.0
+/* ocnav-complete.js v4.4.0
  * Olive Cover — State manager + dropdown behavior.
  * Nav HTML and CSS are native in Webflow Designer.
- * CSS classes live in Webflow style system — zero CSS in this file.
+ * CSS classes linked via Webflow styles. This script handles:
+ *   1. imgraw -> img conversion (Webflow canvas artifact fix)
+ *   2. State management (localStorage oc_state)
+ *   3. Dropdown open/close behavior
+ *   4. State pill update
  */
-(function(){
-'use strict';
-if(window._ocNavComplete) return;
-window._ocNavComplete = true;
 
-/* ============================================================
-   STATES
-============================================================ */
-var STATES = [
-  {name:'Georgia', slug:'georgia', flag:'🍑', active:true}
-];
+(function () {
+  'use strict';
 
-function getState(){
-  try{ return localStorage.getItem('oc_state')||'georgia'; }catch(e){ return 'georgia'; }
-}
+  var LOGO_URL = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
+  var DEFAULT_STATE = 'georgia';
+  var STORAGE_KEY = 'oc_state';
 
-function setState(s){
-  try{
-    localStorage.setItem('oc_state', s);
-    document.body.dataset.state = s;
-    window.dispatchEvent(new CustomEvent('oc_state_changed', {detail:{state:s}}));
-  }catch(e){}
-}
-
-function getStateInfo(slug){
-  return STATES.find(function(s){ return s.slug===slug; })||STATES[0];
-}
-
-/* ============================================================
-   IP GEO — Disabled. Re-enable when additional states go live.
-============================================================ */
-/*
-(function detectGeo(){
-  try{
-    if(localStorage.getItem('oc_state')) return;
-    var x = new XMLHttpRequest();
-    x.open('GET','https://ip-api.com/json/?fields=regionName',true);
-    x.onload = function(){
-      try{
-        var d = JSON.parse(x.responseText);
-        var r = (d.regionName||'').toLowerCase();
-        var active = STATES.filter(function(s){ return s.active; });
-        var match = active.find(function(s){ return r.indexOf(s.name.toLowerCase())>-1; });
-        if(match) setState(match.slug);
-      }catch(e){}
-    };
-    x.send();
-  }catch(e){}
-})();
-*/
-
-/* ============================================================
-   INIT
-============================================================ */
-document.body.dataset.state = getState();
-
-/* ============================================================
-   STATE CARD CLICKS
-============================================================ */
-document.addEventListener('click', function(e){
-  var card = e.target.closest('[data-state]');
-  if(!card) return;
-  if(!card.closest('#oc-static-nav')) return;
-  var newState = card.getAttribute('data-state');
-  if(newState && STATES.find(function(s){ return s.slug===newState && s.active; })){
-    setState(newState);
-  }
-});
-
-/* ============================================================
-   DROPDOWN BEHAVIOR
-   Uses readyState guard — script loads async after DOMContentLoaded
-   has already fired, so we call initDropdowns() immediately if
-   the document is already interactive or complete.
-============================================================ */
-function initDropdowns(){
-  var bar = document.getElementById('ocnav-bar');
-  if(!bar) return;
-  var items = bar.querySelectorAll('[id^="ocn-item-"]');
-
-  function closeAll(){
-    items.forEach(function(item){
-      var panel = item.querySelector('[id$="-panel"]');
-      var svg = item.querySelector('svg');
-      if(panel) panel.style.display = 'none';
-      if(svg) svg.style.transform = '';
+  // 1. Fix Webflow imgraw elements -> real img tags
+  function fixImgRaw() {
+    var rawImgs = document.querySelectorAll('imgraw');
+    rawImgs.forEach(function (el) {
+      var src = el.getAttribute('data-raw-src') || el.getAttribute('src') || LOGO_URL;
+      var img = document.createElement('img');
+      // Copy all attributes
+      Array.from(el.attributes).forEach(function (attr) {
+        if (attr.name !== 'data-raw-src') {
+          img.setAttribute(attr.name, attr.value);
+        }
+      });
+      img.src = src;
+      img.alt = 'Olive Cover';
+      img.style.height = el.style.height || '32px';
+      img.style.width = 'auto';
+      el.parentNode.replaceChild(img, el);
     });
   }
 
-  items.forEach(function(item){
-    var btn = item.querySelector('.w-button');
-    var panel = item.querySelector('[id$="-panel"]');
-    if(!btn || !panel) return;
-    btn.addEventListener('click', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      var isOpen = panel.style.display === 'block';
-      closeAll();
-      if(!isOpen){
-        panel.style.display = 'block';
-        var svg = btn.querySelector('svg');
-        if(svg) svg.style.transform = 'rotate(180deg)';
-      }
+  // 2. Get/set state
+  function getState() {
+    return localStorage.getItem(STORAGE_KEY) || DEFAULT_STATE;
+  }
+
+  function setState(s) {
+    localStorage.setItem(STORAGE_KEY, s);
+  }
+
+  // 3. Update state pill text
+  function updateStatePill(state) {
+    var pill = document.querySelector('#oc-state-pill, .oc-state-pill, [data-oc-state-pill]');
+    if (pill) {
+      var label = state.charAt(0).toUpperCase() + state.slice(1);
+      pill.textContent = label;
+    }
+  }
+
+  // 4. Dropdown behavior
+  function initDropdowns() {
+    var triggers = document.querySelectorAll('[data-oc-dropdown], .oc-dropdown-trigger, .oc-nav-item-has-dropdown > a, .oc-nav-item-has-dropdown > button');
+    triggers.forEach(function (trigger) {
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var parent = trigger.closest('[data-oc-dropdown], .oc-nav-item-has-dropdown');
+        if (!parent) return;
+        var isOpen = parent.classList.contains('open');
+        // Close all
+        document.querySelectorAll('[data-oc-dropdown].open, .oc-nav-item-has-dropdown.open').forEach(function (el) {
+          el.classList.remove('open');
+        });
+        if (!isOpen) {
+          parent.classList.add('open');
+        }
+      });
     });
-  });
+    // Close on outside click
+    document.addEventListener('click', function () {
+      document.querySelectorAll('[data-oc-dropdown].open, .oc-nav-item-has-dropdown.open').forEach(function (el) {
+        el.classList.remove('open');
+      });
+    });
+  }
 
-  document.addEventListener('click', closeAll);
-}
+  // 5. State switcher clicks
+  function initStateSwitcher() {
+    var switchers = document.querySelectorAll('[data-oc-state], .oc-state-option');
+    switchers.forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var newState = el.getAttribute('data-oc-state') || el.textContent.trim().toLowerCase();
+        setState(newState);
+        updateStatePill(newState);
+      });
+    });
+  }
 
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', initDropdowns);
-} else {
-  initDropdowns();
-}
+  // Init
+  function init() {
+    fixImgRaw();
+    var state = getState();
+    updateStatePill(state);
+    initDropdowns();
+    initStateSwitcher();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
 })();
