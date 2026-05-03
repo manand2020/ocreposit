@@ -1,22 +1,18 @@
-/* ocnav-complete.js v4.7.0
+/* ocnav-complete.js v4.7.1
  * Olive Cover — State manager + state switcher dropdown.
  * Nav HTML is native in Webflow Designer.
  * This script handles ONLY behavior:
  *   1. State management (localStorage oc_state, default national)
  *   2. State pill text update
  *   3. State switcher dropdown open/close (#oc-state-pill toggles #oc-state-panel)
- *   4. State option click (data-oc-state="national"|"georgia") sets state, updates pill, closes panel, reloads page
- *   5. Click-outside closes panel
- *   6. ESC closes panel
- *   7. Existing nav dropdown open/close
- *   8. Minimum behavioral CSS injection (display:none / display:block on .open) — DOCUMENTED EXCEPTION
- *      Visual styling (background, padding, fonts, colors, position offsets) lives in Designer canvas.
- *      Only behavioral show/hide toggling is injected because Designer's class system has no clean way
- *      to handle .open as a state modifier on ID selectors via the visual UI.
+ *   4. State option click sets state, updates pill, closes panel, reloads page
+ *   5. Click-outside / ESC closes panel
+ *   6. Existing nav dropdown open/close
+ *   7. Minimum behavioral CSS injection — DOCUMENTED EXCEPTION
  *
- * v4.7.0 changes from v4.6.0:
- *   - National state emoji changed from 🇺🇸 to ⭐ (universal rendering)
- *   - Added behavioral CSS injection for #oc-state-panel display toggle
+ * v4.7.1 changes from v4.7.0:
+ *   - Added !important to CSS injection because Webflow renders DOM elements with
+ *     inline display:none which overrides stylesheet rules without !important
  */
 (function () {
   'use strict';
@@ -34,8 +30,8 @@
     var s = document.createElement('style');
     s.id = 'oc-nav-behavior-css';
     s.textContent = [
-      '#oc-state-panel{display:none;}',
-      '#oc-state-panel.open{display:block;}'
+      '#oc-state-panel{display:none!important;}',
+      '#oc-state-panel.open{display:block!important;}'
     ].join('');
     document.head.appendChild(s);
   }
