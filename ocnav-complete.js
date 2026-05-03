@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.5.0
+/* ocnav-complete.js v4.5.2
  * Olive Cover — State manager + nav search widget.
  * Nav HTML is native in Webflow Designer.
  * This script handles:
@@ -7,14 +7,28 @@
  *   3. Dropdown open/close
  *   4. State pill update
  *   5. Search widget injection + behavior
+ *
+ * v4.5.2 changes from v4.5.1:
+ *   - All CSS moved to native Webflow styles (no JS style injection)
+ *   - imgraw fix uses .oc-logo-img class instead of inline styles
+ *   - Search widget CSS must live in Webflow Site Settings > Custom CSS
  */
 (function () {
   'use strict';
 
   var LOGO_URL = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
-  var DEFAULT_STATE = 'georgia';
+  var DEFAULT_STATE = 'national';
   var STORAGE_KEY = 'oc_state';
   var SEARCH_PAGE = '/site-search';
+
+  var STATES = {
+    'national': '🇺🇸 National',
+    'georgia':  '🍑 Georgia',
+  };
+
+  function getStateLabel(s) {
+    return STATES[s] || (s.charAt(0).toUpperCase() + s.slice(1));
+  }
 
   // 1. Fix imgraw -> real img
   function fixImgRaw() {
@@ -27,9 +41,7 @@
       });
       img.src = src;
       img.alt = 'Olive Cover';
-      img.style.height = '40px';
-      img.style.width = 'auto';
-      img.style.display = 'block';
+      img.className = 'oc-logo-img';
       el.parentNode.replaceChild(img, el);
     });
   }
@@ -41,7 +53,7 @@
   // 3. Update state pill
   function updateStatePill(state) {
     var pill = document.querySelector('#oc-state-pill, .oc-state-pill, [data-oc-state-pill]');
-    if (pill) pill.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+    if (pill) pill.textContent = getStateLabel(state);
   }
 
   // 4. Dropdown behavior
@@ -78,23 +90,6 @@
   function injectSearch() {
     var navBar = document.querySelector('#ocnav-bar');
     if (!navBar || document.querySelector('#oc-nav-search')) return;
-
-    // Build CSS once
-    if (!document.querySelector('#oc-nav-search-css')) {
-      var style = document.createElement('style');
-      style.id = 'oc-nav-search-css';
-      style.textContent = [
-        '#oc-nav-search{position:relative;display:flex;align-items:center;margin-right:8px;}',
-        '#oc-search-toggle{background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:6px;color:#fff;opacity:0.75;transition:opacity 0.2s;flex-shrink:0;}',
-        '#oc-search-toggle:hover{opacity:1;}',
-        '#oc-search-form{display:flex;align-items:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:24px;overflow:hidden;max-width:0;opacity:0;transition:max-width 0.3s ease,opacity 0.25s ease;}',
-        '#oc-search-form.open{max-width:260px;opacity:1;}',
-        '#oc-search-input{background:transparent;border:none;outline:none;color:#fff;font-family:Inter,sans-serif;font-size:14px;padding:8px 14px;width:190px;}',
-        '#oc-search-input::placeholder{color:rgba(255,255,255,0.5);}',
-        '#oc-search-submit{background:transparent;border:none;cursor:pointer;padding:6px 10px;color:#fff;display:flex;align-items:center;opacity:0.8;flex-shrink:0;}'
-      ].join('');
-      document.head.appendChild(style);
-    }
 
     // Build widget HTML
     var wrap = document.createElement('div');
