@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.6.0
+/* ocnav-complete.js v4.7.0
  * Olive Cover — State manager + state switcher dropdown.
  * Nav HTML is native in Webflow Designer.
  * This script handles ONLY behavior:
@@ -7,12 +7,16 @@
  *   3. State switcher dropdown open/close (#oc-state-pill toggles #oc-state-panel)
  *   4. State option click (data-oc-state="national"|"georgia") sets state, updates pill, closes panel, reloads page
  *   5. Click-outside closes panel
- *   6. Existing nav dropdown open/close (.oc-nav-item-has-dropdown / [data-oc-dropdown])
+ *   6. ESC closes panel
+ *   7. Existing nav dropdown open/close
+ *   8. Minimum behavioral CSS injection (display:none / display:block on .open) — DOCUMENTED EXCEPTION
+ *      Visual styling (background, padding, fonts, colors, position offsets) lives in Designer canvas.
+ *      Only behavioral show/hide toggling is injected because Designer's class system has no clean way
+ *      to handle .open as a state modifier on ID selectors via the visual UI.
  *
- * v4.6.0 changes from v4.5.4:
- *   - Removed injectSearch() (search icon belongs in Designer canvas, not script-injected)
- *   - Added state switcher dropdown toggle behavior
- *   - State change reloads page so state-aware content re-renders
+ * v4.7.0 changes from v4.6.0:
+ *   - National state emoji changed from 🇺🇸 to ⭐ (universal rendering)
+ *   - Added behavioral CSS injection for #oc-state-panel display toggle
  */
 (function () {
   'use strict';
@@ -21,9 +25,20 @@
   var STORAGE_KEY = 'oc_state';
 
   var STATES = {
-    'national': '🇺🇸 National',
+    'national': '⭐ National',
     'georgia':  '🍑 Georgia'
   };
+
+  function injectBehaviorCSS() {
+    if (document.getElementById('oc-nav-behavior-css')) return;
+    var s = document.createElement('style');
+    s.id = 'oc-nav-behavior-css';
+    s.textContent = [
+      '#oc-state-panel{display:none;}',
+      '#oc-state-panel.open{display:block;}'
+    ].join('');
+    document.head.appendChild(s);
+  }
 
   function getStateLabel(s) {
     return STATES[s] || (s.charAt(0).toUpperCase() + s.slice(1));
@@ -134,6 +149,7 @@
   }
 
   function init() {
+    injectBehaviorCSS();
     updateStatePill(getState());
     initStateSwitcher();
     initNavDropdowns();
