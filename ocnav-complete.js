@@ -1,5 +1,5 @@
-/* ocnav-complete.js v4.8.2
- * Olive Cover — State manager + state switcher + minimal link rewriting infrastructure.
+/* ocnav-complete.js v4.8.3
+ * Olive Cover — State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
  * ARCHITECTURE (committed May 3 2026):
@@ -8,30 +8,20 @@
  *   rendering based on body[data-state]. Server-rendered, AEO-friendly.
  *   State hub pages (/states/{state}) are the only state-specific URLs.
  *
- * This script handles ONLY behavior:
- *   1. State management (localStorage oc_state, default national)
- *   2. State pill text update
- *   3. State switcher dropdown open/close (#oc-state-pill toggles #oc-state-panel)
- *   4. State option click sets state, updates pill, sets body[data-state],
- *      closes panel — NO PAGE RELOAD. CSS rules show/hide state-aware sections.
- *   5. Click-outside / ESC closes panel
- *   6. Existing nav dropdown open/close (legacy — kept for compatibility)
- *   7. Minimum behavioral CSS injection — DOCUMENTED EXCEPTION
- *   8. State-aware link rewriting infrastructure (manifest currently empty;
- *      reserved for future state hub use cases)
+ * v4.8.3 changes from v4.8.2:
+ *   - Added positionPanel() that measures pill location and sets panel
+ *     position:fixed with left/top calculated from pill rect. This bypasses
+ *     parent-context positioning issues since panel and pill are siblings
+ *     in the OC Nav DOM.
+ *   - positionPanel() runs inside openPanel(), and on window resize/scroll
+ *     while panel is open, throttled via rAF.
+ *   - Edge clamp: if pill is too far right for panel width, clamp left to
+ *     8px from viewport edge.
  *
  * v4.8.2 changes from v4.8.1:
  *   - Removed page reload on state change
- *   - Removed redirect logic (attemptRedirectToStatePage)
- *   - Emptied STATE_MANIFEST (consolidating to single-URL architecture)
- *   - State change is now instant: just toggles body[data-state]
- *   - Kept rewriteNavLinks() infrastructure for future state hub URLs
- *
- * v4.8.1 changes from v4.8.0:
- *   - Populated STATE_MANIFEST.georgia with 27 Insurance page paths
- *
- * v4.8.0 changes from v4.7.1:
- *   - Added STATE_MANIFEST + rewriteNavLinks() infrastructure
+ *   - Removed redirect logic
+ *   - Emptied STATE_MANIFEST (single-URL architecture)
  */
 (function () {
   'use strict';
@@ -44,13 +34,11 @@
     'georgia':  '🍑 Georgia'
   };
 
-  // Manifest reserved for future state-specific URLs (state hubs only).
-  // Architecture decision May 3 2026: product/claims/carrier pages consolidate
-  // to single URLs with state-aware CMS sections. Manifest stays empty unless
-  // a genuinely state-specific page is built (e.g., /states/{state} hub).
   var STATE_MANIFEST = {
     'georgia': []
   };
+
+  var _resizeRaf = null;
 
   function injectBehaviorCSS() {
     if (document.getElementById('oc-nav-behavior-css')) return;
@@ -84,7 +72,6 @@
     return Object.keys(STATES).filter(function (s) { return s !== 'national'; });
   }
 
-  // Strip any known state suffix from a path. "/foo-georgia" -> "/foo"
   function stripStateSuffix(path) {
     var slugs = getKnownStateSlugs();
     for (var i = 0; i < slugs.length; i++) {
@@ -105,16 +92,10 @@
     return basePath;
   }
 
-  // Rewrite all <a href> inside the nav bar based on current state.
-  // No-op when manifest is empty (current state).
   function rewriteNavLinks() {
     var state = getState();
     var nav = document.getElementById('ocnav-bar');
     if (!nav) return;
-    var manifest = STATE_MANIFEST[state] || [];
-    if (manifest.length === 0 && state !== DEFAULT_STATE) {
-      // Still strip stale state suffixes if user switched back to national
-    }
     var links = nav.querySelectorAll('a[href]');
     links.forEach(function (a) {
       var href = a.getAttribute('href');
@@ -153,6 +134,56 @@
     }
   }
 
+  // Position the panel relative to pill via JS measurements.
+  // Uses position:fixed so we bypass parent-context positioning issues
+  // (pill and panel are siblings in OC Nav DOM, not parent-child).
+  function positionPanel() {
+    var pill  = document.getElementById('oc-state-pill');
+    var panel = document.getElementById('oc-state-panel');
+    if (!pill || !panel) return;
+    if (!panel.classList.contains('open')) return;
+
+    // Measure
+    var pillRect = pill.getBoundingClientRect();
+    // Panel must be temporarily measurable — it's already display:block via .open class
+    var panelWidth = panel.offsetWidth;
+    var panelHeight = panel.offsetHeight;
+
+    // Default: panel right edge aligns with pill right edge
+    var left = pillRect.right - panelWidth;
+    var top  = pillRect.bottom + 8;
+
+    // Edge clamp left side
+    if (left < 8) left = 8;
+
+    // Edge clamp right side
+    var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    if (left + panelWidth > viewportWidth - 8) {
+      left = viewportWidth - panelWidth - 8;
+    }
+
+    // If panel would go below viewport, flip above pill
+    var viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    if (top + panelHeight > viewportHeight - 8) {
+      top = pillRect.top - panelHeight - 8;
+      if (top < 8) top = 8;
+    }
+
+    panel.style.position = 'fixed';
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  }
+
+  function schedulePositionPanel() {
+    if (_resizeRaf) return;
+    _resizeRaf = window.requestAnimationFrame(function () {
+      _resizeRaf = null;
+      positionPanel();
+    });
+  }
+
   function closePanel() {
     var panel = document.getElementById('oc-state-panel');
     var pill  = document.getElementById('oc-state-pill');
@@ -165,6 +196,8 @@
     var pill  = document.getElementById('oc-state-pill');
     if (panel) panel.classList.add('open');
     if (pill)  pill.setAttribute('aria-expanded', 'true');
+    // Position after class is set (so panel is rendered and measurable)
+    positionPanel();
   }
 
   function initStateSwitcher() {
@@ -195,7 +228,6 @@
         updateStatePill(s);
         rewriteNavLinks();
         closePanel();
-        // No reload, no redirect. body[data-state] is set; CSS handles the rest.
       });
     });
 
@@ -208,6 +240,10 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closePanel();
     });
+
+    // Reposition on resize/scroll while open
+    window.addEventListener('resize', schedulePositionPanel);
+    window.addEventListener('scroll', schedulePositionPanel, true);
   }
 
   function initNavDropdowns() {
@@ -233,7 +269,6 @@
 
   function init() {
     injectBehaviorCSS();
-    // Set body[data-state] on load so state-aware CSS sections render correctly
     document.body.dataset.state = getState();
     updateStatePill(getState());
     rewriteNavLinks();
