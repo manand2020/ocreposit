@@ -1,18 +1,25 @@
-/* ocnav-complete.js v4.7.1
- * Olive Cover — State manager + state switcher dropdown.
+/* ocnav-complete.js v4.8.0
+ * Olive Cover — State manager + state switcher + state-aware link rewriting.
  * Nav HTML is native in Webflow Designer.
  * This script handles ONLY behavior:
  *   1. State management (localStorage oc_state, default national)
  *   2. State pill text update
  *   3. State switcher dropdown open/close (#oc-state-pill toggles #oc-state-panel)
- *   4. State option click sets state, updates pill, closes panel, reloads page
+ *   4. State option click sets state, updates pill, rewrites nav links,
+ *      redirects current page to state-specific version if exists, else reloads
  *   5. Click-outside / ESC closes panel
- *   6. Existing nav dropdown open/close
+ *   6. Existing nav dropdown open/close (legacy — kept for compatibility)
  *   7. Minimum behavioral CSS injection — DOCUMENTED EXCEPTION
+ *   8. State-aware link rewriting on every page load — appends state slug
+ *      to nav links whose base path is in STATE_MANIFEST for current state
  *
- * v4.7.1 changes from v4.7.0:
- *   - Added !important to CSS injection because Webflow renders DOM elements with
- *     inline display:none which overrides stylesheet rules without !important
+ * v4.8.0 changes from v4.7.1:
+ *   - Added STATE_MANIFEST: per-state list of base paths that have state-specific versions
+ *   - Added rewriteNavLinks(): on page load, rewrites nav anchor hrefs based on current state
+ *   - Added attemptRedirectToStatePage(): on state change, tries to redirect current
+ *     page to its state-specific version if available
+ *   - State change flow: setState -> updateStatePill -> rewriteNavLinks ->
+ *     attemptRedirectToStatePage (which either redirects or reloads)
  */
 (function () {
   'use strict';
@@ -23,6 +30,19 @@
   var STATES = {
     'national': '⭐ National',
     'georgia':  '🍑 Georgia'
+  };
+
+  // Manifest: which base paths have state-specific versions per state.
+  // Add a base path here when a state-specific page is published in Webflow.
+  // Base path = the national URL path (e.g., "/insurance/auto-insurance").
+  // The state-specific URL is always base + "-" + state slug
+  // (e.g., "/insurance/auto-insurance-georgia").
+  // National state has no manifest — it always uses base paths as-is.
+  var STATE_MANIFEST = {
+    'georgia': [
+      // Add base paths here as Georgia-specific pages are published.
+      // Example: '/insurance/auto-insurance',
+    ]
   };
 
   function injectBehaviorCSS() {
@@ -47,6 +67,78 @@
 
   function setState(s) {
     try { localStorage.setItem(STORAGE_KEY, s); } catch (e) {}
+  }
+
+  function getKnownStateSlugs() {
+    return Object.keys(STATES).filter(function (s) { return s !== 'national'; });
+  }
+
+  // Strip any known state suffix from a path. "/foo-georgia" -> "/foo"
+  function stripStateSuffix(path) {
+    var slugs = getKnownStateSlugs();
+    for (var i = 0; i < slugs.length; i++) {
+      var suffix = '-' + slugs[i];
+      if (path.endsWith(suffix)) {
+        return path.slice(0, -suffix.length);
+      }
+    }
+    return path;
+  }
+
+  // Given a base path (no state suffix) and a target state, return the path
+  // for that state if available per manifest, else return base path.
+  function resolvePathForState(basePath, state) {
+    if (state === 'national' || state === DEFAULT_STATE) return basePath;
+    var manifest = STATE_MANIFEST[state] || [];
+    if (manifest.indexOf(basePath) !== -1) {
+      return basePath + '-' + state;
+    }
+    return basePath;
+  }
+
+  // Rewrite all <a href> inside the nav bar based on current state.
+  // Strategy: every nav link's current href is reduced to its base path
+  // (state suffix stripped), then resolved for the current state.
+  function rewriteNavLinks() {
+    var state = getState();
+    var nav = document.getElementById('ocnav-bar');
+    if (!nav) return;
+    var links = nav.querySelectorAll('a[href]');
+    links.forEach(function (a) {
+      var href = a.getAttribute('href');
+      if (!href) return;
+      // Skip external links, anchors, mailto, tel
+      if (href.indexOf('://') !== -1) return;
+      if (href.charAt(0) === '#') return;
+      if (href.indexOf('mailto:') === 0) return;
+      if (href.indexOf('tel:') === 0) return;
+      // Split path from query/hash
+      var qIdx = href.search(/[?#]/);
+      var path = qIdx === -1 ? href : href.slice(0, qIdx);
+      var tail = qIdx === -1 ? '' : href.slice(qIdx);
+      // Reduce to base, then resolve for state
+      var basePath = stripStateSuffix(path);
+      var newPath = resolvePathForState(basePath, state);
+      var newHref = newPath + tail;
+      if (newHref !== href) {
+        a.setAttribute('href', newHref);
+      }
+    });
+  }
+
+  // Try to redirect the current page to its state-specific version.
+  // If current page already matches target state's resolution, just reload.
+  function attemptRedirectToStatePage() {
+    var state = getState();
+    var currentPath = window.location.pathname;
+    var basePath = stripStateSuffix(currentPath);
+    var targetPath = resolvePathForState(basePath, state);
+    if (targetPath !== currentPath) {
+      // Preserve query/hash from current URL
+      window.location.href = targetPath + window.location.search + window.location.hash;
+    } else {
+      window.location.reload();
+    }
   }
 
   function updateStatePill(state) {
@@ -108,7 +200,7 @@
         setState(s);
         updateStatePill(s);
         closePanel();
-        window.location.reload();
+        attemptRedirectToStatePage();
       });
     });
 
@@ -147,6 +239,7 @@
   function init() {
     injectBehaviorCSS();
     updateStatePill(getState());
+    rewriteNavLinks();
     initStateSwitcher();
     initNavDropdowns();
   }
