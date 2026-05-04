@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.8.3
+/* ocnav-complete.js v4.8.4
  * Olive Cover — State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
@@ -8,11 +8,15 @@
  *   rendering based on body[data-state]. Server-rendered, AEO-friendly.
  *   State hub pages (/states/{state}) are the only state-specific URLs.
  *
+ * v4.8.4 changes from v4.8.3:
+ *   - Exposed window.OC public API: setState(), getState()
+ *   - Allows external scripts and future CMS-bound elements to trigger
+ *     state changes programmatically without reaching into closure scope.
+ *   - ocbodystate.js removed from Webflow; all body state logic lives here.
+ *
  * v4.8.3 changes from v4.8.2:
  *   - Added positionPanel() that measures pill location and sets panel
- *     position:fixed with left/top calculated from pill rect. This bypasses
- *     parent-context positioning issues since panel and pill are siblings
- *     in the OC Nav DOM.
+ *     position:fixed with left/top calculated from pill rect.
  *   - positionPanel() runs inside openPanel(), and on window resize/scroll
  *     while panel is open, throttled via rAF.
  *   - Edge clamp: if pill is too far right for panel width, clamp left to
@@ -61,6 +65,7 @@
   }
 
   function setState(s) {
+    if (!STATES[s]) return;
     try {
       localStorage.setItem(STORAGE_KEY, s);
       document.body.dataset.state = s;
@@ -134,35 +139,26 @@
     }
   }
 
-  // Position the panel relative to pill via JS measurements.
-  // Uses position:fixed so we bypass parent-context positioning issues
-  // (pill and panel are siblings in OC Nav DOM, not parent-child).
   function positionPanel() {
     var pill  = document.getElementById('oc-state-pill');
     var panel = document.getElementById('oc-state-panel');
     if (!pill || !panel) return;
     if (!panel.classList.contains('open')) return;
 
-    // Measure
-    var pillRect = pill.getBoundingClientRect();
-    // Panel must be temporarily measurable — it's already display:block via .open class
+    var pillRect   = pill.getBoundingClientRect();
     var panelWidth = panel.offsetWidth;
     var panelHeight = panel.offsetHeight;
 
-    // Default: panel right edge aligns with pill right edge
     var left = pillRect.right - panelWidth;
     var top  = pillRect.bottom + 8;
 
-    // Edge clamp left side
     if (left < 8) left = 8;
 
-    // Edge clamp right side
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
     if (left + panelWidth > viewportWidth - 8) {
       left = viewportWidth - panelWidth - 8;
     }
 
-    // If panel would go below viewport, flip above pill
     var viewportHeight = window.innerHeight || document.documentElement.clientHeight;
     if (top + panelHeight > viewportHeight - 8) {
       top = pillRect.top - panelHeight - 8;
@@ -170,10 +166,10 @@
     }
 
     panel.style.position = 'fixed';
-    panel.style.left = left + 'px';
-    panel.style.top = top + 'px';
-    panel.style.right = 'auto';
-    panel.style.bottom = 'auto';
+    panel.style.left     = left + 'px';
+    panel.style.top      = top + 'px';
+    panel.style.right    = 'auto';
+    panel.style.bottom   = 'auto';
   }
 
   function schedulePositionPanel() {
@@ -196,12 +192,11 @@
     var pill  = document.getElementById('oc-state-pill');
     if (panel) panel.classList.add('open');
     if (pill)  pill.setAttribute('aria-expanded', 'true');
-    // Position after class is set (so panel is rendered and measurable)
     positionPanel();
   }
 
   function initStateSwitcher() {
-    var pill = document.getElementById('oc-state-pill');
+    var pill  = document.getElementById('oc-state-pill');
     var panel = document.getElementById('oc-state-panel');
 
     if (pill) {
@@ -241,7 +236,6 @@
       if (e.key === 'Escape') closePanel();
     });
 
-    // Reposition on resize/scroll while open
     window.addEventListener('resize', schedulePositionPanel);
     window.addEventListener('scroll', schedulePositionPanel, true);
   }
@@ -275,6 +269,13 @@
     initStateSwitcher();
     initNavDropdowns();
   }
+
+  // Public API — allows external scripts to read/set state without
+  // reaching into closure scope. ocbodystate.js is no longer needed;
+  // all body state logic lives here.
+  window.OC = window.OC || {};
+  window.OC.setState = setState;
+  window.OC.getState = getState;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
