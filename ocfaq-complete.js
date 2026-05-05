@@ -1,6 +1,9 @@
 /**
- * ocfaq-complete.js v1.1.1
+ * ocfaq-complete.js v1.1.2
  * Olive Cover FAQ rendering engine
+ *
+ * What changed in v1.1.2:
+ * - Removed border lines between FAQ accordion items (no top or bottom borders)
  *
  * What changed in v1.1.1:
  * - handleEmptyStates() now distinguishes between:
@@ -16,7 +19,7 @@
 (function () {
   'use strict';
 
-  var OC_FAQ_VERSION   = '1.1.1';
+  var OC_FAQ_VERSION   = '1.1.2';
   var FAQ_ITEM_CLASS   = 'oc-faq-item';
   var FAQ_ITEM_SEL     = '.' + FAQ_ITEM_CLASS;
   var FAQ_Q_CLASS      = 'oc-faq-q';
@@ -186,8 +189,8 @@
     if (document.getElementById('oc-faq-styles')) return;
     var css = [
       '.oc-faq-list, [id*="faq-list"] { display: flex; flex-direction: column; }',
-      '.oc-faq-item { border-bottom: 1px solid rgba(27,58,92,0.12); }',
-      '.oc-faq-item:first-child { border-top: 1px solid rgba(27,58,92,0.12); }',
+      '.oc-faq-item { }',
+      '.oc-faq-item:first-child { }',
       '.oc-faq-item details { cursor: pointer; }',
       '.oc-faq-item details summary { list-style: none; }',
       '.oc-faq-item details summary::-webkit-details-marker { display: none; }',
@@ -214,15 +217,11 @@
       var visibleRows = allRows.filter(function (row) { return row.style.display !== 'none'; });
       var existing    = list.querySelector('.oc-faq-empty');
 
-      // No CMS rows at all -- Webflow returned an empty list / bindings not done.
-      // Suppress the message entirely; nothing useful to show.
       if (!allRows.length) {
         if (existing) existing.parentNode.removeChild(existing);
         return;
       }
 
-      // Items exist but contain only placeholder text -- bindings pending.
-      // Suppress message; placeholders will be replaced once Designer binds fields.
       var allPlaceholders = visibleRows.length > 0 && visibleRows.every(function (row) {
         var item = row.querySelector(FAQ_ITEM_SEL);
         if (!item) return true;
@@ -233,8 +232,6 @@
         return;
       }
 
-      // Real items exist but all filtered out by state -- user switched state.
-      // Show the message so they know something is there just not for their state.
       if (!visibleRows.length) {
         if (!existing) {
           var msg = document.createElement('p');
