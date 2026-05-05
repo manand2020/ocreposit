@@ -1,22 +1,22 @@
 /**
- * ocfaq-complete.js v1.1.0
+ * ocfaq-complete.js v1.1.1
  * Olive Cover FAQ rendering engine
  *
- * What changed in v1.1.0:
- *  - normaliseFaqItems() adds oc-faq-item, oc-faq-q, oc-faq-a classes at
- *    runtime so the script works with the actual Webflow-rendered DOM
- *    (wrapper divs have data attrs but no class; summary/answer div have
- *    no classes either).
- *  - getFaqLists() finds lists by id*=faq-list in addition to .oc-faq-list
- *  - Filter/sort operates on .w-dyn-item rows (Webflow list items)
- *  - /faq/{slug} detail pages skipped (isDetailPage check)
- *  - /faq index page (oc-faq-static) left unchanged -- link rows stay as links
- *  - Schema skips placeholder text ("FAQ Question" / "FAQ Answer")
+ * What changed in v1.1.1:
+ * - handleEmptyStates() now distinguishes between:
+ *   (a) list has zero .w-dyn-item rows total (CMS returned nothing OR Webflow
+ *       "Empty State" placeholder is showing) -- suppress "No questions found"
+ *   (b) list has items but all filtered out by state -- show "No questions
+ *       found for this topic" (correct behaviour, state switcher context)
+ * - Placeholder detection: if all visible items contain "FAQ Question" text,
+ *   treat the list as unbound and show nothing rather than the empty message
+ * - getFaqLists() dedup now uses el.id || el.className || index fallback so
+ *   anonymous divs with identical classes are not dropped
  */
 (function () {
   'use strict';
 
-  var OC_FAQ_VERSION   = '1.1.0';
+  var OC_FAQ_VERSION   = '1.1.1';
   var FAQ_ITEM_CLASS   = 'oc-faq-item';
   var FAQ_ITEM_SEL     = '.' + FAQ_ITEM_CLASS;
   var FAQ_Q_CLASS      = 'oc-faq-q';
@@ -35,13 +35,15 @@
   function getFaqLists() {
     var byClass = Array.prototype.slice.call(document.querySelectorAll('.oc-faq-list'));
     var byId    = Array.prototype.slice.call(document.querySelectorAll('[id*="faq-list"]'));
-    var seen = {};
-    return byClass.concat(byId).filter(function (el) {
-      var key = el.id || el.className;
-      if (seen[key]) return false;
-      seen[key] = true;
-      return true;
-    });
+    var seen = new Set ? new Set() : null;
+    var seenArr = [];
+    function isSeen(el) {
+      if (seen) { if (seen.has(el)) return true; seen.add(el); return false; }
+      if (seenArr.indexOf(el) !== -1) return true;
+      seenArr.push(el);
+      return false;
+    }
+    return byClass.concat(byId).filter(function (el) { return !isSeen(el); });
   }
 
   function isDetailPage() {
@@ -61,10 +63,16 @@
     return el ? el.innerHTML.trim() : '';
   }
 
+  function isPlaceholderText(text) {
+    var t = text.trim();
+    return t === 'FAQ Question' || t === 'FAQ Answer' || t === '';
+  }
+
   function normaliseFaqItems() {
     var candidates = Array.prototype.slice.call(
       document.querySelectorAll('[data-question-number]')
     );
+
     getFaqLists().forEach(function (list) {
       var dynItems = list.querySelectorAll('.w-dyn-item > div');
       Array.prototype.forEach.call(dynItems, function (div) {
@@ -73,6 +81,7 @@
         }
       });
     });
+
     candidates.forEach(function (div) {
       if (!div.classList.contains(FAQ_ITEM_CLASS)) div.classList.add(FAQ_ITEM_CLASS);
       var details = div.querySelector('details');
@@ -89,26 +98,36 @@
 
   function applyStateFilter() {
     var activeState = getActiveState();
-    var items       = getAllFaqItems();
+    var items = getAllFaqItems();
     if (!items.length) return;
+
     var overriddenNumbers = {};
     items.forEach(function (item) {
       var itemState = (item.getAttribute('data-state') || DEFAULT_STATE).toLowerCase();
-      var qNum      = item.getAttribute('data-question-number');
-      if (itemState === activeState && itemState !== DEFAULT_STATE && qNum) overriddenNumbers[qNum] = true;
+      var qNum = item.getAttribute('data-question-number');
+      if (itemState === activeState && itemState !== DEFAULT_STATE && qNum)
+        overriddenNumbers[qNum] = true;
     });
+
     items.forEach(function (item) {
       var itemState = (item.getAttribute('data-state') || DEFAULT_STATE).toLowerCase();
-      var qNum      = item.getAttribute('data-question-number');
+      var qNum = item.getAttribute('data-question-number');
       var show;
-      if (!itemState || itemState === DEFAULT_STATE) { show = !overriddenNumbers[qNum]; }
-      else if (itemState === activeState) { show = true; }
-      else { show = false; }
+      if (!itemState || itemState === DEFAULT_STATE) {
+        show = !overriddenNumbers[qNum];
+      } else if (itemState === activeState) {
+        show = true;
+      } else {
+        show = false;
+      }
       var row = item.closest('.w-dyn-item') || item;
       row.style.display = show ? '' : 'none';
     });
+
     getFaqLists().forEach(function (list) {
-      var rows = Array.prototype.slice.call(list.querySelectorAll('.w-dyn-item')).filter(function (row) { return row.style.display !== 'none'; });
+      var rows = Array.prototype.slice.call(list.querySelectorAll('.w-dyn-item')).filter(function (row) {
+        return row.style.display !== 'none';
+      });
       rows.sort(function (a, b) {
         var iA = a.querySelector(FAQ_ITEM_SEL), iB = b.querySelector(FAQ_ITEM_SEL);
         var numA = parseInt((iA && iA.getAttribute('data-question-number')) || '0', 10);
@@ -117,6 +136,7 @@
       });
       rows.forEach(function (row) { list.appendChild(row); });
     });
+
     buildFaqSchema();
   }
 
@@ -140,16 +160,24 @@
       return row.style.display !== 'none';
     });
     if (!items.length) return;
+
     var entities = items.map(function (item) {
       var q = getQuestionText(item), a = getAnswerText(item);
-      if (!q || !a || q === 'FAQ Question' || a === 'FAQ Answer') return null;
-      return { '@type': 'Question', 'name': q, 'acceptedAnswer': { '@type': 'Answer', 'text': a.replace(/<[^>]+>/g, '').trim() } };
+      if (!q || !a || isPlaceholderText(q) || isPlaceholderText(a)) return null;
+      return {
+        '@type': 'Question',
+        'name': q,
+        'acceptedAnswer': { '@type': 'Answer', 'text': a.replace(/<[^>]+>/g, '').trim() }
+      };
     }).filter(Boolean);
+
     if (!entities.length) return;
+
     var existing = document.getElementById(SCHEMA_SCRIPT_ID);
     if (existing) existing.parentNode.removeChild(existing);
     var script = document.createElement('script');
-    script.id = SCHEMA_SCRIPT_ID; script.type = 'application/ld+json';
+    script.id   = SCHEMA_SCRIPT_ID;
+    script.type = 'application/ld+json';
     script.text = JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', 'mainEntity': entities }, null, 2);
     document.head.appendChild(script);
   }
@@ -175,25 +203,64 @@
       '@media (max-width: 767px) { .oc-faq-q { font-size: 0.95rem; padding: 16px 0; } .oc-faq-a { font-size: 0.9rem; padding-bottom: 16px; } }',
     ].join('\n');
     var style = document.createElement('style');
-    style.id = 'oc-faq-styles'; style.textContent = css;
+    style.id = 'oc-faq-styles';
+    style.textContent = css;
     document.head.appendChild(style);
   }
 
   function handleEmptyStates() {
     getFaqLists().forEach(function (list) {
-      var visible = Array.prototype.slice.call(list.querySelectorAll('.w-dyn-item')).filter(function (row) { return row.style.display !== 'none'; });
-      var existing = list.querySelector('.oc-faq-empty');
-      if (!visible.length) {
-        if (!existing) { var msg = document.createElement('p'); msg.className = 'oc-faq-empty'; msg.textContent = 'No questions found for this topic.'; list.appendChild(msg); }
-      } else { if (existing) existing.parentNode.removeChild(existing); }
+      var allRows     = Array.prototype.slice.call(list.querySelectorAll('.w-dyn-item'));
+      var visibleRows = allRows.filter(function (row) { return row.style.display !== 'none'; });
+      var existing    = list.querySelector('.oc-faq-empty');
+
+      // No CMS rows at all -- Webflow returned an empty list / bindings not done.
+      // Suppress the message entirely; nothing useful to show.
+      if (!allRows.length) {
+        if (existing) existing.parentNode.removeChild(existing);
+        return;
+      }
+
+      // Items exist but contain only placeholder text -- bindings pending.
+      // Suppress message; placeholders will be replaced once Designer binds fields.
+      var allPlaceholders = visibleRows.length > 0 && visibleRows.every(function (row) {
+        var item = row.querySelector(FAQ_ITEM_SEL);
+        if (!item) return true;
+        return isPlaceholderText(getQuestionText(item));
+      });
+      if (allPlaceholders) {
+        if (existing) existing.parentNode.removeChild(existing);
+        return;
+      }
+
+      // Real items exist but all filtered out by state -- user switched state.
+      // Show the message so they know something is there just not for their state.
+      if (!visibleRows.length) {
+        if (!existing) {
+          var msg = document.createElement('p');
+          msg.className   = 'oc-faq-empty';
+          msg.textContent = 'No questions found for this topic.';
+          list.appendChild(msg);
+        }
+      } else {
+        if (existing) existing.parentNode.removeChild(existing);
+      }
     });
   }
 
   function listenForStateChanges() {
-    window.addEventListener('oc:statechange', function () { applyStateFilter(); handleEmptyStates(); });
+    window.addEventListener('oc:statechange', function () {
+      applyStateFilter();
+      handleEmptyStates();
+    });
     if (typeof MutationObserver !== 'undefined') {
       var obs = new MutationObserver(function (mutations) {
-        mutations.forEach(function (m) { if (m.attributeName === 'data-state') { applyStateFilter(); handleEmptyStates(); } });
+        mutations.forEach(function (m) {
+          if (m.attributeName === 'data-state') {
+            applyStateFilter();
+            handleEmptyStates();
+          }
+        });
       });
       obs.observe(document.body, { attributes: true, attributeFilter: ['data-state'] });
     }
@@ -208,9 +275,13 @@
     applyStateFilter();
     handleEmptyStates();
     listenForStateChanges();
-    window.OC = window.OC || {}; window.OC.faq = { version: OC_FAQ_VERSION };
+    window.OC = window.OC || {};
+    window.OC.faq = { version: OC_FAQ_VERSION };
   }
 
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
-
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
