@@ -1,5 +1,5 @@
 /**
- * ocfaq-complete.js v1.1.2
+ * ocfaq-complete.js v1.1.4
  * Olive Cover FAQ rendering engine
  *
  * What changed in v1.1.2:
@@ -18,6 +18,10 @@
  */
 (function () {
   'use strict';
+
+  // FAQ disabled on all pages except /faq
+  if (window.location.pathname !== '/faq') return;
+
 
   var OC_FAQ_VERSION   = '1.1.2';
   var FAQ_ITEM_CLASS   = 'oc-faq-item';
