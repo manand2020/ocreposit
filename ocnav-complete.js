@@ -1,47 +1,23 @@
-/* ocnav-complete.js v4.8.4
+/* ocnav-complete.js v4.8.5
  * Olive Cover — State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
- * ARCHITECTURE (committed May 3 2026):
- *   Single-URL with state-aware CMS-driven sections is canonical.
- *   Product pages, claims, carriers all use ONE URL with conditional content
- *   rendering based on body[data-state]. Server-rendered, AEO-friendly.
- *   State hub pages (/states/{state}) are the only state-specific URLs.
- *
- * v4.8.4 changes from v4.8.3:
- *   - Exposed window.OC public API: setState(), getState()
- *   - Allows external scripts and future CMS-bound elements to trigger
- *     state changes programmatically without reaching into closure scope.
- *   - ocbodystate.js removed from Webflow; all body state logic lives here.
- *
- * v4.8.3 changes from v4.8.2:
- *   - Added positionPanel() that measures pill location and sets panel
- *     position:fixed with left/top calculated from pill rect.
- *   - positionPanel() runs inside openPanel(), and on window resize/scroll
- *     while panel is open, throttled via rAF.
- *   - Edge clamp: if pill is too far right for panel width, clamp left to
- *     8px from viewport edge.
- *
- * v4.8.2 changes from v4.8.1:
- *   - Removed page reload on state change
- *   - Removed redirect logic
- *   - Emptied STATE_MANIFEST (single-URL architecture)
+ * v4.8.5 changes from v4.8.4:
+ * - Added hover-bridge pseudo-element above each .oc-nav-panel so the
+ *   cursor gap between the nav trigger and the dropdown panel does not
+ *   close the panel prematurely. Adds 12px transparent ::before bridge.
+ * - No other logic changes.
  */
 (function () {
   'use strict';
 
   var DEFAULT_STATE = 'national';
-  var STORAGE_KEY = 'oc_state';
-
+  var STORAGE_KEY   = 'oc_state';
   var STATES = {
     'national': '⭐ National',
     'georgia':  '🍑 Georgia'
   };
-
-  var STATE_MANIFEST = {
-    'georgia': []
-  };
-
+  var STATE_MANIFEST = { 'georgia': [] };
   var _resizeRaf = null;
 
   function injectBehaviorCSS() {
@@ -49,8 +25,24 @@
     var s = document.createElement('style');
     s.id = 'oc-nav-behavior-css';
     s.textContent = [
+      /* State panel show/hide */
       '#oc-state-panel{display:none!important;}',
-      '#oc-state-panel.open{display:block!important;}'
+      '#oc-state-panel.open{display:block!important;}',
+      /* Hover bridge: transparent pseudo-element above each nav panel
+         fills the gap between the trigger and the panel so moving the
+         cursor down does not briefly leave both elements and close it. */
+      '@media (min-width:992px){',
+      '  .oc-nav-panel::before{',
+      '    content:"";',
+      '    display:block;',
+      '    position:absolute;',
+      '    top:-12px;',
+      '    left:0;',
+      '    right:0;',
+      '    height:12px;',
+      '    background:transparent;',
+      '  }',
+      '}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -60,8 +52,7 @@
   }
 
   function getState() {
-    try { return localStorage.getItem(STORAGE_KEY) || DEFAULT_STATE; }
-    catch (e) { return DEFAULT_STATE; }
+    try { return localStorage.getItem(STORAGE_KEY) || DEFAULT_STATE; } catch (e) { return DEFAULT_STATE; }
   }
 
   function setState(s) {
@@ -81,9 +72,7 @@
     var slugs = getKnownStateSlugs();
     for (var i = 0; i < slugs.length; i++) {
       var suffix = '-' + slugs[i];
-      if (path.endsWith(suffix)) {
-        return path.slice(0, -suffix.length);
-      }
+      if (path.endsWith(suffix)) { return path.slice(0, -suffix.length); }
     }
     return path;
   }
@@ -91,9 +80,7 @@
   function resolvePathForState(basePath, state) {
     if (state === 'national' || state === DEFAULT_STATE) return basePath;
     var manifest = STATE_MANIFEST[state] || [];
-    if (manifest.indexOf(basePath) !== -1) {
-      return basePath + '-' + state;
-    }
+    if (manifest.indexOf(basePath) !== -1) { return basePath + '-' + state; }
     return basePath;
   }
 
@@ -113,11 +100,9 @@
       var path = qIdx === -1 ? href : href.slice(0, qIdx);
       var tail = qIdx === -1 ? '' : href.slice(qIdx);
       var basePath = stripStateSuffix(path);
-      var newPath = resolvePathForState(basePath, state);
-      var newHref = newPath + tail;
-      if (newHref !== href) {
-        a.setAttribute('href', newHref);
-      }
+      var newPath  = resolvePathForState(basePath, state);
+      var newHref  = newPath + tail;
+      if (newHref !== href) { a.setAttribute('href', newHref); }
     });
   }
 
@@ -128,15 +113,9 @@
     var set = false;
     for (var i = 0; i < pill.childNodes.length; i++) {
       var n = pill.childNodes[i];
-      if (n.nodeType === 3 && n.textContent.trim()) {
-        n.textContent = labelTxt;
-        set = true;
-        break;
-      }
+      if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = labelTxt; set = true; break; }
     }
-    if (!set) {
-      pill.insertBefore(document.createTextNode(labelTxt), pill.firstChild);
-    }
+    if (!set) { pill.insertBefore(document.createTextNode(labelTxt), pill.firstChild); }
   }
 
   function positionPanel() {
@@ -144,40 +123,29 @@
     var panel = document.getElementById('oc-state-panel');
     if (!pill || !panel) return;
     if (!panel.classList.contains('open')) return;
-
-    var pillRect   = pill.getBoundingClientRect();
-    var panelWidth = panel.offsetWidth;
+    var pillRect    = pill.getBoundingClientRect();
+    var panelWidth  = panel.offsetWidth;
     var panelHeight = panel.offsetHeight;
-
     var left = pillRect.right - panelWidth;
     var top  = pillRect.bottom + 8;
-
     if (left < 8) left = 8;
-
-    var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    if (left + panelWidth > viewportWidth - 8) {
-      left = viewportWidth - panelWidth - 8;
-    }
-
-    var viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    if (top + panelHeight > viewportHeight - 8) {
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    if (left + panelWidth > vw - 8) { left = vw - panelWidth - 8; }
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (top + panelHeight > vh - 8) {
       top = pillRect.top - panelHeight - 8;
       if (top < 8) top = 8;
     }
-
     panel.style.position = 'fixed';
     panel.style.left     = left + 'px';
-    panel.style.top      = top + 'px';
+    panel.style.top      = top  + 'px';
     panel.style.right    = 'auto';
     panel.style.bottom   = 'auto';
   }
 
   function schedulePositionPanel() {
     if (_resizeRaf) return;
-    _resizeRaf = window.requestAnimationFrame(function () {
-      _resizeRaf = null;
-      positionPanel();
-    });
+    _resizeRaf = window.requestAnimationFrame(function () { _resizeRaf = null; positionPanel(); });
   }
 
   function closePanel() {
@@ -198,7 +166,6 @@
   function initStateSwitcher() {
     var pill  = document.getElementById('oc-state-pill');
     var panel = document.getElementById('oc-state-panel');
-
     if (pill) {
       pill.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -206,13 +173,9 @@
         if (open) closePanel(); else openPanel();
       });
       pill.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          pill.click();
-        }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pill.click(); }
       });
     }
-
     document.querySelectorAll('[data-oc-state]').forEach(function (el) {
       el.addEventListener('click', function (e) {
         e.preventDefault();
@@ -225,17 +188,12 @@
         closePanel();
       });
     });
-
     document.addEventListener('click', function (e) {
       if (!panel || !pill) return;
       if (panel.contains(e.target) || pill.contains(e.target)) return;
       closePanel();
     });
-
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closePanel();
-    });
-
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
     window.addEventListener('resize', schedulePositionPanel);
     window.addEventListener('scroll', schedulePositionPanel, true);
   }
@@ -248,16 +206,12 @@
         var parent = t.closest('[data-oc-dropdown], .oc-nav-item-has-dropdown');
         if (!parent) return;
         var isOpen = parent.classList.contains('open');
-        document.querySelectorAll('.oc-nav-item-has-dropdown.open, [data-oc-dropdown].open').forEach(function (el) {
-          el.classList.remove('open');
-        });
+        document.querySelectorAll('.oc-nav-item-has-dropdown.open, [data-oc-dropdown].open').forEach(function (el) { el.classList.remove('open'); });
         if (!isOpen) parent.classList.add('open');
       });
     });
     document.addEventListener('click', function () {
-      document.querySelectorAll('.oc-nav-item-has-dropdown.open, [data-oc-dropdown].open').forEach(function (el) {
-        el.classList.remove('open');
-      });
+      document.querySelectorAll('.oc-nav-item-has-dropdown.open, [data-oc-dropdown].open').forEach(function (el) { el.classList.remove('open'); });
     });
   }
 
@@ -270,10 +224,7 @@
     initNavDropdowns();
   }
 
-  // Public API — allows external scripts to read/set state without
-  // reaching into closure scope. ocbodystate.js is no longer needed;
-  // all body state logic lives here.
-  window.OC = window.OC || {};
+  window.OC          = window.OC || {};
   window.OC.setState = setState;
   window.OC.getState = getState;
 
