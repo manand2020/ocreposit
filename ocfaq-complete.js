@@ -1,5 +1,5 @@
 /**
- * ocfaq-complete.js v1.2.0
+ * ocfaq-complete.js v2.1.0
  * Olive Cover FAQ rendering engine
  *
  * What changed in v1.1.2:
@@ -15,6 +15,14 @@
  *   treat the list as unbound and show nothing rather than the empty message
  * - getFaqLists() dedup now uses el.id || el.className || index fallback so
  *   anonymous divs with identical classes are not dropped
+ 
+ *
+ * v2.1.0 changes from v1.2.0:
+ * - Fixed pre-existing syntax error: removed orphan IIFE wrapper at hub-search section.
+ * - Consolidated ocfaqshort: FAQ short-format renderer plus its CSS.
+ * - Consolidated ocfaqkill: page-level FAQ section killer.
+ * - Removed standalone CSS rule that hid all native HTML disclosure widgets globally.
+ *   That rule was breaking mobile nav and any other intentional disclosure widget use.
  */
 (function () {
   'use strict';
@@ -292,8 +300,7 @@
 /* ============================================================
  * HUB SEARCH MODULE - runs on /faq only
  * ============================================================ */
-(function() {
-  if (window.location.pathname !== '/faq' && window.location.pathname !== '/faq/') return;
+
   /**
  * ocfaqhub-complete.js v1.0.1
  * Olive Cover FAQ Hub - categorized, filterable accordion
@@ -361,3 +368,11 @@ document.readyState==='loading'?document.addEventListener('DOMContentLoaded',ini
 window.OC=window.OC||{};window.OC.faqHub={version:'1.0.1'};
 
 })();
+
+/* ============================================================
+ * v2.1.0 CONSOLIDATED MODULES (folded from standalone scripts)
+ * ============================================================ */
+
+(function(){var V='2.0.0',path=window.location.pathname;if(path==='/faq'||path.indexOf('/faq/')===0)return;var DS='national';function gs(){return(document.body.getAttribute('data-state')||DS).toLowerCase();}function getLists(){var a=Array.prototype.slice.call(document.querySelectorAll('.oc-faq-list')),b=Array.prototype.slice.call(document.querySelectorAll('[id$="-faq-list"]')),seen={};return a.concat(b).filter(function(el){var k=el.id||el.className;if(seen[k])return false;seen[k]=true;return true;});}function getQ(item){var el=item.querySelector('summary')||item.querySelector('.oc-faq-q');return el?el.textContent.trim():'';}function getSA(item){var el=item.querySelector('.oc-faq-short');var t=el?el.textContent.trim():'';if(t)return t;var ae=item.querySelector('.oc-faq-a');if(!ae)return'';var f=ae.textContent.trim();var d=f.indexOf('. ');return d>0?f.substring(0,d+1):f.substring(0,120);}function getSlug(item){var el=item.querySelector('.oc-faq-slug');return el?el.textContent.trim():'';}function isP(t){return!t||t==='FAQ Question'||t==='FAQ Answer';}function css(){if(document.getElementById('oc-fqs'))return;var s=document.createElement('style');s.id='oc-fqs';s.textContent='.oc-faq-short-item{padding:18px 0;border-bottom:1px solid rgba(27,58,92,.1)}.oc-faq-short-item:last-child{border-bottom:none}.oc-faq-short-q{font-family:"Playfair Display",Georgia,serif;font-size:1.05rem;font-weight:600;color:#1B3A5C;margin:0 0 6px;line-height:1.4}.oc-faq-short-a{font-family:Inter,system-ui,sans-serif;font-size:.9rem;color:#374151;line-height:1.65;margin:0 0 8px;background:transparent!important;padding:0!important}.oc-faq-short-link{font-family:Inter,system-ui,sans-serif;font-size:.82rem;font-weight:600;color:#B8934A;text-decoration:none}.oc-faq-a{display:none!important}.oc-faq-placeholder{display:none!important}';document.head.appendChild(s);}function render(){var activeState=gs();getLists().forEach(function(list){var dis=Array.prototype.slice.call(list.querySelectorAll('.w-dyn-item'));if(!dis.length)return;list.querySelectorAll('.oc-faq-short-list').forEach(function(el){el.parentNode.removeChild(el);});dis.forEach(function(di){di.style.display='';});var cont=document.createElement('div');cont.className='oc-faq-short-list';var n=0;dis.forEach(function(di){var item=di.querySelector('.oc-faq-item')||di;var st=(item.getAttribute('data-state')||DS).toLowerCase();if(st!==DS&&st!==activeState)return;var q=getQ(item),a=getSA(item),sl=getSlug(item);if(isP(q)||!q)return;var row=document.createElement('div');row.className='oc-faq-short-item';var qEl=document.createElement('p');qEl.className='oc-faq-short-q';qEl.textContent=q;row.appendChild(qEl);if(a&&!isP(a)){var aEl=document.createElement('p');aEl.className='oc-faq-short-a';aEl.textContent=a;row.appendChild(aEl);}if(sl){var lk=document.createElement('a');lk.className='oc-faq-short-link';lk.href='/faq/'+sl;lk.textContent='Read full answer →';row.appendChild(lk);}cont.appendChild(row);n++;});if(n>0){dis.forEach(function(di){di.style.display='none';});list.appendChild(cont);}});}function init(){css();render();window.addEventListener('oc:statechange',render);}document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();window.OC=window.OC||{};window.OC.faq={version:V};})();
+
+(function(){var p=window.location.pathname;if(p==='/faq'||p.startsWith('/faq/'))return;function h(){['#ins-faq','#car-faq','#about-faq','#wwdb-faq'].forEach(function(s){var el=document.querySelector(s);if(el){el.style.cssText='display:none!important';el.setAttribute('aria-hidden','true');}});}document.readyState==='loading'?document.addEventListener('DOMContentLoaded',h):h();})();
