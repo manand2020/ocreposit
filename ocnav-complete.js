@@ -1,5 +1,5 @@
-/* ocnav-complete.js v4.9.0
- * Olive Cover â State manager + state switcher + JS-positioned state panel.
+/* ocnav-complete.js v4.9.1
+ * Olive Cover Ã¢ÂÂ State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
  * v4.8.5 changes from v4.8.4:
@@ -12,6 +12,12 @@
  * - Added mobile nav hamburger toggle handler.
  * - Toggles data-oc-mnav-open attribute on .oc-mobile-nav-wrap.
  * - Locks body scroll, closes on link click and ESC key.
+ 
+ *
+ * v4.9.1 changes from v4.9.0:
+ * - Mobile nav panel display now toggled directly via JS inline style.
+ * - Removes dependency on Webflow CSS preprocessor honoring attribute-descendant selectors.
+ * - Survives Webflow auto-renaming child element classes.
  */
 (function () {
   'use strict';
@@ -19,8 +25,8 @@
   var DEFAULT_STATE = 'national';
   var STORAGE_KEY   = 'oc_state';
   var STATES = {
-    'national': 'â­ National',
-    'georgia':  'ð Georgia'
+    'national': 'Ã¢Â­Â National',
+    'georgia':  'Ã°ÂÂÂ Georgia'
   };
   var STATE_MANIFEST = { 'georgia': [] };
   var _resizeRaf = null;
@@ -251,6 +257,7 @@
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
       document.body.classList.toggle('oc-mnav-locked', open);
+      panel.style.setProperty('display', open ? 'flex' : 'none', 'important');
     }
     btn.addEventListener('click', function(e) {
       e.preventDefault();
