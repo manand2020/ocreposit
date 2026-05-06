@@ -1,5 +1,5 @@
-/* ocnav-complete.js v4.8.5
- * Olive Cover — State manager + state switcher + JS-positioned state panel.
+/* ocnav-complete.js v4.9.0
+ * Olive Cover â State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
  * v4.8.5 changes from v4.8.4:
@@ -7,6 +7,11 @@
  *   cursor gap between the nav trigger and the dropdown panel does not
  *   close the panel prematurely. Adds 12px transparent ::before bridge.
  * - No other logic changes.
+ 
+ * v4.9.0 changes from v4.8.5:
+ * - Added mobile nav hamburger toggle handler.
+ * - Toggles data-oc-mnav-open attribute on .oc-mobile-nav-wrap.
+ * - Locks body scroll, closes on link click and ESC key.
  */
 (function () {
   'use strict';
@@ -14,8 +19,8 @@
   var DEFAULT_STATE = 'national';
   var STORAGE_KEY   = 'oc_state';
   var STATES = {
-    'national': '⭐ National',
-    'georgia':  '🍑 Georgia'
+    'national': 'â­ National',
+    'georgia':  'ð Georgia'
   };
   var STATE_MANIFEST = { 'georgia': [] };
   var _resizeRaf = null;
@@ -233,4 +238,40 @@
   } else {
     init();
   }
+
+  /* === v4.9.0 mobile nav hamburger toggle === */
+  function initMobileNav() {
+    var wrap = document.querySelector('.oc-mobile-nav-wrap');
+    if (!wrap) return;
+    var btn = wrap.querySelector('[data-oc-mnav-toggle]');
+    var panel = wrap.querySelector('[data-oc-mnav-panel]');
+    if (!btn || !panel) return;
+    function setOpen(open) {
+      wrap.setAttribute('data-oc-mnav-open', open ? 'true' : 'false');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      document.body.classList.toggle('oc-mnav-locked', open);
+    }
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var isOpen = wrap.getAttribute('data-oc-mnav-open') === 'true';
+      setOpen(!isOpen);
+    });
+    panel.addEventListener('click', function(e) {
+      var target = e.target.closest('a');
+      if (target) setOpen(false);
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && wrap.getAttribute('data-oc-mnav-open') === 'true') {
+        setOpen(false);
+        btn.focus();
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileNav);
+  } else {
+    initMobileNav();
+  }
+
 })();
