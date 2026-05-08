@@ -1,4 +1,4 @@
-// Olive Cover - Coverage Review form behavior v2.1
+// Olive Cover - Coverage Review form behavior v2.4
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
@@ -10,15 +10,15 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstati
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const fbConfig = {
-  apiKey: "AIzaSyC5120ZI3hnX1t8o8myErM8Ez7tjJ-kvtc",
-  authDomain: "olivecover-web.firebaseapp.com",
-  projectId: "olivecover-web",
-  storageBucket: "olivecover-web.firebasestorage.app",
-  messagingSenderId: "122726346450",
-  appId: "1:122726346450:web:9d455ee22e14bf8407070b"
+  apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
+  authDomain: "olive-cover-prod.firebaseapp.com",
+  projectId: "olive-cover-prod",
+  storageBucket: "olive-cover-prod.firebasestorage.app",
+  messagingSenderId: "781066018428",
+  appId: "1:781066018428:web:535d07b690283027f9f3f9"
 };
 const app = initializeApp(fbConfig);
-const db = getFirestore(app);
+const db = getFirestore(app, "olivecover-prod");
 const storage = getStorage(app);
 const auth = getAuth(app);
 
@@ -485,8 +485,8 @@ function bindInputSave(id) {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 2.1) return;
-  window._OC_CRV_VERSION = 2.1;
+  if (window._OC_CRV_VERSION >= 2.4) return;
+  window._OC_CRV_VERSION = 2.4;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
