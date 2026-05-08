@@ -1,4 +1,4 @@
-// Olive Cover - Coverage Review form behavior v2.5
+// Olive Cover - Coverage Review form behavior v2.6
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
@@ -481,12 +481,65 @@ function bindInputSave(id) {
   if (el) el.addEventListener("input", scheduleSave);
 }
 
+// ---- Field defaults: placeholders and preselected contact prefs
+
+function applyFieldDefaults() {
+  const placeholders = {
+    "oc-crv-fn": "First name",
+    "oc-crv-ln": "Last name",
+    "oc-crv-em": "you@example.com",
+    "oc-crv-ph": "(555) 123-4567",
+    "oc-crv-zp": "ZIP code",
+    "oc-crv-yb": "e.g. 2008",
+    "oc-crv-year-built": "e.g. 2008",
+    "oc-crv-ca": "e.g. State Farm, Allstate",
+    "oc-crv-rd": "MM / YYYY",
+    "oc-crv-nt": "Anything we should know? (optional)"
+  };
+  for (const id in placeholders) {
+    const el = $(id);
+    if (!el) continue;
+    if (!el.placeholder || /example text/i.test(el.placeholder)) {
+      el.placeholder = placeholders[id];
+    }
+  }
+  // Default contact preferences: Email and Text are pre-selected
+  const defaultPrefs = ["email", "text"];
+  if (STATE.contactPref.length === 0) {
+    STATE.contactPref = defaultPrefs.slice();
+    document.querySelectorAll("#oc-crv-contact-pref .oc-crv-chip").forEach((btn) => {
+      if (defaultPrefs.includes(btn.dataset.v)) btn.classList.add("oc-crv-chip-on");
+    });
+  }
+}
+
+// ---- Reorder Step 4: docs upload before optional details -------
+
+function reorderStep4() {
+  const shared = $("oc-crv-p4-shared");
+  if (!shared) return;
+  const kids = [...shared.children];
+  const detailsHeader = kids.find((c) => c.tagName === "H4" && /current coverage/i.test(c.textContent));
+  const docsHeader = kids.find((c) => c.tagName === "H4" && /upload documents/i.test(c.textContent));
+  const decArea = $("oc-crv-dec-area");
+  const polArea = $("oc-crv-pol-area");
+  if (!detailsHeader || !docsHeader || !decArea || !polArea) return;
+
+  // Rename details header so visitors know it's optional
+  detailsHeader.textContent = "Optional detailed information";
+
+  // Move docs section (header + dec area + pol area) to appear BEFORE the details header
+  detailsHeader.parentNode.insertBefore(docsHeader, detailsHeader);
+  detailsHeader.parentNode.insertBefore(decArea, detailsHeader);
+  detailsHeader.parentNode.insertBefore(polArea, detailsHeader);
+}
+
 // ---- Init ------------------------------------------------------
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 2.5) return;
-  window._OC_CRV_VERSION = 2.5;
+  if (window._OC_CRV_VERSION >= 2.6) return;
+  window._OC_CRV_VERSION = 2.6;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -545,6 +598,9 @@ function init() {
   // Text field auto-save
   ["oc-crv-fn","oc-crv-ln","oc-crv-em","oc-crv-ph","oc-crv-zp",
    "oc-crv-yb","oc-crv-ca","oc-crv-rd","oc-crv-nt"].forEach(bindInputSave);
+
+  applyFieldDefaults();
+  reorderStep4();
 
   // Initial step
   setStep(1);
