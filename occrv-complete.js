@@ -1,12 +1,13 @@
-// Olive Cover - Coverage Review form behavior v2.0
+// Olive Cover - Coverage Review form behavior v2.1
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
-// Source of truth: github.com/manand2020/ocreposit/coverage-review/occrv-complete.js
+// Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
 // No inline event handlers in markup. All handlers wired via addEventListener in init().
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const fbConfig = {
   apiKey: "AIzaSyC5120ZI3hnX1t8o8myErM8Ez7tjJ-kvtc",
@@ -19,6 +20,11 @@ const fbConfig = {
 const app = initializeApp(fbConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
+
+// Establish anonymous auth on module load so Firestore/Storage rules pass.
+// Fire-and-forget: by the time any user interaction triggers a write, auth will be ready.
+signInAnonymously(auth).catch((err) => console.warn("[oc-crv] anon auth failed:", err));
 
 // ---- Session management ----------------------------------------
 
