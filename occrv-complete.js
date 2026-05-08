@@ -494,6 +494,9 @@ function init() {
     const p = $("oc-crv-p" + i);
     if (p) p.style.display = "none";
   }
+  // Hide confirmation panel; it's shown only after successful submit
+  const ok = $("oc-crv-ok");
+  if (ok) ok.style.display = "none";
 
   // Track selection
   document.querySelectorAll(".oc-crv-type-card").forEach((c) => c.addEventListener("click", onTrackClick));
