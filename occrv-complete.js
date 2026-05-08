@@ -1,4 +1,4 @@
-// Olive Cover - Coverage Review form behavior v2.6
+// Olive Cover - Coverage Review form behavior v2.7
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
@@ -519,27 +519,40 @@ function reorderStep4() {
   const shared = $("oc-crv-p4-shared");
   if (!shared) return;
   const kids = [...shared.children];
-  const detailsHeader = kids.find((c) => c.tagName === "H4" && /current coverage/i.test(c.textContent));
+  const detailsHeader = kids.find((c) => c.tagName === "H4" && /current coverage|optional detailed/i.test(c.textContent));
   const docsHeader = kids.find((c) => c.tagName === "H4" && /upload documents/i.test(c.textContent));
   const decArea = $("oc-crv-dec-area");
   const polArea = $("oc-crv-pol-area");
   if (!detailsHeader || !docsHeader || !decArea || !polArea) return;
 
-  // Rename details header so visitors know it's optional
-  detailsHeader.textContent = "Optional detailed information";
+  // Mark current coverage section as optional in the header itself
+  detailsHeader.textContent = "Current coverage (optional)";
+
+  // Find the "Anything else" label (P) and its sibling textarea (oc-crv-nt)
+  const noteInput = $("oc-crv-nt");
+  let noteLabel = null;
+  if (noteInput) {
+    let p = noteInput.previousElementSibling;
+    while (p && p.tagName !== "P" && p.tagName !== "LABEL") p = p.previousElementSibling;
+    noteLabel = p;
+  }
 
   // Move docs section (header + dec area + pol area) to appear BEFORE the details header
   detailsHeader.parentNode.insertBefore(docsHeader, detailsHeader);
   detailsHeader.parentNode.insertBefore(decArea, detailsHeader);
   detailsHeader.parentNode.insertBefore(polArea, detailsHeader);
+
+  // Then place the "Anything else" label + textarea immediately AFTER the doc upload, BEFORE current coverage
+  if (noteLabel) detailsHeader.parentNode.insertBefore(noteLabel, detailsHeader);
+  if (noteInput) detailsHeader.parentNode.insertBefore(noteInput, detailsHeader);
 }
 
 // ---- Init ------------------------------------------------------
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 2.6) return;
-  window._OC_CRV_VERSION = 2.6;
+  if (window._OC_CRV_VERSION >= 2.7) return;
+  window._OC_CRV_VERSION = 2.7;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
