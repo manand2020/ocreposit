@@ -484,6 +484,17 @@ function bindInputSave(id) {
 // ---- Init ------------------------------------------------------
 
 function init() {
+  // Version guard: always let the newest script win over stale app-registered loaders
+  if (window._OC_CRV_VERSION >= 2.1) return;
+  window._OC_CRV_VERSION = 2.1;
+
+  // Forcibly reset all step panels to hidden so stale init calls from old scripts
+  // cannot leave p4/p5 visible while p1 is also showing
+  for (let i = 1; i <= 5; i++) {
+    const p = $("oc-crv-p" + i);
+    if (p) p.style.display = "none";
+  }
+
   // Track selection
   document.querySelectorAll(".oc-crv-type-card").forEach((c) => c.addEventListener("click", onTrackClick));
 
