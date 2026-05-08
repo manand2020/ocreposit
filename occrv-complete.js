@@ -1,4 +1,4 @@
-// Olive Cover - Coverage Review form behavior v2.4
+// Olive Cover - Coverage Review form behavior v2.5
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
@@ -276,7 +276,7 @@ async function onStartOver(e) {
   e.preventDefault();
   try {
     const sid = localStorage.getItem(SID_KEY);
-    if (sid) await setDoc(doc(db, "coverage-reviews", sid), { status: "cleared", clearedAt: serverTimestamp() }, { merge: true });
+    if (sid) await setDoc(doc(db, "coverage-review", sid), { status: "cleared", clearedAt: serverTimestamp() }, { merge: true });
   } catch (err) { console.warn("[oc-crv] clear session failed:", err); }
   clearSession();
   location.reload();
@@ -339,7 +339,7 @@ async function saveSession() {
   STATE.saving = true;
   try {
     const sid = getOrCreateSession();
-    await setDoc(doc(db, "coverage-reviews", sid), buildPartialPayload(), { merge: true });
+    await setDoc(doc(db, "coverage-review", sid), buildPartialPayload(), { merge: true });
   } catch (err) { console.warn("[oc-crv] auto-save failed:", err); }
   finally { STATE.saving = false; }
 }
@@ -350,7 +350,7 @@ async function tryRestoreSession() {
   const sid = localStorage.getItem(SID_KEY);
   if (!sid) return;
   try {
-    const snap = await getDoc(doc(db, "coverage-reviews", sid));
+    const snap = await getDoc(doc(db, "coverage-review", sid));
     if (!snap.exists()) return;
     const d = snap.data();
     if (!d || d.status !== "in_progress") return;
@@ -459,7 +459,7 @@ async function onSubmit(e) {
       createdAt: serverTimestamp()
     });
     delete payload.savedAt;
-    await setDoc(doc(db, "coverage-reviews", sid), payload, { merge: true });
+    await setDoc(doc(db, "coverage-review", sid), payload, { merge: true });
     clearSession();
     const wrap = $("oc-crv-wrap");
     const ok = $("oc-crv-ok");
@@ -485,8 +485,8 @@ function bindInputSave(id) {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 2.4) return;
-  window._OC_CRV_VERSION = 2.4;
+  if (window._OC_CRV_VERSION >= 2.5) return;
+  window._OC_CRV_VERSION = 2.5;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -524,8 +524,8 @@ function init() {
   setupSingleChips("#oc-crv-pr", "currentPremium");
 
   // File uploads
-  setupFileUpload("oc-crv-file-dec", "oc-crv-dec-trigger", "oc-crv-fname-dec", "decFileUrl", "decFileName", "coverage-reviews/dec-pages", 10);
-  setupFileUpload("oc-crv-file-pol", "oc-crv-pol-trigger", "oc-crv-fname-pol", "policyFileUrl", "policyFileName", "coverage-reviews/policies", 25);
+  setupFileUpload("oc-crv-file-dec", "oc-crv-dec-trigger", "oc-crv-fname-dec", "decFileUrl", "decFileName", "coverage-review/dec-pages", 10);
+  setupFileUpload("oc-crv-file-pol", "oc-crv-pol-trigger", "oc-crv-fname-pol", "policyFileUrl", "policyFileName", "coverage-review/policies", 25);
 
   // Step 5: quote comparison
   document.querySelectorAll(".oc-crv-quote-card").forEach((c) => c.addEventListener("click", onQuoteCardClick));
