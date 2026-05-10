@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.9.1
+/* ocnav-complete.js v4.9.2
  * Olive Cover Ã¢ÂÂ State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
@@ -14,6 +14,12 @@
  * - Locks body scroll, closes on link click and ESC key.
  
  *
+ * v4.9.2 changes from v4.9.1:
+ * - DEFAULT_STATE changed from 'national' to 'georgia' so GA-specific content
+ *   shows by default for all users who have not previously selected a state.
+ *   Correct for current GA-only business; revert to 'national' when multi-state
+ *   expansion goes live and the state pill is shown.
+ *
  * v4.9.1 changes from v4.9.0:
  * - Mobile nav panel display now toggled directly via JS inline style.
  * - Removes dependency on Webflow CSS preprocessor honoring attribute-descendant selectors.
@@ -22,7 +28,7 @@
 (function () {
   'use strict';
 
-  var DEFAULT_STATE = 'national';
+  var DEFAULT_STATE = 'georgia';
   var STORAGE_KEY   = 'oc_state';
   var STATES = {
     'national': 'Ã¢Â­Â National',
