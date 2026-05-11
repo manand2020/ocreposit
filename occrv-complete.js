@@ -1,4 +1,4 @@
-// Olive Cover - Coverage Review form behavior v2.9
+// Olive Cover - Coverage Review form behavior v2.10
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
@@ -107,7 +107,7 @@ const STEP_SUBS = [
   "We can run your info with multiple carriers."
 ];
 
-function setStep(n) {
+function setStep(n, doScroll) {
   STATE.step = n;
   for (let i = 1; i <= 5; i++) {
     const p = $("oc-crv-p" + i);
@@ -129,9 +129,11 @@ function setStep(n) {
   if (next) next.style.display = n < 5 ? "" : "none";
   if (submit) submit.style.display = n === 5 ? "" : "none";
   showErr("");
-  var _f = document.getElementById('oc-crv-wrap');
-  var _t = _f ? _f.getBoundingClientRect().top + window.scrollY - 80 : 0;
-  window.scrollTo({ top: Math.max(0, _t), behavior: 'smooth' });
+  if (doScroll) {
+    var _f = document.getElementById('oc-crv-wrap');
+    var _t = _f ? _f.getBoundingClientRect().top + window.scrollY - 80 : 0;
+    window.scrollTo({ top: Math.max(0, _t), behavior: 'smooth' });
+  }
   scheduleSave();
 }
 
@@ -235,11 +237,11 @@ function validateStep(n) {
   return true;
 }
 
-function onBack(e) { e.preventDefault(); if (STATE.step > 1) setStep(STATE.step - 1); }
+function onBack(e) { e.preventDefault(); if (STATE.step > 1) setStep(STATE.step - 1, true); }
 function onNext(e) {
   e.preventDefault();
   if (!validateStep(STATE.step)) return;
-  setStep(STATE.step + 1);
+  setStep(STATE.step + 1, true);
   if (STATE.step === 3) {
     const pl = $("oc-crv-pl");
     const cl = $("oc-crv-cl");
@@ -553,8 +555,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 2.9) return;
-  window._OC_CRV_VERSION = 2.9;
+  if (window._OC_CRV_VERSION >= 2.10) return;
+  window._OC_CRV_VERSION = 2.10;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
