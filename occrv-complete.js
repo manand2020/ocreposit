@@ -1,4 +1,4 @@
-// Olive Cover - Coverage Review form behavior v2.8
+// Olive Cover - Coverage Review form behavior v2.9
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
@@ -129,7 +129,9 @@ function setStep(n) {
   if (next) next.style.display = n < 5 ? "" : "none";
   if (submit) submit.style.display = n === 5 ? "" : "none";
   showErr("");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  var _f = document.getElementById('oc-crv-wrap');
+  var _t = _f ? _f.getBoundingClientRect().top + window.scrollY - 80 : 0;
+  window.scrollTo({ top: Math.max(0, _t), behavior: 'smooth' });
   scheduleSave();
 }
 
@@ -551,8 +553,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 2.8) return;
-  window._OC_CRV_VERSION = 2.8;
+  if (window._OC_CRV_VERSION >= 2.9) return;
+  window._OC_CRV_VERSION = 2.9;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
