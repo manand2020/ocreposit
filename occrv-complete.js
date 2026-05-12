@@ -130,7 +130,7 @@ function setStep(n, doScroll) {
   if (submit) submit.style.display = n === 5 ? "" : "none";
   showErr("");
   if (doScroll) {
-    var _f = document.getElementById('oc-crv-wrap');
+    var _f = document.getElementById('oc-crv-form-section') || document.getElementById('oc-crv-wrap');
     var _t = _f ? _f.getBoundingClientRect().top + window.scrollY - 80 : 0;
     window.scrollTo({ top: Math.max(0, _t), behavior: 'smooth' });
   }
