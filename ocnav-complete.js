@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.9.2
+/* ocnav-complete.js v4.9.3
  * Olive Cover Ã¢ÂÂ State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
@@ -69,7 +69,7 @@
   }
 
   function getState() {
-    try { return localStorage.getItem(STORAGE_KEY) || DEFAULT_STATE; } catch (e) { return DEFAULT_STATE; }
+    try { var s = localStorage.getItem(STORAGE_KEY); return (s && STATES[s]) ? s : DEFAULT_STATE; } catch (e) { return DEFAULT_STATE; }
   }
 
   function setState(s) {
