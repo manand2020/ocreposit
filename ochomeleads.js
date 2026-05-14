@@ -61,7 +61,7 @@ function init() {
       console.error("[oc-leads] save error:", err);
       errEl.textContent = "Something went wrong. Please call us at (678) 888-1011.";
       errEl.style.display = "block";
-      submitBtn.textContent = "Get My Free Review";
+      submitBtn.textContent = "Ask Olive";
       submitBtn.disabled = false;
     }
   });
