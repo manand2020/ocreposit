@@ -43,6 +43,7 @@
     s.id = 'oc-nav-behavior-css';
     s.textContent = [
       /* State panel show/hide */
+      '#oc-state-pill-anchor{display:none!important;}',
       '#oc-state-panel{display:none!important;}',
       '#oc-state-panel.open{display:block!important;}',
       /* Hover bridge: transparent pseudo-element above each nav panel
