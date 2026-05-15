@@ -1,8 +1,9 @@
-// Olive Cover - Contact form handler v1.1.0
+// Olive Cover - Contact form handler v1.2.0
 // Source of truth: github.com/manand2020/ocreposit/occontact-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
 // Writes submissions to Firestore (olive-cover-prod project, submissions DB, contact-submissions collection)
 // v1.1.0: fixed getFirestore to use named "submissions" database; added signInAnonymously for auth.
+// v1.2.0: await _authReady in onSubmit to eliminate auth/write race condition.
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -20,7 +21,7 @@ const APP_NAME = "oc-contact";
 const app = getApps().find(a => a.name === APP_NAME) || initializeApp(fbConfig, APP_NAME);
 const db = getFirestore(app, "submissions");
 const auth = getAuth(app);
-signInAnonymously(auth).catch(e => console.warn("[oc-contact] anon auth:", e.code));
+const _authReady = signInAnonymously(auth).catch(e => { console.warn("[oc-contact] anon auth:", e.code); return null; });
 
 function ready(fn) {
   if (document.readyState !== "loading") fn();
@@ -31,13 +32,10 @@ function init() {
   const form = document.getElementById("oc-contact-form-el");
   if (!form) return;
 
-  // The Webflow wrapper renders the form hidden by default; ensure it's visible.
   const wrap = form.closest(".w-form") || form.parentElement;
   if (wrap) wrap.removeAttribute("style");
   form.removeAttribute("style");
 
-  // Override action/method so any accidental natural submit hits a sensible URL
-  // (we always preventDefault below, but this avoids 405s if JS fails to load)
   form.setAttribute("action", "/thank-you");
   form.setAttribute("method", "get");
 
@@ -101,6 +99,7 @@ async function onSubmit(e) {
   if (btn) { btn.disabled = true; btn.value = waitText; }
 
   try {
+    await _authReady;
     await addDoc(collection(db, "contact-submissions"), payload);
     showDone(form);
   } catch (err) {
