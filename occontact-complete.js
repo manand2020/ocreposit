@@ -1,13 +1,15 @@
-// Olive Cover - Contact form handler v1.2.0
+// Olive Cover - Contact form handler v1.3.0
 // Source of truth: github.com/manand2020/ocreposit/occontact-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
 // Writes submissions to Firestore (olive-cover-prod project, submissions DB, contact-submissions collection)
 // v1.1.0: fixed getFirestore to use named "submissions" database; added signInAnonymously for auth.
 // v1.2.0: await _authReady in onSubmit to eliminate auth/write race condition.
+// v1.3.0: _authReady now resolves via onAuthStateChanged (fires after Firestore SDK receives token via
+//         onIdTokenChanged) rather than raw signInAnonymously promise (resolves before SDK is notified).
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const fbConfig = {
   apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
@@ -21,7 +23,14 @@ const APP_NAME = "oc-contact";
 const app = getApps().find(a => a.name === APP_NAME) || initializeApp(fbConfig, APP_NAME);
 const db = getFirestore(app, "submissions");
 const auth = getAuth(app);
-const _authReady = signInAnonymously(auth).catch(e => { console.warn("[oc-contact] anon auth:", e.code); return null; });
+
+// onAuthStateChanged fires after onIdTokenChanged, ensuring Firestore SDK has received the token.
+const _authReady = new Promise((resolve) => {
+  const unsub = onAuthStateChanged(auth, (user) => {
+    if (user) { unsub(); resolve(user); }
+  });
+  signInAnonymously(auth).catch(e => console.warn("[oc-contact] anon auth:", e.code));
+});
 
 function ready(fn) {
   if (document.readyState !== "loading") fn();
