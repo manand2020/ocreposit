@@ -1,11 +1,12 @@
-// Olive Cover - Homepage Lead Capture v1.3.0
-// Handles homepage inline form (oc-lead-*) -> Firestore home-leads.
-// Loaded as type="module" by ocnav-complete.js when path === '/'.
-// Uses capture-phase listener to prevent Webflow's built-in form handler.
+// Olive Cover - Homepage Lead Capture v1.4.0
+// Quick intake form: name + contact + intent -> Firestore home-leads collection (submissions DB)
+// Source: github.com/manand2020/ocreposit/ochomeleads.js
+// Loaded as ES module via IIFE registered script on homepage footer.
+// v1.4.0: onAuthStateChanged _authReady pattern (eliminates auth/Firestore SDK race).
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const FB_CONFIG = {
   apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
@@ -18,10 +19,15 @@ const FB_CONFIG = {
 
 const APP_NAME = "oc-home-leads";
 const app = getApps().find(a => a.name === APP_NAME) || initializeApp(FB_CONFIG, APP_NAME);
-const db = getFirestore(app);
+const db = getFirestore(app, "submissions");
 const auth = getAuth(app);
 
-signInAnonymously(auth).catch(e => console.warn("[oc-leads] auth:", e.code));
+const _authReady = new Promise((resolve) => {
+  const unsub = onAuthStateChanged(auth, (user) => {
+    if (user) { unsub(); resolve(user); }
+  });
+  signInAnonymously(auth).catch(e => console.warn("[oc-leads] auth:", e.code));
+});
 
 function init() {
   const form = document.getElementById("oc-lead-form-el");
@@ -31,39 +37,42 @@ function init() {
   const errEl = document.getElementById("oc-lead-error");
   const submitBtn = document.getElementById("oc-lead-submit");
 
-  // Capture phase: runs before Webflow's bubble-phase handler, stopImmediatePropagation
-  // prevents w-form-loading state from hijacking the UX.
   form.addEventListener("submit", async function(e) {
     e.preventDefault();
-    e.stopImmediatePropagation();
 
     const name = (document.getElementById("oc-lead-name").value || "").trim();
     const contact = (document.getElementById("oc-lead-contact").value || "").trim();
-    const intent = (document.getElementById("oc-lead-intent") ? document.getElementById("oc-lead-intent").value : "") || "";
+    const intent = (document.getElementById("oc-lead-intent").value || "").trim();
 
     if (!name || !contact) {
-      if (errEl) { errEl.textContent = "Please enter your name and a way to reach you."; errEl.style.display = "block"; }
+      errEl.textContent = "Please enter your name and a way to reach you.";
+      errEl.style.display = "block";
       return;
     }
-    if (errEl) errEl.style.display = "none";
-    if (submitBtn) { submitBtn.value = "Sending..."; submitBtn.disabled = true; }
+    errEl.style.display = "none";
+    submitBtn.textContent = "Sending...";
+    submitBtn.disabled = true;
 
     try {
+      await _authReady;
       await addDoc(collection(db, "home-leads"), {
         name,
         contact,
-        intent: intent.trim() || "not-specified",
+        intent: intent || "not-specified",
         source: "homepage",
+        session_id: window.OC_SESSION?.uid() ?? null,
         ts: serverTimestamp()
       });
       form.style.display = "none";
       if (successEl) successEl.style.display = "block";
     } catch (err) {
       console.error("[oc-leads] save error:", err);
-      if (errEl) { errEl.textContent = "Something went wrong. Please call us at (678) 888-1011."; errEl.style.display = "block"; }
-      if (submitBtn) { submitBtn.value = "Ask Olive"; submitBtn.disabled = false; }
+      errEl.textContent = "Something went wrong. Please call us at (678) 888-1011.";
+      errEl.style.display = "block";
+      submitBtn.textContent = "Ask Olive";
+      submitBtn.disabled = false;
     }
-  }, true); // true = capture phase
+  });
 }
 
 if (document.readyState === "loading") {
