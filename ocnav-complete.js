@@ -290,5 +290,20 @@
 
 })();
 
-// Ask Olive Widget loader (v4.9.7+)
-(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/manand2020/ocreposit@aa0e8e6b031e314b1383e77c6b52e4f878e39770/ocwidget.js';s.async=true;document.head.appendChild(s);})();
+// Ask Olive Widget loader (v4.9.8+) -- heals browser-cached stale widget (missing state dropdown)
+(function(){
+  var SHA = 'aa0e8e6b031e314b1383e77c6b52e4f878e39770';
+  var done = false;
+  function ensureState() {
+    if (done) return; done = true;
+    if (document.getElementById('oc-wgt-state')) return;
+    var r = document.getElementById('oc-widget-root');
+    if (r) r.parentNode.removeChild(r);
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=1.1.0&r=' + Date.now();
+    s.async = true;
+    document.head.appendChild(s);
+  }
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(ensureState, 500); });
+  setTimeout(ensureState, 3000);
+})();
