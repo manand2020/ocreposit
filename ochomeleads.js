@@ -1,4 +1,4 @@
-// Olive Cover - Homepage Lead Capture + Widget v1.1.0
+// Olive Cover - Homepage Lead Capture + Widget v1.2.0
 // Handles: homepage inline form (oc-lead-*) + floating widget form (oc-wgt-*)
 // Source: github.com/manand2020/ocreposit/ochomeleads.js
 
@@ -17,7 +17,7 @@ const FB_CONFIG = {
 
 const APP_NAME = "oc-home-leads";
 const app = getApps().find(a => a.name === APP_NAME) || initializeApp(FB_CONFIG, APP_NAME);
-const db = getFirestore(app, "submissions");
+const db = getFirestore(app);
 const auth = getAuth(app);
 
 signInAnonymously(auth).catch(e => console.warn("[oc-leads] auth:", e.code));
