@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.10.0
+/* ocnav-complete.js v4.11.0
  * Olive Cover Ã¢ÂÂ State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
@@ -292,7 +292,7 @@
 
 // Ask Olive Widget loader (v4.9.9+) -- loads v2.0.0 widget; heals stale-cached old versions
 (function(){
-  var SHA = '7e60ecf4cbe606ea676f371a8d0f3ca4b7b5fac0';
+  var SHA = 'bf9c2c582caa6e86378351c54a71e5b756d4c8cc';
   var done = false;
   function ensureState() {
     if (done) return; done = true;
@@ -301,7 +301,7 @@
     var r = document.getElementById('oc-widget-root');
     if (r) r.parentNode.removeChild(r);
     var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=1.1.0&r=' + Date.now();
+    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=2.0.1&r=' + Date.now();
     s.async = true;
     document.head.appendChild(s);
   }
@@ -313,9 +313,10 @@
 // Runs before the malformed @footer occontact-complete.js tag that hides all subsequent Site Settings scripts.
 (function(){
   if (window.location.pathname !== '/') return;
-  var OCHL_SHA = '65cf1f600863321cd2b85cf6c7b85a0849fe2219';
+  var OCHL_SHA = '9e5702802afb1476ded3235e4417da1d4cdb7839';
   var s = document.createElement('script');
   s.type = 'module';
-  s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + OCHL_SHA + '/ochomeleads.js?v=1.3.0';
+  s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + OCHL_SHA + '/ochomeleads.js?v=1.4.0';
   document.head.appendChild(s);
 })();
+
