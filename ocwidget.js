@@ -1,4 +1,4 @@
-// ocwidget.js - Ask Olive Floating Widget v1.0.0
+// ocwidget.js - Ask Olive Floating Widget v1.0.1
 // Injects a fixed-position "Ask Olive" widget on all pages except homepage and disclaimer.
 // Toggle: <details>/<summary> (CSS-only, no JS needed). Form: Firebase Firestore.
 (function () {
@@ -111,7 +111,7 @@
         var getAuth = mods[2].getAuth, signInAnonymously = mods[2].signInAnonymously;
         var APP_NAME = 'oc-home-leads';
         var app = getApps().find(function (a) { return a.name === APP_NAME; }) || initializeApp(FB_CONFIG, APP_NAME);
-        var db = getFirestore(app, 'submissions');
+        var db = getFirestore(app);
         return signInAnonymously(getAuth(app)).then(function () {
           return addDoc(coll(db, 'home-leads'), { name: name, contact: contact, intent: intent || 'not-specified', source: 'widget', ts: serverTimestamp() });
         });
