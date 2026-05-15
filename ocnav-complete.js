@@ -290,5 +290,5 @@
 
 })();
 
-// Ask Olive Widget loader (v4.9.5+)
-(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/manand2020/ocreposit@ca5ce39d583270834c6ec9a302e3118731d9fb8c/ocwidget.js';s.async=true;document.head.appendChild(s);})();
+// Ask Olive Widget loader (v4.9.6+)
+(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/manand2020/ocreposit@6868cddeac1bc7c5465d42fa4f7d5893b4def50f/ocwidget.js';s.async=true;document.head.appendChild(s);})();
