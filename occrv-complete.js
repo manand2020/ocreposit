@@ -1,10 +1,11 @@
-// Olive Cover - Coverage Review form behavior v2.10
+// Olive Cover - Coverage Review form behavior v2.11
+// v2.11: named app (oc-crv) to prevent double-init with site-wide tracker; session_id in payload.
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
 // No inline event handlers in markup. All handlers wired via addEventListener in init().
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -17,7 +18,8 @@ const fbConfig = {
   messagingSenderId: "781066018428",
   appId: "1:781066018428:web:535d07b690283027f9f3f9"
 };
-const app = initializeApp(fbConfig);
+const APP_NAME = "oc-crv";
+const app = getApps().find(a => a.name === APP_NAME) || initializeApp(fbConfig, APP_NAME);
 const db = getFirestore(app, "submissions");
 const storage = getStorage(app);
 const auth = getAuth(app);
@@ -333,6 +335,7 @@ function buildPartialPayload() {
     frustrations: STATE.frustrations.slice(),
     connectTiming: STATE.connectTiming,
     status: "in_progress",
+    session_id: window.OC_SESSION?.uid() ?? null,
     pageUrl: location.href,
     userAgent: navigator.userAgent,
     savedAt: serverTimestamp()
@@ -635,3 +638,4 @@ function init() {
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();
+
