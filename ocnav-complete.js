@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.9.6
+/* ocnav-complete.js v4.10.0
  * Olive Cover Ã¢ÂÂ State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
@@ -307,4 +307,15 @@
   }
   document.addEventListener('DOMContentLoaded', function(){ setTimeout(ensureState, 500); });
   setTimeout(ensureState, 3000);
+})();
+
+// Homepage ochomeleads module loader (v4.10.0)
+// Runs before the malformed @footer occontact-complete.js tag that hides all subsequent Site Settings scripts.
+(function(){
+  if (window.location.pathname !== '/') return;
+  var OCHL_SHA = '65cf1f600863321cd2b85cf6c7b85a0849fe2219';
+  var s = document.createElement('script');
+  s.type = 'module';
+  s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + OCHL_SHA + '/ochomeleads.js?v=1.3.0';
+  document.head.appendChild(s);
 })();
