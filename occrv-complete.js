@@ -305,7 +305,8 @@ function buildPartialPayload() {
       lastName: v("oc-crv-ln"),
       email: v("oc-crv-em"),
       phone: v("oc-crv-ph"),
-      zip: v("oc-crv-zp")
+      zip: v("oc-crv-zp"),
+      state: v("oc-crv-st")
     },
     personalLines: checks("#oc-crv-pl input[type=checkbox]"),
     commercialLines: checks("#oc-crv-cl input[type=checkbox]"),
@@ -365,6 +366,7 @@ async function tryRestoreSession() {
     set("oc-crv-em", d.contact && d.contact.email);
     set("oc-crv-ph", d.contact && d.contact.phone);
     set("oc-crv-zp", d.contact && d.contact.zip);
+    set("oc-crv-st", d.contact && d.contact.state);
     set("oc-crv-yb", d.yearBuilt);
     set("oc-crv-ca", d.currentCarrier);
     set("oc-crv-rd", d.renewalDate);
