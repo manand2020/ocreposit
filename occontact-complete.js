@@ -1,4 +1,5 @@
-// Olive Cover - Contact form handler v1.3.0
+// Olive Cover - Contact form handler v1.4.0
+// v1.4.0: session_id added to payload (links submission to web_sessions doc).
 // Source of truth: github.com/manand2020/ocreposit/occontact-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
 // Writes submissions to Firestore (olive-cover-prod project, submissions DB, contact-submissions collection)
@@ -95,7 +96,8 @@ async function onSubmit(e) {
     userAgent: (navigator.userAgent || "").slice(0, 300),
     submittedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
-    status: "new"
+    status: "new",
+    session_id: window.OC_SESSION?.uid() ?? null
   };
 
   if (!payload.name) { showInlineError(form, "Please enter your name."); return; }
@@ -120,3 +122,4 @@ async function onSubmit(e) {
 }
 
 ready(init);
+
