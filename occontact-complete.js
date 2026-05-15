@@ -1,10 +1,12 @@
-// Olive Cover - Contact form handler v1.0
+// Olive Cover - Contact form handler v1.1.0
 // Source of truth: github.com/manand2020/ocreposit/occontact-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
-// Writes submissions to Firestore (olive-cover-prod project, contact-submissions collection)
+// Writes submissions to Firestore (olive-cover-prod project, submissions DB, contact-submissions collection)
+// v1.1.0: fixed getFirestore to use named "submissions" database; added signInAnonymously for auth.
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const fbConfig = {
   apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
@@ -14,8 +16,11 @@ const fbConfig = {
   messagingSenderId: "781066018428",
   appId: "1:781066018428:web:535d07b690283027f9f3f9"
 };
-const app = initializeApp(fbConfig);
-const db = getFirestore(app);
+const APP_NAME = "oc-contact";
+const app = getApps().find(a => a.name === APP_NAME) || initializeApp(fbConfig, APP_NAME);
+const db = getFirestore(app, "submissions");
+const auth = getAuth(app);
+signInAnonymously(auth).catch(e => console.warn("[oc-contact] anon auth:", e.code));
 
 function ready(fn) {
   if (document.readyState !== "loading") fn();
