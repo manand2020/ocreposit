@@ -290,13 +290,14 @@
 
 })();
 
-// Ask Olive Widget loader (v4.9.8+) -- heals browser-cached stale widget (missing state dropdown)
+// Ask Olive Widget loader (v4.9.9+) -- loads v2.0.0 widget; heals stale-cached old versions
 (function(){
-  var SHA = 'aa0e8e6b031e314b1383e77c6b52e4f878e39770';
+  var SHA = '7e60ecf4cbe606ea676f371a8d0f3ca4b7b5fac0';
   var done = false;
   function ensureState() {
     if (done) return; done = true;
-    if (document.getElementById('oc-wgt-state')) return;
+    var r2 = document.getElementById('oc-widget-root');
+    if (r2 && r2.getAttribute('data-wgt-ver') === '2.0.0') return;
     var r = document.getElementById('oc-widget-root');
     if (r) r.parentNode.removeChild(r);
     var s = document.createElement('script');
