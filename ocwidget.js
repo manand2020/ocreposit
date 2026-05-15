@@ -1,4 +1,5 @@
-// ocwidget.js - Ask Olive Floating Widget v2.0.0
+// ocwidget.js - Ask Olive Floating Widget v2.0.1
+// v2.0.1: widget Phase 2 writes to "submissions" DB; adds session_id to payload.
 // Phase 3 chat (OC_CHAT_ENABLED=false by default) with Phase 2 lead-capture fallback.
 // No Firebase SDK when Phase 3 is active -- HTTP endpoints only.
 // Self-healing: removes stale v1.x widget automatically via data-wgt-ver guard.
@@ -240,9 +241,9 @@
         var getAuth = mods[2].getAuth, signInAnonymously = mods[2].signInAnonymously;
         var APP_NAME = 'oc-home-leads';
         var app = getApps().find(function (a) { return a.name === APP_NAME; }) || initializeApp(FB_CONFIG, APP_NAME);
-        var db = getFirestore(app);
+        var db = getFirestore(app, 'submissions');
         return signInAnonymously(getAuth(app)).then(function () {
-          var payload = { name: name, contact: contact, intent: intent || 'not-specified', source: 'widget', ts: serverTimestamp() };
+          var payload = { name: name, contact: contact, intent: intent || 'not-specified', source: 'widget', session_id: (window.OC_SESSION && window.OC_SESSION.uid ? window.OC_SESSION.uid() : null), ts: serverTimestamp() };
           if (state) payload.state = state;
           return addDoc(coll(db, 'home-leads'), payload);
         });
