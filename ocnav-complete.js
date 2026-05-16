@@ -1,4 +1,4 @@
-/* ocnav-complete.js v4.13.0
+/* ocnav-complete.js v4.14.0
  * Olive Cover Ã¢ÂÂ State manager + state switcher + JS-positioned state panel.
  * Nav HTML is native in Webflow Designer.
  *
@@ -292,7 +292,7 @@
 
 // Ask Olive Widget loader (v4.9.9+) -- loads v2.0.0 widget; heals stale-cached old versions
 (function(){
-  var SHA = 'bf9c2c582caa6e86378351c54a71e5b756d4c8cc';
+  var SHA = 'a851c140614fa7a4b1d0948d7d40ad2abd7a1eac';
   var done = false;
   function ensureState() {
     if (done) return; done = true;
