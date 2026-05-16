@@ -1,4 +1,5 @@
-// Olive Cover - Coverage Review form behavior v2.11
+// Olive Cover - Coverage Review form behavior v2.12
+// v2.12: ZIP format validation in validateStep(2) -- requires non-empty 5-digit US ZIP.
 // v2.11: named app (oc-crv) to prevent double-init with site-wide tracker; session_id in payload.
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
 // Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
@@ -226,8 +227,11 @@ function validateStep(n) {
     const fn = ($("oc-crv-fn") || {}).value || "";
     const ln = ($("oc-crv-ln") || {}).value || "";
     const em = ($("oc-crv-em") || {}).value || "";
+    const zp = ($("oc-crv-zp") || {}).value || "";
     if (!fn.trim() || !ln.trim()) { showErr("Please enter your first and last name."); return false; }
     if (!/^\S+@\S+\.\S+$/.test(em.trim())) { showErr("Please enter a valid email address."); return false; }
+    if (!zp.trim()) { showErr("Please enter your ZIP code."); return false; }
+    if (!/^\d{5}(-\d{4})?$/.test(zp.trim())) { showErr("Please enter a valid 5-digit ZIP code."); return false; }
   } else if (n === 3) {
     const sel = STATE.track === "personal"
       ? "#oc-crv-pl input[type=checkbox]:checked"
