@@ -1,4 +1,7 @@
-// OC Web Session Tracker v1.1.0 -- site-wide tracking for olivecover.com
+// OC Web Session Tracker v1.1.1 -- site-wide tracking for olivecover.com
+// v1.1.1: Fixed arrayUnion + serverTimestamp incompatibility -- Firebase SDK rejects
+//         serverTimestamp() inside arrayUnion() payloads. Use Timestamp.now() for
+//         page-entry timestamps that go into the pages array.
 // v1.1.0: Migrated from olivecover-web to olive-cover-prod project per Mahesh 2026-05-16.
 //         Web sessions now write to olive-cover-prod default DB. OC Tech Functions
 //         (CRM sync, linkWebSession) must be updated to read from olive-cover-prod
@@ -123,7 +126,7 @@
     _pageEntered = Date.now();
     _scrollFired = false;
 
-    const currentPage = { url, title, category: cat, seconds: 0, enteredAt: serverTimestamp() };
+    const currentPage = { url, title, category: cat, seconds: 0, enteredAt: Timestamp.now() };
 
     const prevUid = localStorage.getItem(PREV_KEY);
     const isReturn = !!prevUid && prevUid !== _uid;
