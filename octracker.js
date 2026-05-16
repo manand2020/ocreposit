@@ -1,16 +1,20 @@
-// OC Web Session Tracker v1.0.0 -- site-wide tracking for olivecover.com
+// OC Web Session Tracker v1.1.0 -- site-wide tracking for olivecover.com
+// v1.1.0: Migrated from olivecover-web to olive-cover-prod project per Mahesh 2026-05-16.
+//         Web sessions now write to olive-cover-prod default DB. OC Tech Functions
+//         (CRM sync, linkWebSession) must be updated to read from olive-cover-prod
+//         instead of olivecover-web. Coordinate before deploy.
 // Auto-loaded via Webflow footer IIFE. Source: manand2020/ocreposit/octracker.js
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const FB_CONFIG = {
-    apiKey: "AIzaSyC5120ZI3hnX1t8o8myErM8Ez7tjJ-kvtc",
-    authDomain: "olivecover-web.firebaseapp.com",
-    projectId: "olivecover-web",
-    storageBucket: "olivecover-web.firebasestorage.app",
-    messagingSenderId: "122726346450",
-    appId: "1:122726346450:web:9d455ee22e14bf8407070b"
+    apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
+    authDomain: "olive-cover-prod.firebaseapp.com",
+    projectId: "olive-cover-prod",
+    storageBucket: "olive-cover-prod.firebasestorage.app",
+    messagingSenderId: "781066018428",
+    appId: "1:781066018428:web:535d07b690283027f9f3f9"
   };
 
   // ── Page category (mirrors HIGH_VALUE_PATHS in Firebase Functions) ──────────
