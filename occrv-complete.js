@@ -1,4 +1,8 @@
-// Olive Cover - Coverage Review form behavior v2.12
+// Olive Cover - Coverage Review form behavior v2.12.1
+// v2.12.1: stopImmediatePropagation on onNext/onBack/onSubmit so the legacy @49e1b04 script
+//          loaded from coverage-review Page Settings cannot fire its handlers after this
+//          module's. Eliminates user-facing impact of the double-load (Task #3 fallback)
+//          without requiring Designer-side custom-code deletion.
 // v2.12: ZIP format validation in validateStep(2) -- requires non-empty 5-digit US ZIP.
 // v2.11: named app (oc-crv) to prevent double-init with site-wide tracker; session_id in payload.
 // 5-step intake with personal/commercial tracks, auto-save, session recovery
@@ -243,9 +247,10 @@ function validateStep(n) {
   return true;
 }
 
-function onBack(e) { e.preventDefault(); if (STATE.step > 1) setStep(STATE.step - 1, true); }
+function onBack(e) { e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); if (STATE.step > 1) setStep(STATE.step - 1, true); }
 function onNext(e) {
   e.preventDefault();
+  if (e.stopImmediatePropagation) e.stopImmediatePropagation();
   if (!validateStep(STATE.step)) return;
   setStep(STATE.step + 1, true);
   if (STATE.step === 3) {
@@ -455,6 +460,7 @@ async function tryRestoreSession() {
 
 async function onSubmit(e) {
   e.preventDefault();
+  if (e.stopImmediatePropagation) e.stopImmediatePropagation();
   if (!STATE.wantsQuotes) { showErr("Please select yes or no for the carrier comparison."); return; }
   const btn = $("oc-crv-submit");
   if (!btn) return;
