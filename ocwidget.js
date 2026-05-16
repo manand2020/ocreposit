@@ -1,15 +1,19 @@
-// ocwidget.js - Ask Olive Floating Widget v2.0.1
+// ocwidget.js - Ask Olive Floating Widget v2.1.0
+// v2.1.0: Phase 3 chat ACTIVATED 2026-05-16 per OC Tech go signal.
+//         Endpoints live on olive-cover-prod, CORS + IAM verified, 200 OK responses.
+//         AI replies return null until ANTHROPIC_API_KEY is set as Firebase secret;
+//         widget already handles null ai_response gracefully (shows producer-follow-up text).
 // v2.0.1: widget Phase 2 writes to "submissions" DB; adds session_id to payload.
-// Phase 3 chat (OC_CHAT_ENABLED=false by default) with Phase 2 lead-capture fallback.
+// Phase 3 chat (OC_CHAT_ENABLED=true) with Phase 2 lead-capture fallback.
 // No Firebase SDK when Phase 3 is active -- HTTP endpoints only.
 // Self-healing: removes stale v1.x widget automatically via data-wgt-ver guard.
 (function () {
   'use strict';
 
-  var OC_CHAT_ENABLED = false; // Set true when OC Tech confirms /chat/send + /chat/thread are live
+  var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.0.0';
+  var WGT_VER = '2.1.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
