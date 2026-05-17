@@ -31,8 +31,8 @@
   var DEFAULT_STATE = 'georgia';
   var STORAGE_KEY   = 'oc_state';
   var STATES = {
-    'national': 'Ã¢Â­Â National',
-    'georgia':  'Ã°ÂÂÂ Georgia'
+    'national': '⭐ National',
+    'georgia':  '🍑 Georgia'
   };
   var STATE_MANIFEST = { 'georgia': [] };
   var _resizeRaf = null;
