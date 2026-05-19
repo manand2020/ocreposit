@@ -1,6 +1,8 @@
-// ocwidget.js - Ask Olive Floating Widget v2.2.0
+// ocwidget.js - Ask Olive Floating Widget v2.3.0
+// v2.3.0: Firebase fallback on chat-send failure so messages are never lost.
+//         Writes to home-leads with source='widget-chat-fallback' for CRM routing.
 // v2.2.0: Close button on panel header. Local AI greeting when chat opens.
-//         Better error reporting (logs response detail). Wraps sendMessage in try/catch.
+//         Better error reporting (logs response detail).
 // v2.1.0: Phase 3 chat ACTIVATED 2026-05-16 per OC Tech go signal.
 //         Endpoints live on olive-cover-prod, CORS + IAM verified, 200 OK responses.
 //         AI replies return null until ANTHROPIC_API_KEY is set as Firebase secret;
@@ -15,7 +17,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.2.0';
+  var WGT_VER = '2.3.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -339,6 +341,35 @@
     if (chatState.pollTimer) { clearInterval(chatState.pollTimer); chatState.pollTimer = null; }
   }
 
+  function fallbackCaptureMessage(body, sessionId, contact) {
+    return Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')
+    ]).then(function (mods) {
+      var initializeApp = mods[0].initializeApp, getApps = mods[0].getApps;
+      var getFirestore = mods[1].getFirestore, coll = mods[1].collection, addDoc = mods[1].addDoc, serverTimestamp = mods[1].serverTimestamp;
+      var getAuth = mods[2].getAuth, signInAnonymously = mods[2].signInAnonymously;
+      var APP_NAME = 'oc-home-leads';
+      var app = getApps().find(function (a) { return a.name === APP_NAME; }) || initializeApp(FB_CONFIG, APP_NAME);
+      var db = getFirestore(app, 'submissions');
+      return signInAnonymously(getAuth(app)).then(function () {
+        var contactVal = contact && (contact.email || contact.phone) ? (contact.email || contact.phone) : 'unknown';
+        var payload = {
+          name: contact && contact.name ? contact.name : 'Anonymous chat visitor',
+          contact: contactVal,
+          intent: body,
+          chat_body: body,
+          source: 'widget-chat-fallback',
+          session_id: sessionId,
+          page_url: location.href,
+          ts: serverTimestamp()
+        };
+        return addDoc(coll(db, 'home-leads'), payload);
+      });
+    });
+  }
+
   function sendMessage(body) {
     var sessionId = getSession();
     var contact = getContact();
@@ -368,7 +399,14 @@
     }).catch(function (err) {
       console.error('[oc-widget] send error', err && err.message ? err.message : err);
       clearTyping();
-      if (errEl) { errEl.textContent = 'Could not send. We received your message anyway and will follow up. You can also call (678) 888-1011.'; errEl.style.display = 'block'; }
+      if (errEl) { errEl.textContent = 'Saving your message...'; errEl.style.display = 'block'; }
+      fallbackCaptureMessage(body, sessionId, contact).then(function () {
+        console.log('[oc-widget] fallback capture ok');
+        if (errEl) { errEl.textContent = 'Saved. We will follow up within one business day. You can also call (678) 888-1011.'; }
+      }).catch(function (fbErr) {
+        console.error('[oc-widget] fallback also failed', fbErr && fbErr.message ? fbErr.message : fbErr);
+        if (errEl) { errEl.textContent = 'Could not send. Please try again or call (678) 888-1011.'; }
+      });
     }).finally(function () {
       if (sendBtn) { sendBtn.textContent = 'Send'; sendBtn.disabled = false; }
     });
