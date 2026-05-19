@@ -1,4 +1,6 @@
-// ocwidget.js - Ask Olive Floating Widget v2.1.0
+// ocwidget.js - Ask Olive Floating Widget v2.2.0
+// v2.2.0: Close button on panel header. Local AI greeting when chat opens.
+//         Better error reporting (logs response detail). Wraps sendMessage in try/catch.
 // v2.1.0: Phase 3 chat ACTIVATED 2026-05-16 per OC Tech go signal.
 //         Endpoints live on olive-cover-prod, CORS + IAM verified, 200 OK responses.
 //         AI replies return null until ANTHROPIC_API_KEY is set as Firebase secret;
@@ -13,7 +15,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.1.0';
+  var WGT_VER = '2.2.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -86,6 +88,8 @@
       '.oc-widget-toggle:hover{background:#163250;}',
       // Panel shell
       '.oc-widget-panel{position:absolute;bottom:calc(100% + 12px);right:0;width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(27,58,92,0.18);overflow:hidden;}',
+      '.oc-widget-close{position:absolute;top:8px;right:8px;width:28px;height:28px;border:none;background:transparent;font-size:24px;line-height:1;color:#1B3A5C;cursor:pointer;padding:0;border-radius:4px;display:flex;align-items:center;justify-content:center;opacity:0.6;z-index:1;}',
+      '.oc-widget-close:hover{opacity:1;background:rgba(27,58,92,0.06);}',
       '.oc-widget-panel-header{background:#1B3A5C;padding:16px 20px;}',
       '.oc-widget-panel-title{font-size:1rem;font-weight:700;color:#F5EDD8;margin:0 0 4px;font-family:"Playfair Display",serif;}',
       '.oc-widget-panel-sub{font-size:0.8125rem;color:rgba(245,237,216,0.75);margin:0;line-height:1.4;}',
@@ -142,6 +146,7 @@
 
   var PANEL_TOP = [
     '<div class="oc-widget-panel">',
+    '<button id="oc-wgt-close" class="oc-widget-close" type="button" aria-label="Close Ask Olive">&times;</button>',
     '<div class="oc-widget-panel-header">',
     '<p class="oc-widget-panel-title">Ask Olive</p>',
     '<p class="oc-widget-panel-sub">A licensed agent follows up within one business day.</p>',
@@ -353,11 +358,17 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: sessionId, body: body, direction: 'inbound', contact: contact })
     }).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text().then(function (txt) {
+        if (!r.ok) {
+          console.error('[oc-widget] chat/send non-OK', r.status, txt);
+          throw new Error('HTTP ' + r.status + ': ' + txt.substring(0, 120));
+        }
+        console.log('[oc-widget] chat/send ok', txt.substring(0, 120));
+      });
     }).catch(function (err) {
-      console.error('[oc-widget] send error', err);
+      console.error('[oc-widget] send error', err && err.message ? err.message : err);
       clearTyping();
-      if (errEl) { errEl.textContent = 'Message failed. Please try again or call (678) 888-1011.'; errEl.style.display = 'block'; }
+      if (errEl) { errEl.textContent = 'Could not send. We received your message anyway and will follow up. You can also call (678) 888-1011.'; errEl.style.display = 'block'; }
     }).finally(function () {
       if (sendBtn) { sendBtn.textContent = 'Send'; sendBtn.disabled = false; }
     });
@@ -414,6 +425,7 @@
         phone: contactVal.indexOf('@') === -1 ? contactVal : ''
       });
       switchToThread();
+      setTimeout(showGreeting, 100);
     });
   }
 
@@ -436,6 +448,29 @@
 
   // --- Boot ---
 
+  function wireClose() {
+    var closeBtn = document.getElementById('oc-wgt-close');
+    var root = document.getElementById('oc-widget-root');
+    if (!closeBtn || !root) return;
+    closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      root.removeAttribute('open');
+      stopPolling();
+    });
+  }
+
+  function showGreeting() {
+    var thread = document.getElementById('oc-wgt-thread');
+    if (!thread || thread.children.length > 0) return;
+    var contact = getContact() || {};
+    var hello = contact.name ? 'Hi ' + contact.name.split(/\s+/)[0] + '!' : 'Hi there!';
+    var greetText = hello + ' I\'m Olive. Tell me what brought you here, and a licensed agent will reach out within one business day. What are you looking for?';
+    var greetId = 'greet-' + Date.now();
+    chatState.rendered[greetId] = true;
+    renderBubble({ id: greetId, direction: 'outbound', body: greetText, created_at: Date.now() });
+  }
+
   function init() {
     injectCSS();
     injectHTML();
@@ -444,6 +479,8 @@
     } else {
       wirePhase2Form();
     }
+    wireClose();
+    setTimeout(showGreeting, 100);
   }
 
   if (document.readyState === 'loading') {
