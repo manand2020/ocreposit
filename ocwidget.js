@@ -1,4 +1,6 @@
-// ocwidget.js - Ask Olive Floating Widget v2.6.0
+// ocwidget.js - Ask Olive Floating Widget v2.7.0
+// v2.7.0: Silently capture visitor state from oc_state localStorage at contact-save time.
+//         Passed in contact payload so CRM can apply GA vs waitlist routing.
 // v2.6.0: Olive auto-acknowledges user's first message immediately.
 //         Greeting renders reliably on chat-thread entry (any path).
 // v2.5.0: Capture form now collects BOTH email AND phone (was either).
@@ -24,7 +26,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.6.0';
+  var WGT_VER = '2.7.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -371,6 +373,7 @@
           source: 'widget-chat-fallback',
           session_id: sessionId,
           page_url: location.href,
+          state: (contact && contact.state) || '',
           ts: serverTimestamp()
         };
         return addDoc(coll(db, 'home-leads'), payload);
@@ -483,7 +486,9 @@
         return;
       }
       if (errEl) errEl.style.display = 'none';
-      saveContact({ name: name, email: email, phone: phone });
+      var state = '';
+      try { state = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {}
+      saveContact({ name: name, email: email, phone: phone, state: state });
       switchToThread();
       setTimeout(showGreeting, 100);
     });
