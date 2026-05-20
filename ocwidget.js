@@ -1,4 +1,7 @@
-// ocwidget.js - Ask Olive Floating Widget v2.3.0
+// ocwidget.js - Ask Olive Floating Widget v2.4.0
+// v2.4.0: 3-tier fallback for chat send: /chat/send -> Firestore -> mailto.
+//         User's message never lost even if both backends fail.
+//         Mailto target: website-errors@olivecover.com (email-to-case in CRM).
 // v2.3.0: Firebase fallback on chat-send failure so messages are never lost.
 //         Writes to home-leads with source='widget-chat-fallback' for CRM routing.
 // v2.2.0: Close button on panel header. Local AI greeting when chat opens.
@@ -17,7 +20,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.3.0';
+  var WGT_VER = '2.4.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -404,8 +407,20 @@
         console.log('[oc-widget] fallback capture ok');
         if (errEl) { errEl.textContent = 'Saved. We will follow up within one business day. You can also call (678) 888-1011.'; }
       }).catch(function (fbErr) {
-        console.error('[oc-widget] fallback also failed', fbErr && fbErr.message ? fbErr.message : fbErr);
-        if (errEl) { errEl.textContent = 'Could not send. Please try again or call (678) 888-1011.'; }
+        console.error('[oc-widget] fallback also failed; offering mailto', fbErr && fbErr.message ? fbErr.message : fbErr);
+        if (errEl) {
+          var subj = encodeURIComponent('Ask Olive chat: ' + body.substring(0, 60));
+          var emailBody = encodeURIComponent(
+            'Message from Ask Olive widget (network recovery):\n\n' + body +
+            '\n\n---\nName: ' + ((contact && contact.name) || 'Anonymous') +
+            '\nContact: ' + ((contact && (contact.email || contact.phone)) || 'Not provided') +
+            '\nSession: ' + sessionId +
+            '\nPage: ' + location.href +
+            '\nSubmitted: ' + new Date().toISOString()
+          );
+          var mail = 'mailto:website-errors@olivecover.com?subject=' + subj + '&body=' + emailBody;
+          errEl.innerHTML = 'Could not connect. <a href="' + mail + '" style="color:#B8934A;font-weight:600;text-decoration:underline;">Send via email instead</a> or call (678) 888-1011.';
+        }
       });
     }).finally(function () {
       if (sendBtn) { sendBtn.textContent = 'Send'; sendBtn.disabled = false; }
