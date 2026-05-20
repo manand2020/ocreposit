@@ -1,4 +1,6 @@
-// ocwidget.js - Ask Olive Floating Widget v2.4.0
+// ocwidget.js - Ask Olive Floating Widget v2.5.0
+// v2.5.0: Capture form now collects BOTH email AND phone (was either).
+//         Producer gets redundant contact channels; TCPA disclosure auto-applies to phone.
 // v2.4.0: 3-tier fallback for chat send: /chat/send -> Firestore -> mailto.
 //         User's message never lost even if both backends fail.
 //         Mailto target: website-errors@olivecover.com (email-to-case in CRM).
@@ -20,7 +22,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.4.0';
+  var WGT_VER = '2.5.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -198,7 +200,8 @@
           '<form id="oc-wgt-capture-form" class="oc-widget-form">',
           '<p class="oc-wgt-intro">Before we chat, how should we reach you?</p>',
           '<input id="oc-wgt-name" class="oc-widget-input" type="text" placeholder="Your name" autocomplete="name" required/>',
-          '<input id="oc-wgt-contact-val" class="oc-widget-input" type="text" placeholder="Email or phone" autocomplete="email" required/>',
+          '<input id="oc-wgt-email" class="oc-widget-input" type="email" placeholder="Email" autocomplete="email" required/>',
+          '<input id="oc-wgt-phone" class="oc-widget-input" type="tel" placeholder="Phone" autocomplete="tel" required/>',
           '<button id="oc-wgt-start" class="oc-widget-btn" type="submit">Start Chat</button>',
           '</form>'
         ].join('') + PANEL_FOOTER;
@@ -466,17 +469,18 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var name = (document.getElementById('oc-wgt-name').value || '').trim();
-      var contactVal = (document.getElementById('oc-wgt-contact-val').value || '').trim();
-      if (!name || !contactVal) {
-        if (errEl) { errEl.textContent = 'Please enter your name and a way to reach you.'; errEl.style.display = 'block'; }
+      var email = (document.getElementById('oc-wgt-email').value || '').trim();
+      var phone = (document.getElementById('oc-wgt-phone').value || '').trim();
+      if (!name || !email || !phone) {
+        if (errEl) { errEl.textContent = 'Please enter your name, email, and phone.'; errEl.style.display = 'block'; }
+        return;
+      }
+      if (email.indexOf('@') < 0) {
+        if (errEl) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; }
         return;
       }
       if (errEl) errEl.style.display = 'none';
-      saveContact({
-        name: name,
-        email: contactVal.indexOf('@') !== -1 ? contactVal : '',
-        phone: contactVal.indexOf('@') === -1 ? contactVal : ''
-      });
+      saveContact({ name: name, email: email, phone: phone });
       switchToThread();
       setTimeout(showGreeting, 100);
     });
