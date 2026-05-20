@@ -1,4 +1,6 @@
-// ocwidget.js - Ask Olive Floating Widget v2.5.0
+// ocwidget.js - Ask Olive Floating Widget v2.6.0
+// v2.6.0: Olive auto-acknowledges user's first message immediately.
+//         Greeting renders reliably on chat-thread entry (any path).
 // v2.5.0: Capture form now collects BOTH email AND phone (was either).
 //         Producer gets redundant contact channels; TCPA disclosure auto-applies to phone.
 // v2.4.0: 3-tier fallback for chat send: /chat/send -> Firestore -> mailto.
@@ -22,7 +24,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.5.0';
+  var WGT_VER = '2.6.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -389,6 +391,7 @@
     renderBubble({ id: localId, direction: 'inbound', body: body, created_at: Date.now() });
     showTyping();
     if (sendBtn) { sendBtn.textContent = '...'; sendBtn.disabled = true; }
+    showAutoAck();
 
     fetch(CHAT_SEND, {
       method: 'POST',
@@ -519,13 +522,27 @@
 
   function showGreeting() {
     var thread = document.getElementById('oc-wgt-thread');
-    if (!thread || thread.children.length > 0) return;
+    if (!thread) return;
+    if (chatState.greetingShown) return;
     var contact = getContact() || {};
     var hello = contact.name ? 'Hi ' + contact.name.split(/\s+/)[0] + '!' : 'Hi there!';
     var greetText = hello + ' I\'m Olive. Tell me what brought you here, and a licensed agent will reach out within one business day. What are you looking for?';
     var greetId = 'greet-' + Date.now();
     chatState.rendered[greetId] = true;
+    chatState.greetingShown = true;
     renderBubble({ id: greetId, direction: 'outbound', body: greetText, created_at: Date.now() });
+  }
+
+  function showAutoAck() {
+    if (chatState.autoAckShown) return;
+    chatState.autoAckShown = true;
+    var ackText = 'Thanks! I have a licensed agent looking at your message. We will follow up within one business day at the email or phone you provided. Anything else you want to add while we wait?';
+    var ackId = 'ack-' + Date.now();
+    chatState.rendered[ackId] = true;
+    setTimeout(function () {
+      renderBubble({ id: ackId, direction: 'outbound', body: ackText, created_at: Date.now() });
+      clearTyping();
+    }, 800);
   }
 
   function init() {
