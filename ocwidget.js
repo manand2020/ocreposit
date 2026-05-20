@@ -1,4 +1,6 @@
-// ocwidget.js - Ask Olive Floating Widget v2.7.0
+// ocwidget.js - Ask Olive Floating Widget v2.8.0
+// v2.8.0: Re-prompt capture form when cached contact is missing required fields
+//         (name, email, phone). Pre-fills the form with what we have.
 // v2.7.0: Silently capture visitor state from oc_state localStorage at contact-save time.
 //         Passed in contact payload so CRM can apply GA vs waitlist routing.
 // v2.6.0: Olive auto-acknowledges user's first message immediately.
@@ -26,7 +28,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.7.0';
+  var WGT_VER = '2.8.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -197,15 +199,20 @@
 
     if (OC_CHAT_ENABLED) {
       var contact = getContact();
-      if (contact) {
+      var complete = contact && contact.name && contact.email && contact.phone;
+      if (complete) {
         el.innerHTML = TOGGLE_HTML + PANEL_TOP + threadBlockHTML() + PANEL_FOOTER;
       } else {
+        var prefName = (contact && contact.name) || '';
+        var prefEmail = (contact && contact.email) || '';
+        var prefPhone = (contact && contact.phone) || '';
+        var attrVal = function (v) { return String(v).replace(/"/g, '&quot;'); };
         el.innerHTML = TOGGLE_HTML + PANEL_TOP + [
           '<form id="oc-wgt-capture-form" class="oc-widget-form">',
           '<p class="oc-wgt-intro">Before we chat, how should we reach you?</p>',
-          '<input id="oc-wgt-name" class="oc-widget-input" type="text" placeholder="Your name" autocomplete="name" required/>',
-          '<input id="oc-wgt-email" class="oc-widget-input" type="email" placeholder="Email" autocomplete="email" required/>',
-          '<input id="oc-wgt-phone" class="oc-widget-input" type="tel" placeholder="Phone" autocomplete="tel" required/>',
+          '<input id="oc-wgt-name" class="oc-widget-input" type="text" placeholder="Your name" autocomplete="name" value="' + attrVal(prefName) + '" required/>',
+          '<input id="oc-wgt-email" class="oc-widget-input" type="email" placeholder="Email" autocomplete="email" value="' + attrVal(prefEmail) + '" required/>',
+          '<input id="oc-wgt-phone" class="oc-widget-input" type="tel" placeholder="Phone" autocomplete="tel" value="' + attrVal(prefPhone) + '" required/>',
           '<button id="oc-wgt-start" class="oc-widget-btn" type="submit">Start Chat</button>',
           '</form>'
         ].join('') + PANEL_FOOTER;
@@ -496,7 +503,8 @@
 
   function initChat() {
     var contact = getContact();
-    if (!contact) {
+    var complete = contact && contact.name && contact.email && contact.phone;
+    if (!complete) {
       wireContactCapture();
     } else {
       wireInputBar();
