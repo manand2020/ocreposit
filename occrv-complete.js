@@ -1,4 +1,8 @@
-// Olive Cover - Coverage Review form behavior v2.12.1
+// Olive Cover - Coverage Review form behavior v2.13.0
+// v2.13.0: Fire gtag('event','generate_lead') on successful submit for Google Ads
+//          conversion-optimized bidding. Capture full UTM stack (utm_*, gclid,
+//          fbclid, msclkid, landing_referrer) into Firebase payload for CRM
+//          attribution. 30-day stickiness in localStorage.
 // v2.12.1: stopImmediatePropagation on onNext/onBack/onSubmit so the legacy @49e1b04 script
 //          loaded from coverage-review Page Settings cannot fire its handlers after this
 //          module's. Eliminates user-facing impact of the double-load (Task #3 fallback)
@@ -28,6 +32,32 @@ const app = getApps().find(a => a.name === APP_NAME) || initializeApp(fbConfig, 
 const db = getFirestore(app, "submissions");
 const storage = getStorage(app);
 const auth = getAuth(app);
+
+// Capture UTM/click-id params with 30-day stickiness in localStorage
+function captureUTM() {
+  const fields = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid"];
+  const params = new URLSearchParams(location.search);
+  let captured = {};
+  let hasAny = false;
+  fields.forEach(function(f) {
+    const v = params.get(f);
+    if (v) { captured[f] = v; hasAny = true; }
+  });
+  if (hasAny) {
+    captured._captured_at = Date.now();
+    try { localStorage.setItem("oc_utm", JSON.stringify(captured)); } catch (e) {}
+    return captured;
+  }
+  try {
+    const stored = JSON.parse(localStorage.getItem("oc_utm") || "{}");
+    if (stored._captured_at && (Date.now() - stored._captured_at < 30 * 86400 * 1000)) {
+      return stored;
+    }
+  } catch (e) {}
+  return {};
+}
+const _utm = captureUTM();
+const _landing_referrer = document.referrer || "";
 
 // Establish anonymous auth on module load so Firestore/Storage rules pass.
 // Fire-and-forget: by the time any user interaction triggers a write, auth will be ready.
@@ -347,6 +377,15 @@ function buildPartialPayload() {
     session_id: window.OC_SESSION?.uid() ?? null,
     pageUrl: location.href,
     userAgent: navigator.userAgent,
+    utm_source: _utm.utm_source || null,
+    utm_medium: _utm.utm_medium || null,
+    utm_campaign: _utm.utm_campaign || null,
+    utm_content: _utm.utm_content || null,
+    utm_term: _utm.utm_term || null,
+    gclid: _utm.gclid || null,
+    fbclid: _utm.fbclid || null,
+    msclkid: _utm.msclkid || null,
+    landing_referrer: _landing_referrer,
     savedAt: serverTimestamp()
   };
 }
@@ -485,6 +524,18 @@ async function onSubmit(e) {
     if (wrap) wrap.style.display = "none";
     if (ok) ok.style.display = "";
     try { window.scrollTo({ top: (ok ? ok.getBoundingClientRect().top + window.scrollY - 80 : 0), behavior: "smooth" }); } catch (e2) {}
+    // GA4 conversion event for Google Ads bidding optimization
+    try {
+      if (window.gtag) {
+        window.gtag("event", "generate_lead", {
+          form_id: "oc-crv-wrap",
+          form_location: "coverage-review",
+          track: STATE.track || "unknown",
+          state: payload.contact && payload.contact.state ? payload.contact.state : "unknown",
+          value: 5
+        });
+      }
+    } catch (e3) { /* gtag missing */ }
   } catch (err) {
     console.error("[oc-crv] submit failed:", err);
     showErr("Couldn't send right now. Please try again, or email mahesh@olivecover.com.");
