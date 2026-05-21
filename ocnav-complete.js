@@ -329,13 +329,13 @@
   document.head.appendChild(s);
 })();
 
-// Content-rule cleanups (v4.18.0, 2026-05-21)
+// Content-rule cleanups (v4.19.0, 2026-05-21)
 // 1. Remove "California" pill from Insights article footer (CLAUDE.md: no California references anywhere).
 // 2. Demote nav "Have you ever checked if you have roadside?" callout from <h2> to <p> so it does not
 //    pollute the H2 heading hierarchy on every page (SEO/AEO source-quality fix).
 // 3. /commercial-carriers cleanup: remove "Coming Soon" legend pill + replace Nationwide Commercial's
 //    "Coming Soon" profile cell with a working link to /carriers/nationwide-commercial-insurance.
-//    This removes "site is unfinished" signals from the carrier comparison matrix.
+// 4. /commercial-insurance hero: strip stray leading "!" from any oc-ci-hero-pill (renders as typo).
 (function(){
   function fixContentRules(){
     try {
@@ -356,6 +356,23 @@
         }
         p.innerHTML = h.innerHTML;
         h.parentNode.replaceChild(p, h);
+      }
+    } catch (e) {}
+    // /commercial-insurance hero pill: strip stray leading "!" so the chip reads cleanly.
+    try {
+      if (location.pathname === '/commercial-insurance') {
+        var pills = document.querySelectorAll('.oc-ci-hero-pill');
+        for (var n = 0; n < pills.length; n++) {
+          var pill = pills[n];
+          // Walk only the first text node — preserve any nested children/icons untouched
+          var firstNode = pill.firstChild;
+          while (firstNode && firstNode.nodeType === 3 && firstNode.nodeValue && /^\s*$/.test(firstNode.nodeValue)) {
+            firstNode = firstNode.nextSibling;
+          }
+          if (firstNode && firstNode.nodeType === 3 && /^\s*!\s+/.test(firstNode.nodeValue || '')) {
+            firstNode.nodeValue = firstNode.nodeValue.replace(/^\s*!\s+/, '');
+          }
+        }
       }
     } catch (e) {}
     // /commercial-carriers Coming-Soon cleanup
