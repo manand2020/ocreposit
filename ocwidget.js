@@ -1,4 +1,9 @@
-// ocwidget.js - Ask Olive Floating Widget v2.11.0
+// ocwidget.js - Ask Olive Floating Widget v2.13.0
+// v2.13.0: Rewrite framing to be AI-first. Drop 'licensed agent follows up
+//          within one business day' from panel subhead, greeting bubble, and
+//          fallback ack. Inline-render ai_response from /chat/send so AI
+//          replies are instant. Outbound dedup against poll. Immediate poll
+//          after send as safety net.
 // v2.11.0: Restore a static greeting bubble on chat-open so the panel never
 //          looks empty (independent of AI). Replace the red 'Saved...' fallback
 //          text with a soft outbound bubble. Both keep the chat UX warm even
@@ -38,7 +43,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.11.0';
+  var WGT_VER = '2.13.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -172,7 +177,7 @@
     '<button id="oc-wgt-close" class="oc-widget-close" type="button" aria-label="Close Ask Olive">&times;</button>',
     '<div class="oc-widget-panel-header">',
     '<p class="oc-widget-panel-title">Ask Olive</p>',
-    '<p class="oc-widget-panel-sub">A licensed agent follows up within one business day.</p>',
+    '<p class="oc-widget-panel-sub">Ask anything about insurance. Quotes, coverage, claims, or a quick callback.</p>',
     '</div>',
     '<div id="oc-wgt-error" class="oc-widget-err"></div>'
   ].join('');
@@ -238,7 +243,7 @@
         '<textarea id="oc-wgt-intent" class="oc-widget-input oc-widget-ta" placeholder="What do you need? (optional)"></textarea>',
         '<button id="oc-wgt-submit" class="oc-widget-btn" type="submit">Ask Olive</button>',
         '</form>',
-        '<div id="oc-wgt-success" class="oc-widget-success"><p>Got it. Someone will reach out within one business day.</p></div>'
+        '<div id="oc-wgt-success" class="oc-widget-success"><p>Thanks. Send your first question above to start the conversation.</p></div>'
       ].join('') + PANEL_FOOTER;
     }
 
@@ -311,6 +316,12 @@
       chatState.rendered[msg.id] = true;
       return;
     }
+    // Dedupe: server-echo of an AI outbound we already rendered inline from /chat/send
+    if (!isOptimistic && msg.direction === 'outbound' && chatState.optimisticOutbound && chatState.optimisticOutbound[msg.body]) {
+      delete chatState.optimisticOutbound[msg.body];
+      chatState.rendered[msg.id] = true;
+      return;
+    }
     chatState.rendered[msg.id] = true;
     var thread = document.getElementById('oc-wgt-thread');
     if (!thread) return;
@@ -370,7 +381,7 @@
     wrap.className = 'oc-widget-msg-wrap oc-widget-msg-wrap--out';
     var bubble = document.createElement('div');
     bubble.className = 'oc-widget-bubble oc-widget-bubble--out';
-    bubble.textContent = 'Hi! I am Olive, the AI assistant for Olive Cover. Ask anything about insurance, or share what you are looking to cover. A licensed agent will follow up within one business day.';
+    bubble.textContent = 'Hi! I am Olive, Olive Cover’s AI assistant. Ask any insurance question, get a quick estimate, or schedule time to talk. I can help with most things directly.';
     var time = document.createElement('div');
     time.className = 'oc-widget-bubble-time';
     try { time.textContent = fmtTime(Date.now()); } catch (e) { time.textContent = ''; }
@@ -387,7 +398,7 @@
     wrap.className = 'oc-widget-msg-wrap oc-widget-msg-wrap--out';
     var bubble = document.createElement('div');
     bubble.className = 'oc-widget-bubble oc-widget-bubble--out';
-    bubble.textContent = 'Thanks. A licensed agent will follow up within one business day. You can also call (678) 888-1011.';
+    bubble.textContent = 'Thanks, your message is saved. You can also call (678) 888-1011 or visit /coverage-review for a Free Coverage Review.';
     var time = document.createElement('div');
     time.className = 'oc-widget-bubble-time';
     try { time.textContent = fmtTime(Date.now()); } catch (e) { time.textContent = ''; }
@@ -461,6 +472,17 @@
           throw new Error('HTTP ' + r.status + ': ' + txt.substring(0, 120));
         }
         console.log('[oc-widget] chat/send ok', txt.substring(0, 120));
+        clearTyping();
+        try {
+          var data = JSON.parse(txt);
+          if (data && data.ai_response) {
+            chatState.optimisticOutbound = chatState.optimisticOutbound || {};
+            chatState.optimisticOutbound[data.ai_response] = true;
+            var localOutId = 'local-out-' + Date.now();
+            renderBubble({ id: localOutId, direction: 'outbound', body: data.ai_response, created_at: Date.now() });
+          }
+        } catch (e) { /* response wasn't JSON, fall through */ }
+        setTimeout(pollThread, 800);
       });
     }).catch(function (err) {
       console.error('[oc-widget] send error', err && err.message ? err.message : err);
