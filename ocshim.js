@@ -1,4 +1,4 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.2.0
+// ocshim.js -- Consolidated Olive Cover site shims v1.3.0
 // Generated 2026-05-18 from 7 inline site-scripts.
 // v1.1.0 (2026-05-21): added oc-content-rules (California pill removal,
 //   FAQ slug DOM removal, /commercial-carriers Coming Soon hide + real estate
@@ -59,6 +59,24 @@
           }
         }
       });
+    }
+    // Force-load Insurance template hero photos (their loading=lazy is failing to trigger)
+    document.querySelectorAll('img.oc-ins-hero-photo').forEach(function(img){
+      if (img.loading === 'lazy') img.loading = 'eager';
+      if (img.naturalWidth === 0 && img.src) {
+        var s = img.src;
+        img.removeAttribute('src');
+        img.src = s;
+      }
+    });
+    // Insurance template: soften the navy hero so the photo shows through.
+    // Section has solid #1B3A5C bg covering the absolutely-positioned IMG behind it.
+    // Replace with a gradient overlay that lets the photo show.
+    var insHero = document.getElementById('ins-hero');
+    if (insHero && path.indexOf('/insurance/') === 0) {
+      insHero.style.setProperty('background-color', 'transparent', 'important');
+      insHero.style.setProperty('background-image', 'linear-gradient(105deg, rgba(27,58,92,0.88) 0%, rgba(27,58,92,0.55) 50%, rgba(27,58,92,0.30) 100%)', 'important');
+      insHero.style.setProperty('background-size', 'cover', 'important');
     }
     // FAQ category badge expansion: replace BOP/GL/WC abbreviations with full names
     // Site-wide because the badge appears on /faq/* entry pages AND inside the /faq hub list
