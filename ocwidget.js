@@ -1,4 +1,8 @@
-// ocwidget.js - Ask Olive Floating Widget v2.13.0
+// ocwidget.js - Ask Olive Floating Widget v2.14.0
+// v2.14.0: Add diagnostic logging around inline ai_response render to debug
+//          why bubbles weren't appearing instantly. Logs each step:
+//          fetch start, response parse, optimisticOutbound set, renderBubble
+//          call. If renderBubble throws, surface the error.
 // v2.13.0: Rewrite framing to be AI-first. Drop 'licensed agent follows up
 //          within one business day' from panel subhead, greeting bubble, and
 //          fallback ack. Inline-render ai_response from /chat/send so AI
@@ -43,7 +47,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.13.0';
+  var WGT_VER = '2.14.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -473,15 +477,26 @@
         }
         console.log('[oc-widget] chat/send ok', txt.substring(0, 120));
         clearTyping();
+        var inlineRendered = false;
         try {
           var data = JSON.parse(txt);
+          console.log('[oc-widget] inline parse ok; ai_response=' + (data && data.ai_response ? 'yes len=' + data.ai_response.length : 'no'));
           if (data && data.ai_response) {
             chatState.optimisticOutbound = chatState.optimisticOutbound || {};
             chatState.optimisticOutbound[data.ai_response] = true;
             var localOutId = 'local-out-' + Date.now();
-            renderBubble({ id: localOutId, direction: 'outbound', body: data.ai_response, created_at: Date.now() });
+            try {
+              renderBubble({ id: localOutId, direction: 'outbound', body: data.ai_response, created_at: Date.now() });
+              inlineRendered = true;
+              console.log('[oc-widget] inline render OK localId=' + localOutId);
+            } catch (rbErr) {
+              console.error('[oc-widget] renderBubble THREW:', rbErr && rbErr.message ? rbErr.message : rbErr, rbErr && rbErr.stack ? rbErr.stack.substring(0, 200) : '');
+            }
           }
-        } catch (e) { /* response wasn't JSON, fall through */ }
+        } catch (e) {
+          console.error('[oc-widget] inline render outer catch:', e && e.message ? e.message : e);
+        }
+        if (!inlineRendered) console.log('[oc-widget] inline render did NOT happen, will rely on poll');
         setTimeout(pollThread, 800);
       });
     }).catch(function (err) {
