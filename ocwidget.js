@@ -1,4 +1,9 @@
-// ocwidget.js - Ask Olive Floating Widget v2.14.0
+// ocwidget.js - Ask Olive Floating Widget v2.15.0
+// v2.15.0: Capture full UTM stack (utm_*, gclid, fbclid, msclkid,
+//          landing_referrer) and include in /chat/send contact payload so
+//          backend can attribute leads to ad campaigns. Fire gtag generate_lead
+//          on the moment of lead capture (contact form submit / first message
+//          if contact already cached).
 // v2.14.0: Add diagnostic logging around inline ai_response render to debug
 //          why bubbles weren't appearing instantly. Logs each step:
 //          fetch start, response parse, optimisticOutbound set, renderBubble
@@ -47,7 +52,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.14.0';
+  var WGT_VER = '2.15.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -105,6 +110,52 @@
   }
 
   function saveContact(c) { localStorage.setItem('oc_chat_contact', JSON.stringify(c)); }
+
+  // Capture UTM/click-id params with 30-day stickiness
+  function getUTM() {
+    var fields = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','fbclid','msclkid'];
+    var params = new URLSearchParams(location.search);
+    var captured = {};
+    var hasAny = false;
+    fields.forEach(function(f){
+      var v = params.get(f);
+      if (v) { captured[f] = v; hasAny = true; }
+    });
+    if (hasAny) {
+      captured._captured_at = Date.now();
+      try { localStorage.setItem('oc_utm', JSON.stringify(captured)); } catch (e) {}
+      return captured;
+    }
+    try {
+      var stored = JSON.parse(localStorage.getItem('oc_utm') || '{}');
+      if (stored._captured_at && (Date.now() - stored._captured_at < 30 * 86400 * 1000)) return stored;
+    } catch (e) {}
+    return {};
+  }
+
+  // Merge UTM into the contact object passed to /chat/send
+  function contactWithAttribution() {
+    var c = getContact() || {};
+    var u = getUTM();
+    var enriched = Object.assign({}, c);
+    ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','fbclid','msclkid'].forEach(function(k){
+      if (u[k]) enriched[k] = u[k];
+    });
+    if (document.referrer) enriched.landing_referrer = document.referrer;
+    return enriched;
+  }
+
+  function fireGenerateLead(source) {
+    try {
+      if (window.gtag) {
+        window.gtag('event', 'generate_lead', {
+          form_id: 'oc-widget',
+          form_location: source || 'widget',
+          value: 1
+        });
+      }
+    } catch (e) { /* gtag missing */ }
+  }
 
   // --- CSS ---
 
@@ -454,9 +505,19 @@
 
   function sendMessage(body) {
     var sessionId = getSession();
-    var contact = getContact();
+    var contact = contactWithAttribution();
     var sendBtn = document.getElementById('oc-wgt-send');
     var errEl = document.getElementById('oc-wgt-error');
+
+    // Fire generate_lead the FIRST time a visitor sends a message in this session
+    // (sufficient signal for a Lead in CRM, attributed to the ad). One per session.
+    try {
+      var firedKey = 'oc_chat_lead_fired_' + sessionId;
+      if (!sessionStorage.getItem(firedKey)) {
+        fireGenerateLead('widget-chat');
+        sessionStorage.setItem(firedKey, '1');
+      }
+    } catch (e) { /* sessionStorage missing */ }
 
     // Optimistic render — renderBubble will set chatState.rendered[localId] itself
     var localId = 'local-' + Date.now();
@@ -581,6 +642,8 @@
       var state = '';
       try { state = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {}
       saveContact({ name: name, email: email, phone: phone, state: state });
+      // Fire generate_lead conversion on contact capture (the actual lead moment)
+      fireGenerateLead('widget-capture-form');
       switchToThread();
     });
   }
