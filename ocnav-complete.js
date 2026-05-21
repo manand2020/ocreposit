@@ -329,17 +329,17 @@
   document.head.appendChild(s);
 })();
 
-// Content-rule cleanups (v4.20.0, 2026-05-21)
+// Content-rule cleanups (v4.21.0, 2026-05-21)
 // 1. Remove "California" pill from Insights article footer (CLAUDE.md: no California references anywhere).
 // 2. Demote nav "Have you ever checked if you have roadside?" callout from <h2> to <p> so it does not
 //    pollute the H2 heading hierarchy on every page (SEO/AEO source-quality fix).
 // 3. /commercial-carriers cleanup: remove "Coming Soon" legend pill + replace Nationwide Commercial's
 //    "Coming Soon" profile cell with a working link to /carriers/nationwide-commercial-insurance.
 // 4. /commercial-insurance hero: strip stray leading "!" from any oc-ci-hero-pill (renders as typo).
-// 5. /commercial-carriers: replace stray "real estate" text-node hits with carrier-vertical synonyms
-//    (CLAUDE.md content rule: no real estate references anywhere). Two known contexts:
-//      - "Multi-line commercial, manufacturing, construction, real estate" → "commercial property"
-//      - "Retail, professional services, real estate, hospitality" → "property management"
+// 5. /commercial-carriers: replace stray "real estate" text-node hits with carrier-vertical synonyms.
+// 6. /faq/* category badges: expand abbreviations GL → "General Liability", BOP → "Business Owners
+//    Policy", WC → "Workers Compensation". Affects ~55 FAQ pages. Renders abbreviations as readable
+//    full forms for visitors who don't speak insurance shorthand.
 (function(){
   function fixContentRules(){
     try {
@@ -375,6 +375,23 @@
           }
           if (firstNode && firstNode.nodeType === 3 && /^\s*!\s+/.test(firstNode.nodeValue || '')) {
             firstNode.nodeValue = firstNode.nodeValue.replace(/^\s*!\s+/, '');
+          }
+        }
+      }
+    } catch (e) {}
+    // FAQ category badge abbreviation expansion (GL, BOP, WC).
+    try {
+      if (location.pathname.indexOf('/faq') === 0) {
+        var badgeMap = { 'GL': 'General Liability', 'BOP': 'Business Owners Policy', 'WC': 'Workers Compensation' };
+        var pCandidates = document.querySelectorAll('p');
+        for (var b = 0; b < pCandidates.length; b++) {
+          var pEl = pCandidates[b];
+          var pText = (pEl.textContent || '').trim();
+          if (badgeMap.hasOwnProperty(pText)) {
+            // Only swap if this looks like a badge: short single-word P with no children
+            if (pEl.children.length === 0) {
+              pEl.textContent = badgeMap[pText];
+            }
           }
         }
       }
