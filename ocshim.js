@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.4.2
+// ocshim.js -- Consolidated Olive Cover site shims v1.5.0
+// v1.5.0 (2026-05-21): swap hello@olivecover.com → askolive@olivecover.com
+//   site-wide (footer, body text, error fallbacks). Add "Or email us at
+//   askolive@" tertiary line below contact form. Reinforces "Ask Olive"
+//   trademark and consolidates email contact path.
 // v1.4.0 (2026-05-21): ocschemaexpand expanded to cover /coverage-review,
 //   /personal-insurance, /commercial-insurance, /carriers (hub), /faq,
 //   /insurance-terms (hub). Was previously /insurance/* and /carriers/* only.
@@ -155,6 +159,48 @@
       insHero.style.setProperty('background-color', 'transparent', 'important');
       insHero.style.setProperty('background-image', 'linear-gradient(105deg, rgba(27,58,92,0.88) 0%, rgba(27,58,92,0.55) 50%, rgba(27,58,92,0.30) 100%)', 'important');
       insHero.style.setProperty('background-size', 'cover', 'important');
+    }
+    // Site-wide: swap hello@olivecover.com → askolive@olivecover.com (canonical brand-aligned email
+    // matching the filed "Ask Olive" trademark). Updates href + visible text + any text nodes.
+    document.querySelectorAll('a[href*="mailto:hello@olivecover.com"]').forEach(function(a){
+      try { a.href = a.href.replace(/hello@olivecover\.com/g, 'askolive@olivecover.com'); } catch(e){}
+      if (a.textContent && a.textContent.indexOf('hello@olivecover.com') >= 0) {
+        // Walk text nodes inside the link to preserve markup
+        var w = document.createTreeWalker(a, NodeFilter.SHOW_TEXT, null);
+        var tn;
+        while ((tn = w.nextNode())) {
+          if (tn.nodeValue && tn.nodeValue.indexOf('hello@olivecover.com') >= 0) {
+            tn.nodeValue = tn.nodeValue.replace(/hello@olivecover\.com/g, 'askolive@olivecover.com');
+          }
+        }
+      }
+    });
+    // Catch plain-text mentions outside anchors (e.g., contact-page intro copy, error messages)
+    var bodyWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(n){
+        var p = n.parentNode;
+        if (!p) return NodeFilter.FILTER_REJECT;
+        var tag = p.nodeName;
+        if (tag === 'SCRIPT' || tag === 'STYLE') return NodeFilter.FILTER_REJECT;
+        if (p.closest && p.closest('a[href*="mailto:askolive"]')) return NodeFilter.FILTER_REJECT;
+        return /hello@olivecover\.com/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var tn2;
+    while ((tn2 = bodyWalker.nextNode())) {
+      tn2.nodeValue = tn2.nodeValue.replace(/hello@olivecover\.com/g, 'askolive@olivecover.com');
+    }
+    // Contact page: add "Or just email us" tertiary line below the form
+    if (path === '/contact') {
+      var contactForm = document.getElementById('oc-contact-form-el');
+      if (contactForm && !document.getElementById('oc-contact-email-tertiary')) {
+        var orLine = document.createElement('p');
+        orLine.id = 'oc-contact-email-tertiary';
+        orLine.style.cssText = 'margin:16px 0 0;font:14px Inter,sans-serif;color:#1B3A5C;opacity:0.85;line-height:1.5;';
+        orLine.innerHTML = 'Prefer email? Reach us at <a href="mailto:askolive@olivecover.com" style="color:#B8934A;font-weight:600;text-decoration:none;">askolive@olivecover.com</a>. A licensed agent will follow up within one business day.';
+        var parent = contactForm.parentNode;
+        if (parent) parent.insertBefore(orLine, contactForm.nextSibling);
+      }
     }
     // FAQ category badge expansion: replace BOP/GL/WC abbreviations with full names
     // Site-wide because the badge appears on /faq/* entry pages AND inside the /faq hub list
