@@ -1,4 +1,7 @@
-// Olive Cover - Contact form handler v1.4.0
+// Olive Cover - Contact form handler v1.5.0
+// v1.5.0: Capture full UTM stack (utm_*, gclid, fbclid, msclkid, landing_referrer)
+//         into payload. Fire gtag('event','generate_lead') on successful submit
+//         for Google Ads conversion-optimized bidding.
 // v1.4.0: session_id added to payload (links submission to web_sessions doc).
 // Source of truth: github.com/manand2020/ocreposit/occontact-complete.js
 // Served via jsdelivr CDN. Bump version query string when updating.
@@ -32,6 +35,31 @@ const _authReady = new Promise((resolve) => {
   });
   signInAnonymously(auth).catch(e => console.warn("[oc-contact] anon auth:", e.code));
 });
+
+// Capture UTM/click-id params with 30-day stickiness in localStorage
+function captureUTM() {
+  const fields = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid"];
+  const params = new URLSearchParams(location.search);
+  let captured = {};
+  let hasAny = false;
+  fields.forEach(function(f) {
+    const v = params.get(f);
+    if (v) { captured[f] = v; hasAny = true; }
+  });
+  if (hasAny) {
+    captured._captured_at = Date.now();
+    try { localStorage.setItem("oc_utm", JSON.stringify(captured)); } catch (e) {}
+    return captured;
+  }
+  try {
+    const stored = JSON.parse(localStorage.getItem("oc_utm") || "{}");
+    if (stored._captured_at && (Date.now() - stored._captured_at < 30 * 86400 * 1000)) {
+      return stored;
+    }
+  } catch (e) {}
+  return {};
+}
+const _utm = captureUTM();
 
 function ready(fn) {
   if (document.readyState !== "loading") fn();
@@ -93,11 +121,20 @@ async function onSubmit(e) {
     source: "contact-page",
     page: location.pathname,
     referrer: document.referrer || "",
+    landing_referrer: document.referrer || "",
     userAgent: (navigator.userAgent || "").slice(0, 300),
     submittedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
     status: "new",
-    session_id: window.OC_SESSION?.uid() ?? null
+    session_id: window.OC_SESSION?.uid() ?? null,
+    utm_source: _utm.utm_source || null,
+    utm_medium: _utm.utm_medium || null,
+    utm_campaign: _utm.utm_campaign || null,
+    utm_content: _utm.utm_content || null,
+    utm_term: _utm.utm_term || null,
+    gclid: _utm.gclid || null,
+    fbclid: _utm.fbclid || null,
+    msclkid: _utm.msclkid || null
   };
 
   if (!payload.name) { showInlineError(form, "Please enter your name."); return; }
@@ -113,6 +150,17 @@ async function onSubmit(e) {
     await _authReady;
     await addDoc(collection(db, "contact-submissions"), payload);
     showDone(form);
+    // GA4 conversion event for Google Ads bidding optimization
+    try {
+      if (window.gtag) {
+        window.gtag("event", "generate_lead", {
+          form_id: "oc-contact-form-el",
+          form_location: "contact",
+          topic: payload.topic || "unknown",
+          value: 1
+        });
+      }
+    } catch (e3) { /* gtag missing */ }
   } catch (err) {
     console.error("[oc-contact] submit failed:", err);
     showFail(form);
