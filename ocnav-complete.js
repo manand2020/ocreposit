@@ -329,12 +329,13 @@
   document.head.appendChild(s);
 })();
 
-// Content-rule cleanups (v4.17.0, 2026-05-21)
+// Content-rule cleanups (v4.18.0, 2026-05-21)
 // 1. Remove "California" pill from Insights article footer (CLAUDE.md: no California references anywhere).
-//    Source: hardcoded span in Insights Template. Designer MCP query unreliable on heavy-CMS pages,
-//    so DOM-remove pattern matches existing ocstylefixes precedent.
 // 2. Demote nav "Have you ever checked if you have roadside?" callout from <h2> to <p> so it does not
 //    pollute the H2 heading hierarchy on every page (SEO/AEO source-quality fix).
+// 3. /commercial-carriers cleanup: remove "Coming Soon" legend pill + replace Nationwide Commercial's
+//    "Coming Soon" profile cell with a working link to /carriers/nationwide-commercial-insurance.
+//    This removes "site is unfinished" signals from the carrier comparison matrix.
 (function(){
   function fixContentRules(){
     try {
@@ -355,6 +356,34 @@
         }
         p.innerHTML = h.innerHTML;
         h.parentNode.replaceChild(p, h);
+      }
+    } catch (e) {}
+    // /commercial-carriers Coming-Soon cleanup
+    try {
+      if (location.pathname === '/commercial-carriers') {
+        var leafs = document.querySelectorAll('.ccr-li, .ccr-td');
+        for (var m = 0; m < leafs.length; m++) {
+          var el = leafs[m];
+          var txt = (el.textContent || '').trim();
+          if (txt !== 'Coming Soon' && txt.toLowerCase() !== 'coming soon') continue;
+          if (el.classList.contains('ccr-li')) {
+            // Legend pill — remove it entirely
+            if (el.parentNode) el.parentNode.removeChild(el);
+          } else if (el.classList.contains('ccr-td')) {
+            // Profile cell — replace with a link arrow to the carrier page if we can infer the slug
+            var row = el.closest('tr') || el.parentElement;
+            var rowText = (row ? row.textContent || '' : '').toLowerCase();
+            var slug = null;
+            if (rowText.indexOf('nationwide commercial') >= 0) slug = 'nationwide-commercial-insurance';
+            // Add more slug inferences here if other rows ever show Coming Soon
+            if (slug) {
+              el.innerHTML = '<a href="/carriers/' + slug + '" class="ccr-link" aria-label="View carrier profile">→</a>';
+            } else {
+              // No matched slug — clear the cell so it stops showing "Coming Soon"
+              el.textContent = '';
+            }
+          }
+        }
       }
     } catch (e) {}
   }
