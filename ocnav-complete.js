@@ -329,7 +329,7 @@
   document.head.appendChild(s);
 })();
 
-// Content-rule cleanups (v4.21.0, 2026-05-21)
+// Content-rule cleanups (v4.22.0, 2026-05-21)
 // 1. Remove "California" pill from Insights article footer (CLAUDE.md: no California references anywhere).
 // 2. Demote nav "Have you ever checked if you have roadside?" callout from <h2> to <p> so it does not
 //    pollute the H2 heading hierarchy on every page (SEO/AEO source-quality fix).
@@ -337,9 +337,9 @@
 //    "Coming Soon" profile cell with a working link to /carriers/nationwide-commercial-insurance.
 // 4. /commercial-insurance hero: strip stray leading "!" from any oc-ci-hero-pill (renders as typo).
 // 5. /commercial-carriers: replace stray "real estate" text-node hits with carrier-vertical synonyms.
-// 6. /faq/* category badges: expand abbreviations GL → "General Liability", BOP → "Business Owners
-//    Policy", WC → "Workers Compensation". Affects ~55 FAQ pages. Renders abbreviations as readable
-//    full forms for visitors who don't speak insurance shorthand.
+// 6. /faq/* category badges: expand GL/BOP/WC abbreviations to full names (~55 pages).
+// 7. /insurance/* hero overlay: rgba(27,58,92,0.72) was too dark — photos invisible. Replace with a
+//    gradient overlay that keeps text readable at the top while the photo shows through the bottom.
 (function(){
   function fixContentRules(){
     try {
@@ -376,6 +376,17 @@
           if (firstNode && firstNode.nodeType === 3 && /^\s*!\s+/.test(firstNode.nodeValue || '')) {
             firstNode.nodeValue = firstNode.nodeValue.replace(/^\s*!\s+/, '');
           }
+        }
+      }
+    } catch (e) {}
+    // Insurance template hero overlay — soften so the photo is visible.
+    try {
+      if (location.pathname.indexOf('/insurance/') === 0) {
+        var overlays = document.querySelectorAll('.oc-ins-hero-overlay');
+        for (var ov = 0; ov < overlays.length; ov++) {
+          var o = overlays[ov];
+          // Gradient: darker at top for headline contrast, lighter at bottom so photo presence shows.
+          o.style.setProperty('background', 'linear-gradient(180deg, rgba(27,58,92,0.85) 0%, rgba(27,58,92,0.55) 55%, rgba(27,58,92,0.35) 100%)', 'important');
         }
       }
     } catch (e) {}
