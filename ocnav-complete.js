@@ -329,3 +329,41 @@
   document.head.appendChild(s);
 })();
 
+// Content-rule cleanups (v4.17.0, 2026-05-21)
+// 1. Remove "California" pill from Insights article footer (CLAUDE.md: no California references anywhere).
+//    Source: hardcoded span in Insights Template. Designer MCP query unreliable on heavy-CMS pages,
+//    so DOM-remove pattern matches existing ocstylefixes precedent.
+// 2. Demote nav "Have you ever checked if you have roadside?" callout from <h2> to <p> so it does not
+//    pollute the H2 heading hierarchy on every page (SEO/AEO source-quality fix).
+(function(){
+  function fixContentRules(){
+    try {
+      var caliPills = document.querySelectorAll('.oc-art-state-pill--california');
+      for (var i = 0; i < caliPills.length; i++) {
+        if (caliPills[i] && caliPills[i].parentNode) caliPills[i].parentNode.removeChild(caliPills[i]);
+      }
+    } catch (e) {}
+    try {
+      var navH2s = document.querySelectorAll('h2.oc-nav-panel-heading');
+      for (var j = 0; j < navH2s.length; j++) {
+        var h = navH2s[j];
+        var p = document.createElement('p');
+        // copy attributes (class, data-*, id) so styling is preserved
+        for (var k = 0; k < h.attributes.length; k++) {
+          var a = h.attributes[k];
+          try { p.setAttribute(a.name, a.value); } catch (e) {}
+        }
+        p.innerHTML = h.innerHTML;
+        h.parentNode.replaceChild(p, h);
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixContentRules);
+  } else {
+    fixContentRules();
+  }
+  // Defense against late-mounted CMS content
+  setTimeout(fixContentRules, 1500);
+})();
+
