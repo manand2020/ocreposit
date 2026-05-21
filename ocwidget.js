@@ -1,4 +1,7 @@
-// ocwidget.js - Ask Olive Floating Widget v2.9.0
+// ocwidget.js - Ask Olive Floating Widget v2.10.0
+// v2.10.0: Fix optimistic-render dedup. Distinguish optimistic call (id starts with
+//          'local-') from server-echo (id starts with 'web-' etc). Optimistic
+//          renders instantly; server-echo dedupes against tracked optimistic body.
 // v2.9.0: Real AI is live in /chat/send. Remove hardcoded greeting + auto-ack
 //         (now redundant + conflicts with AI's first response). Fix optimistic-render
 //         bug where pre-set chatState.rendered prevented bubble from rendering.
@@ -31,7 +34,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.9.0';
+  var WGT_VER = '2.10.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -297,8 +300,9 @@
 
   function renderBubble(msg) {
     if (chatState.rendered[msg.id]) return;
-    // Deduplicate optimistic inbound messages against server echo
-    if (msg.direction === 'inbound' && chatState.optimistic[msg.body]) {
+    var isOptimistic = String(msg.id || '').indexOf('local-') === 0;
+    // Dedupe: server-echo of a message we already optimistic-rendered
+    if (!isOptimistic && msg.direction === 'inbound' && chatState.optimistic[msg.body]) {
       delete chatState.optimistic[msg.body];
       chatState.rendered[msg.id] = true;
       return;
