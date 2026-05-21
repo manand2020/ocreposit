@@ -329,13 +329,17 @@
   document.head.appendChild(s);
 })();
 
-// Content-rule cleanups (v4.19.0, 2026-05-21)
+// Content-rule cleanups (v4.20.0, 2026-05-21)
 // 1. Remove "California" pill from Insights article footer (CLAUDE.md: no California references anywhere).
 // 2. Demote nav "Have you ever checked if you have roadside?" callout from <h2> to <p> so it does not
 //    pollute the H2 heading hierarchy on every page (SEO/AEO source-quality fix).
 // 3. /commercial-carriers cleanup: remove "Coming Soon" legend pill + replace Nationwide Commercial's
 //    "Coming Soon" profile cell with a working link to /carriers/nationwide-commercial-insurance.
 // 4. /commercial-insurance hero: strip stray leading "!" from any oc-ci-hero-pill (renders as typo).
+// 5. /commercial-carriers: replace stray "real estate" text-node hits with carrier-vertical synonyms
+//    (CLAUDE.md content rule: no real estate references anywhere). Two known contexts:
+//      - "Multi-line commercial, manufacturing, construction, real estate" → "commercial property"
+//      - "Retail, professional services, real estate, hospitality" → "property management"
 (function(){
   function fixContentRules(){
     try {
@@ -372,6 +376,28 @@
           if (firstNode && firstNode.nodeType === 3 && /^\s*!\s+/.test(firstNode.nodeValue || '')) {
             firstNode.nodeValue = firstNode.nodeValue.replace(/^\s*!\s+/, '');
           }
+        }
+      }
+    } catch (e) {}
+    // /commercial-carriers real-estate text-node cleanup
+    try {
+      if (location.pathname === '/commercial-carriers') {
+        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        var txtNode;
+        var nodesToUpdate = [];
+        while ((txtNode = walker.nextNode())) {
+          if (!txtNode.nodeValue) continue;
+          if (/real estate/i.test(txtNode.nodeValue)) nodesToUpdate.push(txtNode);
+        }
+        for (var x = 0; x < nodesToUpdate.length; x++) {
+          var n = nodesToUpdate[x];
+          var v = n.nodeValue;
+          // Specific contextual substitutions
+          v = v.replace(/manufacturing, construction, real estate/gi, 'manufacturing, construction, commercial property');
+          v = v.replace(/professional services, real estate, hospitality/gi, 'professional services, property management, hospitality');
+          // Fallback for any remaining
+          v = v.replace(/\breal estate\b/gi, 'commercial property');
+          n.nodeValue = v;
         }
       }
     } catch (e) {}
