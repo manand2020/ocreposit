@@ -1,7 +1,11 @@
-// Olive Cover - Homepage Lead Capture v1.5.0
+// Olive Cover - Homepage Lead Capture v1.6.0
 // Quick intake form: name + email + phone + intent -> Firestore home-leads collection (submissions DB)
 // Source: github.com/manand2020/ocreposit/ochomeleads.js
 // Loaded as ES module via IIFE registered script on homepage footer.
+// v1.6.0: Fire gtag('event','generate_lead') on success for Google Ads conversion
+//         optimization. Capture full UTM stack (utm_*, gclid, fbclid, msclkid,
+//         referrer) into Firebase payload so OC Tech can write to CRM Lead
+//         custom fields for ad attribution.
 // v1.5.0: Parity with widget v2.8.0 - email + phone are separate required fields,
 //         state captured silently from oc_state cookie. Backward-compatible with
 //         the legacy single-contact field name.
@@ -31,6 +35,32 @@ const _authReady = new Promise((resolve) => {
   });
   signInAnonymously(auth).catch(e => console.warn("[oc-leads] auth:", e.code));
 });
+
+// Capture UTM/click-id params on page load with 30-day stickiness in localStorage
+function captureUTM() {
+  const fields = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid"];
+  const params = new URLSearchParams(location.search);
+  let captured = {};
+  let hasAny = false;
+  fields.forEach(function(f) {
+    const v = params.get(f);
+    if (v) { captured[f] = v; hasAny = true; }
+  });
+  if (hasAny) {
+    captured._captured_at = Date.now();
+    try { localStorage.setItem("oc_utm", JSON.stringify(captured)); } catch (e) {}
+    return captured;
+  }
+  try {
+    const stored = JSON.parse(localStorage.getItem("oc_utm") || "{}");
+    if (stored._captured_at && (Date.now() - stored._captured_at < 30 * 86400 * 1000)) {
+      return stored;
+    }
+  } catch (e) {}
+  return {};
+}
+const _utm = captureUTM();
+const _landing_referrer = document.referrer || "";
 
 function init() {
   const form = document.getElementById("oc-lead-form-el");
@@ -78,10 +108,30 @@ function init() {
         state,
         source: "homepage",
         session_id: window.OC_SESSION?.uid() ?? null,
+        utm_source: _utm.utm_source || null,
+        utm_medium: _utm.utm_medium || null,
+        utm_campaign: _utm.utm_campaign || null,
+        utm_content: _utm.utm_content || null,
+        utm_term: _utm.utm_term || null,
+        gclid: _utm.gclid || null,
+        fbclid: _utm.fbclid || null,
+        msclkid: _utm.msclkid || null,
+        landing_referrer: _landing_referrer,
         ts: serverTimestamp()
       });
       form.style.display = "none";
       if (successEl) successEl.style.display = "block";
+      // GA4 conversion event for Google Ads bidding optimization
+      try {
+        if (window.gtag) {
+          window.gtag("event", "generate_lead", {
+            form_id: "oc-lead-form-el",
+            form_location: "homepage",
+            state: state || "unknown",
+            value: 1
+          });
+        }
+      } catch (e) { /* gtag missing */ }
     } catch (err) {
       console.error("[oc-leads] save error:", err);
       errEl.textContent = "Something went wrong. Please call us at (678) 888-1011.";
