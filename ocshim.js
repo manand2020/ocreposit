@@ -1,4 +1,4 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.1.2
+// ocshim.js -- Consolidated Olive Cover site shims v1.2.0
 // Generated 2026-05-18 from 7 inline site-scripts.
 // v1.1.0 (2026-05-21): added oc-content-rules (California pill removal,
 //   FAQ slug DOM removal, /commercial-carriers Coming Soon hide + real estate
@@ -60,6 +60,28 @@
         }
       });
     }
+    // FAQ category badge expansion: replace BOP/GL/WC abbreviations with full names
+    // Site-wide because the badge appears on /faq/* entry pages AND inside the /faq hub list
+    var FAQ_BADGE_SWAPS = {
+      'BOP': 'Business Owners Policy',
+      'GL': 'General Liability',
+      'WC': 'Workers Compensation',
+      'PL': 'Professional Liability',
+      'CC': 'Commercial'
+    };
+    // Selector: <p> immediately after the back-link, and any FAQ category pill class
+    var faqBadgeSelectors = [
+      '.oc-faq-back-link + p',
+      '.oc-fqc-cat-1',
+      '[class*="oc-faq-cat"]',
+      '.oc-faq-pill'
+    ].join(',');
+    document.querySelectorAll(faqBadgeSelectors).forEach(function(el){
+      var t = (el.textContent || '').trim();
+      if (FAQ_BADGE_SWAPS[t]) {
+        el.textContent = FAQ_BADGE_SWAPS[t];
+      }
+    });
     // /commercial-insurance: strip leading '!' from any hero pill text
     if(path === '/commercial-insurance'){
       document.querySelectorAll('[class*="pill"]').forEach(function(p){
