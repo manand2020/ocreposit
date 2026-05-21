@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.3.1
+// ocshim.js -- Consolidated Olive Cover site shims v1.4.0
+// v1.4.0 (2026-05-21): ocschemaexpand expanded to cover /coverage-review,
+//   /personal-insurance, /commercial-insurance, /carriers (hub), /faq,
+//   /insurance-terms (hub). Was previously /insurance/* and /carriers/* only.
 // Generated 2026-05-18 from 7 inline site-scripts.
 // v1.1.0 (2026-05-21): added oc-content-rules (California pill removal,
 //   FAQ slug DOM removal, /commercial-carriers Coming Soon hide + real estate
@@ -10,8 +13,83 @@
 // === ocaeleven.js ===
 (function(){function run(){var inputs=document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([aria-label]):not([aria-labelledby]), textarea:not([aria-label]):not([aria-labelledby])');inputs.forEach(function(el){if(el.labels&&el.labels.length)return;var label=el.getAttribute('placeholder')||el.getAttribute('name')||el.id||'Form input';el.setAttribute('aria-label',label);});}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}setTimeout(run,1500);})();
 
-// === ocschemaexpand.js ===
-(function(){function run(){var p=location.pathname.replace(/\/$/,'')||'/';var existing=Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function(s){try{return JSON.parse(s.textContent)['@type'];}catch(e){return null;}});var ag={'@type':'InsuranceAgency','name':'Olive Cover','url':'https://www.olivecover.com','telephone':'+1-678-888-1011'};var ar={'@type':'State','name':'Georgia'};var s=null;if(/^\/insurance\/[^/]+$/.test(p)&&existing.indexOf('Service')<0){var sl=p.substring(11);var h1=document.querySelector('h1');var n=h1?h1.textContent.trim():sl.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});var d=document.querySelector('meta[name=description]');d=d?d.content:'Independent placement of '+sl.replace(/-/g,' ')+'.';var st=sl.replace(/-insurance$/,'').replace(/-/g,' ');s={'@context':'https://schema.org','@type':'Service','name':n,'provider':ag,'description':d,'areaServed':ar,'serviceType':st,'url':'https://www.olivecover.com'+p};}else if(/^\/carriers\/[^/]+$/.test(p)&&existing.indexOf('InsuranceAgency')<0){var cs=p.substring(10);var c1=document.querySelector('h1');var cn=c1?c1.textContent.trim():cs.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});var cd=document.querySelector('meta[name=description]');cd=cd?cd.content:'Carrier profile for '+cn+'.';s={'@context':'https://schema.org','@type':'InsuranceAgency','name':cn,'description':cd,'url':'https://www.olivecover.com'+p,'areaServed':ar,'parentOrganization':ag};}if(s){var e=document.createElement('script');e.type='application/ld+json';e.textContent=JSON.stringify(s);document.head.appendChild(e);}}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}})();
+// === ocschemaexpand.js (v1.3.2 — hub-page coverage added) ===
+(function(){
+  function inject(obj){
+    var e=document.createElement('script');
+    e.type='application/ld+json';
+    e.textContent=JSON.stringify(obj);
+    document.head.appendChild(e);
+  }
+  function getH1(){var h=document.querySelector('h1');return h?h.textContent.trim():'';}
+  function getDesc(){var d=document.querySelector('meta[name=description]');return d?d.content:'';}
+  function getOgImg(){var o=document.querySelector('meta[property="og:image"]');return o?o.content:'';}
+  function run(){
+    var p=location.pathname.replace(/\/$/,'')||'/';
+    var existing=Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function(s){try{return JSON.parse(s.textContent)['@type'];}catch(e){return null;}});
+    var ag={'@type':'InsuranceAgency','name':'Olive Cover','url':'https://www.olivecover.com','telephone':'+1-678-888-1011'};
+    var ar={'@type':'State','name':'Georgia'};
+    var siteUrl='https://www.olivecover.com';
+    var s=null;
+    // /insurance/{slug} → Service
+    if(/^\/insurance\/[^/]+$/.test(p)&&existing.indexOf('Service')<0){
+      var sl=p.substring(11);
+      var n=getH1()||sl.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+      var d=getDesc()||'Independent placement of '+sl.replace(/-/g,' ')+'.';
+      var st=sl.replace(/-insurance$/,'').replace(/-/g,' ');
+      s={'@context':'https://schema.org','@type':'Service','name':n,'provider':ag,'description':d,'areaServed':ar,'serviceType':st,'url':siteUrl+p};
+    }
+    // /carriers/{slug} → InsuranceAgency
+    else if(/^\/carriers\/[^/]+$/.test(p)&&existing.indexOf('InsuranceAgency')<0){
+      var cs=p.substring(10);
+      var cn=getH1()||cs.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+      var cd=getDesc()||'Carrier profile for '+cn+'.';
+      s={'@context':'https://schema.org','@type':'InsuranceAgency','name':cn,'description':cd,'url':siteUrl+p,'areaServed':ar,'parentOrganization':ag};
+    }
+    // /coverage-review → Service (Free Coverage Review)
+    else if(p==='/coverage-review'&&existing.indexOf('Service')<0){
+      s={'@context':'https://schema.org','@type':'Service','name':'Free Coverage Review','provider':ag,'description':getDesc()||'A 15-minute consultation to review your insurance coverage. Olive Cover shops multiple carriers to find the right policy for your needs.','areaServed':ar,'serviceType':'Insurance coverage consultation','url':siteUrl+p};
+    }
+    // /personal-insurance → WebPage / CollectionPage for personal P&C products
+    else if(p==='/personal-insurance'&&existing.indexOf('CollectionPage')<0){
+      s={'@context':'https://schema.org','@type':'CollectionPage','name':getH1()||'Personal Insurance','description':getDesc()||'Personal property and casualty insurance lines: homeowners, auto, renters, umbrella, and more. Independent placement across multiple carriers.','url':siteUrl+p,'publisher':ag,'about':{'@type':'Thing','name':'Personal Insurance'}};
+    }
+    // /commercial-insurance → CollectionPage for commercial products
+    else if(p==='/commercial-insurance'&&existing.indexOf('CollectionPage')<0){
+      s={'@context':'https://schema.org','@type':'CollectionPage','name':getH1()||'Commercial Insurance','description':getDesc()||'Commercial property and casualty insurance lines: business owners policy, general liability, workers compensation, commercial auto, and more.','url':siteUrl+p,'publisher':ag,'about':{'@type':'Thing','name':'Commercial Insurance'}};
+    }
+    // /carriers (hub) → CollectionPage listing carrier partners
+    else if(p==='/carriers'&&existing.indexOf('CollectionPage')<0){
+      s={'@context':'https://schema.org','@type':'CollectionPage','name':getH1()||'Our Carriers','description':getDesc()||'Insurance carriers Olive Cover compares to find the right policy for personal and commercial coverage in Georgia.','url':siteUrl+p,'publisher':ag};
+    }
+    // /faq → FAQPage assembled from featured Q&As on the hub
+    else if(p==='/faq'&&existing.indexOf('FAQPage')<0){
+      var qas=[];
+      // Extract featured FAQ entries from the hub. Look for question + answer patterns.
+      document.querySelectorAll('.oc-fqc-q-1, .oc-faq-link-row, [class*="faq-question"]').forEach(function(qEl){
+        var q=(qEl.textContent||'').trim();
+        if(q.length<10||q.length>250) return;
+        // Try to find the answer nearby
+        var aEl=qEl.parentElement?qEl.parentElement.querySelector('.oc-fqc-a-1, [class*="faq-answer"]'):null;
+        var a=aEl?(aEl.textContent||'').trim():'';
+        if(q&&a){qas.push({'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}});}
+        if(qas.length>=4) return;
+      });
+      if(qas.length){
+        s={'@context':'https://schema.org','@type':'FAQPage','mainEntity':qas};
+      } else {
+        // Fallback: lighter FAQPage with no entities (still helps Google understand page type)
+        s={'@context':'https://schema.org','@type':'WebPage','name':getH1()||'Insurance FAQs','description':getDesc()||'Frequently asked questions about insurance coverage, claims, and Olive Cover services.','url':siteUrl+p};
+      }
+    }
+    // /insurance-terms (glossary hub) → CollectionPage
+    else if(p==='/insurance-terms'&&existing.indexOf('CollectionPage')<0){
+      s={'@context':'https://schema.org','@type':'CollectionPage','name':getH1()||'Insurance Terms','description':getDesc()||'Plain-language definitions of common insurance terms, organized by category.','url':siteUrl+p,'publisher':ag};
+    }
+    if(s){inject(s);}
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
 
 // === ocfeedback.js ===
 (function(){var ENDPOINT='https://olive-cover-prod.web.app/feedback/create-case';var VER='1.2.4';function inject(){['oc-fb-link','oc-fb-bg','oc-fb-css'].forEach(function(id){var el=document.getElementById(id);if(el&&el.getAttribute('data-ocfb-ver')!==VER){el.parentNode.removeChild(el);}});if(document.getElementById('oc-fb-link'))return;var st=document.createElement('style');st.id='oc-fb-css';st.setAttribute('data-ocfb-ver',VER);st.textContent='#oc-fb-link{position:fixed;bottom:16px;left:16px;right:auto;z-index:9998;background:#1B3A5C;color:#F5EDD8;padding:8px 14px;border-radius:6px;font-size:13px;border:none;cursor:pointer;font-family:Inter,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.2)}#oc-fb-link:hover{background:#0F2237}#oc-fb-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px}#oc-fb-bg.open{display:flex}#oc-fb-modal{background:#fff;max-width:500px;width:100%;padding:24px;border-radius:8px;font-family:Inter,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,0.3)}#oc-fb-modal h3{font-family:"Playfair Display",serif;color:#1B3A5C;margin:0 0 8px;font-size:1.25rem}#oc-fb-modal p.sub{font-size:13px;color:#666;margin:0 0 12px;line-height:1.5}#oc-fb-modal label{display:block;font-size:13px;color:#1B3A5C;margin:12px 0 4px;font-weight:600}#oc-fb-modal input,#oc-fb-modal textarea{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:4px;font:14px Inter,sans-serif;box-sizing:border-box}#oc-fb-modal textarea{min-height:80px;resize:vertical}#oc-fb-submit{background:#B8934A;color:#fff;padding:10px 20px;border:none;border-radius:4px;font-weight:600;cursor:pointer;margin-top:14px;font-family:Inter,sans-serif}#oc-fb-submit:hover{background:#C7A24B}#oc-fb-submit:disabled{opacity:0.6;cursor:wait}#oc-fb-close{float:right;background:none;border:none;font-size:24px;cursor:pointer;color:#1B3A5C;line-height:1;padding:0}#oc-fb-status{margin-top:10px;font-size:13px;min-height:18px}@media(max-width:600px){#oc-fb-link{bottom:80px;left:8px;right:auto;font-size:12px;padding:6px 10px}}';document.head.appendChild(st);var btn=document.createElement('button');btn.id='oc-fb-link';btn.setAttribute('data-ocfb-ver',VER);btn.textContent='Report an error';btn.setAttribute('aria-label','Report an error or suggest a fix on this page');document.body.appendChild(btn);var bg=document.createElement('div');bg.id='oc-fb-bg';bg.setAttribute('data-ocfb-ver',VER);bg.innerHTML='<div id="oc-fb-modal" role="dialog" aria-labelledby="oc-fb-title"><button id="oc-fb-close" aria-label="Close">&times;</button><h3 id="oc-fb-title">Help us fix this page</h3><p class="sub">Spot something incorrect or unclear? Tell us what and where, and we will open a Case in our CRM, review it, and follow up.</p><label for="oc-fb-what">What is wrong on this page?</label><textarea id="oc-fb-what" placeholder="Describe what is incorrect or unclear"></textarea><label for="oc-fb-should">What should it be? (optional)</label><textarea id="oc-fb-should" placeholder="What would be correct, in your view"></textarea><label for="oc-fb-email">Your email (optional, for follow-up)</label><input type="email" id="oc-fb-email" placeholder="you@example.com"><button id="oc-fb-submit">Open a Case</button><div id="oc-fb-status"></div></div>';document.body.appendChild(bg);function open(){bg.classList.add('open');setTimeout(function(){document.getElementById('oc-fb-what').focus();},100);}function close(){bg.classList.remove('open');document.getElementById('oc-fb-status').textContent='';}btn.addEventListener('click',open);document.getElementById('oc-fb-close').addEventListener('click',close);bg.addEventListener('click',function(e){if(e.target===bg)close();});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&bg.classList.contains('open'))close();});document.getElementById('oc-fb-submit').addEventListener('click',function(){var what=document.getElementById('oc-fb-what').value.trim();var should=document.getElementById('oc-fb-should').value.trim();var em=document.getElementById('oc-fb-email').value.trim();var s=document.getElementById('oc-fb-status');var btn2=document.getElementById('oc-fb-submit');if(!what){s.textContent='Please tell us what is wrong.';s.style.color='#B91C1C';return;}btn2.disabled=true;s.textContent='Opening case...';s.style.color='#666';var payload={subject:'Web feedback: '+(document.title||location.pathname).substring(0,80),description:what,suggested_correction:should||null,source:'web-feedback-widget',source_url:location.href,page_title:document.title,reporter_email:em||null,reporter_user_agent:navigator.userAgent,reporter_session_id:(window.OC_SESSION&&window.OC_SESSION.uid)?window.OC_SESSION.uid():null,submitted_at:new Date().toISOString(),case_type:'website_error_report',priority:'normal'};fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){if(r.ok){return r.json().catch(function(){return {};}).then(function(j){var caseId=j&&j.case_id?' (Case '+j.case_id+')':'';s.textContent='Case opened.'+caseId+' We will review and follow up.';s.style.color='#1B5E20';setTimeout(close,3000);});}else{throw new Error('endpoint_'+r.status);}}).catch(function(e){var subj='[Olive Cover web feedback] '+(document.title||location.pathname).substring(0,60);var body='--- Please send this email to open a Case in our CRM ---\n\nWhat is wrong:\n'+what+'\n\nWhat should it be:\n'+(should||'(not specified)')+'\n\nPage URL: '+location.href+'\nPage title: '+document.title+'\nReporter email: '+(em||'anonymous')+'\nSession: '+(payload.reporter_session_id||'none')+'\nSubmitted: '+payload.submitted_at;var mail='mailto:website-errors@olivecover.com?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);window.location.href=mail;s.textContent='Opening your email to send the feedback...';s.style.color='#1B5E20';btn2.disabled=false;});});}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',inject);}else{inject();}setTimeout(inject,2000);})();
