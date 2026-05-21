@@ -1,4 +1,8 @@
-// ocwidget.js - Ask Olive Floating Widget v2.10.0
+// ocwidget.js - Ask Olive Floating Widget v2.11.0
+// v2.11.0: Restore a static greeting bubble on chat-open so the panel never
+//          looks empty (independent of AI). Replace the red 'Saved...' fallback
+//          text with a soft outbound bubble. Both keep the chat UX warm even
+//          when /chat/send transiently fails.
 // v2.10.0: Fix optimistic-render dedup. Distinguish optimistic call (id starts with
 //          'local-') from server-echo (id starts with 'web-' etc). Optimistic
 //          renders instantly; server-echo dedupes against tracked optimistic body.
@@ -34,7 +38,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.10.0';
+  var WGT_VER = '2.11.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -356,7 +360,45 @@
       .catch(function (err) { console.error('[oc-widget] poll error', err); });
   }
 
+  function renderGreeting() {
+    var thread = document.getElementById('oc-wgt-thread');
+    if (!thread) return;
+    if (document.getElementById('oc-wgt-greeting')) return;
+    if (thread.firstChild) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'oc-wgt-greeting';
+    wrap.className = 'oc-widget-msg-wrap oc-widget-msg-wrap--out';
+    var bubble = document.createElement('div');
+    bubble.className = 'oc-widget-bubble oc-widget-bubble--out';
+    bubble.textContent = 'Hi! I am Olive, the AI assistant for Olive Cover. Ask anything about insurance, or share what you are looking to cover. A licensed agent will follow up within one business day.';
+    var time = document.createElement('div');
+    time.className = 'oc-widget-bubble-time';
+    try { time.textContent = fmtTime(Date.now()); } catch (e) { time.textContent = ''; }
+    wrap.appendChild(bubble);
+    wrap.appendChild(time);
+    thread.appendChild(wrap);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function renderFallbackAck() {
+    var thread = document.getElementById('oc-wgt-thread');
+    if (!thread) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'oc-widget-msg-wrap oc-widget-msg-wrap--out';
+    var bubble = document.createElement('div');
+    bubble.className = 'oc-widget-bubble oc-widget-bubble--out';
+    bubble.textContent = 'Thanks. A licensed agent will follow up within one business day. You can also call (678) 888-1011.';
+    var time = document.createElement('div');
+    time.className = 'oc-widget-bubble-time';
+    try { time.textContent = fmtTime(Date.now()); } catch (e) { time.textContent = ''; }
+    wrap.appendChild(bubble);
+    wrap.appendChild(time);
+    thread.appendChild(wrap);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
   function startPolling() {
+    renderGreeting();
     pollThread();
     if (!chatState.pollTimer) chatState.pollTimer = setInterval(pollThread, 10000);
   }
@@ -423,10 +465,11 @@
     }).catch(function (err) {
       console.error('[oc-widget] send error', err && err.message ? err.message : err);
       clearTyping();
-      if (errEl) { errEl.textContent = 'Saving your message...'; errEl.style.display = 'block'; }
+      if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
       fallbackCaptureMessage(body, sessionId, contact).then(function () {
         console.log('[oc-widget] fallback capture ok');
-        if (errEl) { errEl.textContent = 'Saved. We will follow up within one business day. You can also call (678) 888-1011.'; }
+        if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+        renderFallbackAck();
       }).catch(function (fbErr) {
         console.error('[oc-widget] fallback also failed; offering mailto', fbErr && fbErr.message ? fbErr.message : fbErr);
         if (errEl) {
