@@ -1,4 +1,8 @@
-// ocwidget.js - Ask Olive Floating Widget v2.15.0
+// ocwidget.js - Ask Olive Floating Widget v2.16.0
+// v2.16.0: Fallback ack bubble includes askolive@olivecover.com as a third
+//          contact option (alongside phone + Coverage Review). Reinforces the
+//          "Ask Olive" brand mark (trademark filed) and gives email-preferring
+//          visitors a path when /chat/send fails.
 // v2.15.0: Capture full UTM stack (utm_*, gclid, fbclid, msclkid,
 //          landing_referrer) and include in /chat/send contact payload so
 //          backend can attribute leads to ad campaigns. Fire gtag generate_lead
@@ -52,7 +56,7 @@
   var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
   var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
   var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.15.0';
+  var WGT_VER = '2.16.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -453,7 +457,7 @@
     wrap.className = 'oc-widget-msg-wrap oc-widget-msg-wrap--out';
     var bubble = document.createElement('div');
     bubble.className = 'oc-widget-bubble oc-widget-bubble--out';
-    bubble.textContent = 'Thanks, your message is saved. You can also call (678) 888-1011 or visit /coverage-review for a Free Coverage Review.';
+    bubble.textContent = 'Thanks, your message is saved. You can also email askolive@olivecover.com, call (678) 888-1011, or visit /coverage-review for a Free Coverage Review.';
     var time = document.createElement('div');
     time.className = 'oc-widget-bubble-time';
     try { time.textContent = fmtTime(Date.now()); } catch (e) { time.textContent = ''; }
