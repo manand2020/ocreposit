@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.8
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.9
+// v1.10.9 (2026-05-22): ocmobile module v1.0.0 -- mobile UX optimization for
+//   viewports <= 767px. Applies: 16px form-field font (kills iOS zoom-on-focus),
+//   H1/H2 max-size caps, horizontal safe-area padding, table-overflow wrappers,
+//   sticky-bar/feedback-widget overlap guard, full-width buttons, image
+//   max-width:100%, body overflow-x:hidden. Re-evaluates on resize.
 // v1.10.8 (2026-05-22): Two polish items:
 //   (1) ochubmore PERSONAL_MORE + COMMERCIAL_MORE trimmed to the 6+6 truly new
 //       Insurance pages each (was 14+11 — included items already on the hubs).
@@ -661,6 +666,92 @@
 
 // === occarrierurls.js (v1.0.0 -- render 3 URL buttons on /carriers/{slug} pages) ===
 (function(){var U={"aegis-insurance":["https://www.aegislink.com","https://www.aegislink.com/contact-us","https://www.aegisinsurance.com/claims"],"aig-insurance":["https://www.aig.com","https://www.aig.com","https://www.aig.com/home/claims"],"amtrust-workers-comp":["https://amtrustfinancial.com","https://amtrustfinancial.com","https://www.amtrustfinancial.com/claims"],"auto-owners-commercial-insurance":["https://www.auto-owners.com","https://www.auto-owners.com/contact-us","https://www.auto-owners.com/insurance/claims"],"auto-owners-insurance":["https://www.auto-owners.com","https://www.auto-owners.com/contact-us","https://www.auto-owners.com/insurance/claims"],"berkley-aspire-insurance":["https://berkleyaspire.com","https://berkleyaspire.com","https://www.berkleyaspire.com/claims/"],"berkley-management-protection":["https://www.berkleymp.com","https://www.berkleymp.com/contact/","https://www.berkleymp.com/contact/"],"bhhc-commercial-insurance":["https://www.bhhc.com","https://www.bhhc.com/contact","https://www.bhhc.com/claims"],"branch-insurance":["https://www.ourbranch.com","https://www.ourbranch.com","https://app.ourbranch.com/"],"chubb-commercial-insurance":["https://www.chubb.com","https://www.chubb.com","https://www.chubb.com/us-en/claims/"],"chubb-insurance":["https://www.chubb.com","https://www.chubb.com","https://www.chubb.com/us-en/claims/"],"cincinnati-commercial-insurance":["https://www.cinfin.com","https://www.cinfin.com/contact-us","https://www.cinfin.com/insurance/business/claims"],"cincinnati-insurance":["https://www.cinfin.com","https://www.cinfin.com/contact-us","https://www.cinfin.com/insurance/personal/claims"],"cna-commercial-insurance":["https://www.cna.com","https://www.cna.com/web/guest/cna/contact-us","https://www.cna.com/web/guest/cna/claims"],"coalition-cyber-insurance":["https://www.coalitioninc.com","https://www.coalitioninc.com/contact","https://www.coalitioninc.com/claims"],"cowbell-cyber-insurance":["https://cowbell.insure","https://cowbell.insure/contact","https://www.cowbell.insure/claims"],"employers-workers-comp":["https://www.employers.com","https://www.employers.com/contact-us","https://www.employers.com/claims"],"encompass-insurance":["https://www.encompassinsurance.com","https://www.encompassinsurance.com/customer-service","https://www.encompassinsurance.com/claims"],"fcci-commercial-insurance":["https://www.fcci-group.com","https://www.fcci-group.com/contact-us","https://www.fcci-group.com/claims"],"foremost-insurance":["https://www.foremost.com","https://www.foremost.com","https://www.foremost.com/claims"],"forge-insurance":["https://www.forgeinsurance.com","https://forgeinsurance.com/contact","https://forgeinsurance.com/claims"],"hanover-commercial-insurance":["https://www.hanover.com","https://www.hanover.com","https://www.hanover.com/claims/report-a-claim.html"],"hanover-insurance":["https://www.hanover.com","https://www.hanover.com","https://www.hanover.com/claims/report-a-claim.html"],"hartford-commercial-insurance":["https://www.thehartford.com","https://www.thehartford.com/business-insurance/customer-service","https://www.thehartford.com/claims"],"hartford-insurance":["https://www.thehartford.com","https://www.thehartford.com/contact-us","https://www.thehartford.com/claims"],"hippo-insurance":["https://www.hippo.com","https://www.hippo.com/contact-us","https://myhippo.com/claims"],"honeycomb-commercial-insurance":["https://www.honeycombinsurance.com","https://honeycombinsurance.com/contact","https://www.honeycombinsurance.com/claims"],"jewelers-mutual-insurance":["https://www.jewelersmutual.com","https://www.jewelersmutual.com/contact-us","https://www.jewelersmutual.com/claims"],"liberty-mutual-commercial":["https://business.libertymutual.com","https://business.libertymutual.com/contact-us/","https://www.libertymutual.com/claims"],"markel-commercial-insurance":["https://www.markel.com","https://www.markel.com/contact-us","https://www.markel.com/insurance/claims"],"national-general-insurance":["https://www.nationalgeneral.com","https://www.nationalgeneral.com","https://www.nationalgeneral.com/claims"],"nationwide-commercial-insurance":["https://www.nationwide.com/business","https://www.nationwide.com/business","https://www.nationwide.com/business/claims/"],"nationwide-insurance":["https://www.nationwide.com","https://www.nationwide.com/personal/contact","https://www.nationwide.com/personal/claims/"],"next-insurance":["https://www.nextinsurance.com","https://www.nextinsurance.com/contact","https://www.next-insurance.com/claims/"],"openly-insurance":["https://openly.com","https://openly.com/contact","https://www.openly.com/claims"],"philadelphia-insurance":["https://www.phly.com","https://www.phly.com","https://www.phly.com/claims/reportAClaim.aspx"],"pie-insurance":["https://pieinsurance.com","https://pieinsurance.com","https://www.nationwide.com/personal/claims/"],"progressive-commercial-insurance":["https://www.progressivecommercial.com","https://www.progressivecommercial.com/contact-us/","https://www.phly.com/claims/reportAClaim.aspx"],"progressive-insurance":["https://www.progressive.com","https://www.progressive.com/manage-policy/","https://www.progressive.com/claims/"],"pure-insurance":["https://www.pureinsurance.com","https://www.pureinsurance.com/contact-us","https://www.pureinsurance.com/claims"],"rli-insurance":["https://www.rlicorp.com","https://www.rlicorp.com/contact","https://www.rlicorp.com/claims"],"rt-specialty-insurance":["https://rtspecialty.com","https://rtspecialty.com/contact","https://rtspecialty.com/report-a-claim/"],"safeco-insurance":["https://www.safeco.com","https://customer.safeco.com","https://www.safeco.com/claims"],"selective-flood-insurance":["https://www.selective.com","https://www.selective.com/contact-us","https://www.selective.com/claims"],"selective-insurance":["https://www.selective.com","https://www.selective.com/contact-us","https://www.selective.com/claims"],"steadily-insurance":["https://www.steadily.com","https://www.steadily.com/contact","https://www.steadily.com/claims"],"stillwater-insurance":["https://www.stillwaterinsurance.com","https://www.stillwaterinsurance.com/Customer-Service","https://www.stillwaterinsurance.com/claims"],"travelers-commercial-insurance":["https://www.travelers.com/business-insurance","https://www.travelers.com/contact-us","https://www.travelers.com/claims"],"travelers-insurance":["https://www.travelers.com","https://www.travelers.com/contact-us","https://www.travelers.com/claims"],"us-assure-builders-risk":["https://www.usassure.com","https://www.usassure.com/contact-us/","https://www.usassure.com/claims"],"zurich-commercial-insurance":["https://www.zurichna.com","https://www.zurichna.com/contact-us","https://www.zurichna.com/claims"]};function fix(){var m=location.pathname.match(/^\/carriers\/([a-z0-9_-]+)\/?$/i);if(!m)return;var slug=m[1].toLowerCase();var urls=U[slug];if(!urls)return;var anchor=document.getElementById('carrier-cs-phone-card')||document.getElementById('carrier-claims-phone-card');if(!anchor)return;if(document.getElementById('carrier-urls-card'))return;var card=document.createElement('div');card.id='carrier-urls-card';card.className='oc-card oc-card-accent-1';card.style.cssText='margin-top:16px;padding:20px 22px;background:#fff;border:1px solid #C7A24B;border-radius:8px;font-family:Inter,sans-serif;';var name=document.querySelector('#carrier-hero-h1')||document.querySelector('h1');var brandName=name?name.textContent.split('|')[0].replace(/\s+Review\s*$/i,'').trim():'this carrier';var labels=['Visit '+brandName+' website','Log in / Customer service','File a claim'];var hrefs=urls;var html='<h3 class="oc-h3" style="margin:0 0 10px;font-family:Playfair Display,serif;color:#1B3A5C;font-size:1rem;font-weight:600;">Useful '+brandName+' links</h3><p style="margin:0 0 14px;font-size:0.8125rem;color:#1B3A5C;opacity:0.75;line-height:1.5;">Direct links for general info, account access, and claim filing. Open in a new tab.</p><div style="display:flex;flex-direction:column;gap:8px;">';for(var i=0;i<3;i++){if(!hrefs[i])continue;html+='<a href="'+hrefs[i]+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#F5EDD8;color:#1B3A5C;text-decoration:none;border-radius:6px;font-size:0.875rem;font-weight:500;transition:background 0.15s;" onmouseover="this.style.background=\'#EDE3C8\'" onmouseout="this.style.background=\'#F5EDD8\'"><span>'+labels[i]+'</span><span style="color:#B8934A;font-weight:600;">&rarr;</span></a>';}html+='</div>';card.innerHTML=html;anchor.parentNode.insertBefore(card,anchor.nextSibling);}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',fix);}else{fix();}setTimeout(fix,1500);setTimeout(fix,3000);})();
+
+
+// === ocmobile.js (v1.0.0 -- mobile UX optimization for viewports <= 767px) ===
+(function(){
+  var APPLIED_AT = 0;
+  function isMobile(){ return window.innerWidth <= 767; }
+  function fix(){
+    if(!isMobile()) return;
+    var now = Date.now();
+    if(now - APPLIED_AT < 250) return;
+    APPLIED_AT = now;
+    document.body.style.setProperty('overflow-x','hidden','important');
+    document.documentElement.style.setProperty('overflow-x','hidden','important');
+    document.querySelectorAll('input, textarea, select').forEach(function(el){
+      if(el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return;
+      var fs = parseFloat(window.getComputedStyle(el).fontSize);
+      if(fs < 16) el.style.setProperty('font-size','16px','important');
+    });
+    document.querySelectorAll('h1').forEach(function(h){
+      var fs = parseFloat(window.getComputedStyle(h).fontSize);
+      if(fs > 36) h.style.setProperty('font-size','32px','important');
+      h.style.setProperty('line-height','1.2','important');
+    });
+    document.querySelectorAll('h2').forEach(function(h){
+      var fs = parseFloat(window.getComputedStyle(h).fontSize);
+      if(fs > 28) h.style.setProperty('font-size','24px','important');
+      h.style.setProperty('line-height','1.25','important');
+    });
+    document.querySelectorAll('img, iframe, video').forEach(function(el){
+      el.style.setProperty('max-width','100%','important');
+      if(el.tagName === 'IMG' && !el.style.height) el.style.setProperty('height','auto','important');
+    });
+    document.querySelectorAll('table').forEach(function(t){
+      if(t.parentNode && t.parentNode.getAttribute('data-oc-table-wrap') === '1') return;
+      var wrap = document.createElement('div');
+      wrap.setAttribute('data-oc-table-wrap','1');
+      wrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    });
+    document.querySelectorAll('.oc-hero-cta-primary, .oc-hero-cta-secondary, .oc-cov2-cta-primary, .oc-cov2-cta-secondary, .oc-cta-btn-1, .oc-cov-fcta-btn, .ch-btn-gold, .oc-fcta-btn, .oc-pi-cta-btn, .oc-mobile-cta').forEach(function(b){
+      b.style.setProperty('width','100%','important');
+      b.style.setProperty('min-width','0','important');
+      b.style.setProperty('max-width','none','important');
+    });
+    document.querySelectorAll('section, [class*="oc-sec-"], [id^="oc-"][class*="section"]').forEach(function(s){
+      var cs = window.getComputedStyle(s);
+      var pl = parseFloat(cs.paddingLeft), pr = parseFloat(cs.paddingRight);
+      if(pl < 16) s.style.setProperty('padding-left','16px','important');
+      if(pr < 16) s.style.setProperty('padding-right','16px','important');
+    });
+    var fb = document.getElementById('oc-fb-link');
+    var sticky = document.querySelector('.oc-sticky-mobile-bar');
+    if(sticky){
+      sticky.style.setProperty('display','flex','important');
+      sticky.style.setProperty('gap','8px','important');
+      sticky.style.setProperty('padding','8px','important');
+      sticky.querySelectorAll('a, button').forEach(function(b){
+        b.style.setProperty('flex','1 1 0','important');
+        b.style.setProperty('min-width','0','important');
+        b.style.setProperty('height','44px','important');
+        b.style.setProperty('font-size','14px','important');
+      });
+      var stickyH = sticky.getBoundingClientRect().height || 64;
+      if(fb) fb.style.setProperty('bottom', (stickyH + 12) + 'px', 'important');
+      document.body.style.setProperty('padding-bottom', stickyH + 'px', 'important');
+    }
+    if(window.innerWidth < 480 && fb){
+      fb.style.setProperty('padding','6px 10px','important');
+      fb.style.setProperty('font-size','11px','important');
+    }
+    document.querySelectorAll('.oc-nav-panel, [id*="ocn-item-"][id$="-panel"]').forEach(function(p){
+      p.style.setProperty('max-width','calc(100vw - 32px)','important');
+      p.style.setProperty('box-sizing','border-box','important');
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', fix);
+  } else {
+    fix();
+  }
+  setTimeout(fix, 1500);
+  setTimeout(fix, 3000);
+  window.addEventListener('resize', fix);
+  window.addEventListener('orientationchange', fix);
+})();
 
 // === ocwgthealer.js ===
 (function(){var GOOD_SHA='e83190096165ffa9585c8d9af5e6cac3604c5bc4';function heal(){var r=document.getElementById('oc-widget-root');if(r&&r.getAttribute('data-wgt-ver')==='2.16.0')return;var bad=document.querySelectorAll('script[src*="ocreposit"][src*="ocwidget.js"]');var goodLoaded=false;bad.forEach(function(s){if(s.src.indexOf(GOOD_SHA)>=0)goodLoaded=true;});if(goodLoaded)return;if(r)r.parentNode.removeChild(r);bad.forEach(function(s){if(s.src.indexOf(GOOD_SHA)<0)s.parentNode.removeChild(s);});var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/manand2020/ocreposit@'+GOOD_SHA+'/ocwidget.js?v=2.16.0&r='+Date.now();s.async=true;document.head.appendChild(s);}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){setTimeout(heal,800);});}else{setTimeout(heal,800);}setTimeout(heal,3500);setTimeout(heal,6000);})();
