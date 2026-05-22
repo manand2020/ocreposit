@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.9.4
+// ocshim.js -- Consolidated Olive Cover site shims v1.9.5
+// v1.9.5 (2026-05-22): Fix "Example Text" Webflow-default placeholders on
+//   Coverage Review form inputs. 7 visible fields had unhelpful default
+//   placeholder text instead of useful hints. Runtime swap until canonical
+//   Designer canvas edits. Conversion-path UX improvement pre-launch.
 // v1.9.4 (2026-05-22): Hide blank Insights cards on /insights page. 4 legacy
 //   <article class="oc-ic-1"> placeholders from Designer canvas remain alongside
 //   the CMS-bound Collection List items. They have data-category + read-time
@@ -162,6 +166,32 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === occrvplaceholders.js (v1.0.0 — fix Coverage Review form placeholders) ===
+(function(){
+  if(location.pathname!=='/coverage-review') return;
+  var PH = {
+    'oc-crv-fn': 'Your first name',
+    'oc-crv-ln': 'Your last name',
+    'oc-crv-em': 'you@example.com',
+    'oc-crv-ph': '(555) 555-5555',
+    'oc-crv-zp': '5-digit ZIP',
+    'oc-crv-ca': 'e.g., Travelers, Nationwide, GEICO',
+    'oc-crv-rd': 'MM/DD/YYYY (renewal date)',
+    'oc-crv-year-built': 'YYYY',
+  };
+  function run(){
+    for(var id in PH){
+      var el = document.getElementById(id);
+      if(el && (el.placeholder==='Example Text' || el.placeholder==='' || !el.placeholder)){
+        el.placeholder = PH[id];
+      }
+    }
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+  setTimeout(run, 500);
+  setTimeout(run, 1500);
 })();
 
 // === ocinsightsblankcards.js (v1.0.0 — hide legacy blank article cards on /insights) ===
