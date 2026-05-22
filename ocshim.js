@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.9.8
+// ocshim.js -- Consolidated Olive Cover site shims v1.9.9
+// v1.9.9 (2026-05-22): Cap form width on desktop. Homepage Ask Olive form
+//   fields were ~720px wide on 1568px+ viewports (looked stretched).
+//   New max-width 480px on form fields + state notice on desktop only;
+//   mobile keeps full-width. Conversion-path desktop UX polish.
 // v1.9.8 (2026-05-22): Rebrand "Report an error" widget to content-feedback
 //   focus. Button now says "Suggest a correction" (was: "Report an error"
 //   which sounded like a bug-report widget). Modal title "Help us keep this
@@ -182,6 +186,23 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ocformwidth.js (v1.0.0 — cap Ask Olive form width on desktop) ===
+(function(){
+  if(document.getElementById('oc-form-width-fix')) return;
+  var st = document.createElement('style');
+  st.id = 'oc-form-width-fix';
+  st.textContent = '@media (min-width:768px){' +
+    '#oc-lead-form-el .oc-aof-input,' +
+    '#oc-lead-form-el .oc-aof-ta,' +
+    '#oc-lead-form-el #oc-state-select,' +
+    '#oc-lead-form-el .oc-state-notice,' +
+    '#oc-lead-form-el [data-oc-state-wrap]{' +
+    'max-width:480px;}' +
+    '#oc-lead-form-el .oc-aof-btn{margin-right:auto;}}' +
+    '@media (min-width:1024px){#oc-lead-form-el{max-width:520px;margin-left:auto;margin-right:auto;}}';
+  document.head.appendChild(st);
 })();
 
 // === ocinputtypes.js (v1.0.0 — mobile-keyboard input types + autocomplete) ===
