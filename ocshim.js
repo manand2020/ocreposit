@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.9.3
+// ocshim.js -- Consolidated Olive Cover site shims v1.9.4
+// v1.9.4 (2026-05-22): Hide blank Insights cards on /insights page. 4 legacy
+//   <article class="oc-ic-1"> placeholders from Designer canvas remain alongside
+//   the CMS-bound Collection List items. They have data-category + read-time
+//   span but no <a> child. Runtime hide via JS until canonical Designer
+//   canvas cleanup.
 // v1.9.3 (2026-05-22): Hide "No items found." messages on empty Collection Lists
 //   site-wide (Webflow's default w-dyn-empty text). Quality polish so visitors
 //   never see the placeholder string. Pairs with content fixes that populate
@@ -157,6 +162,27 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ocinsightsblankcards.js (v1.0.0 — hide legacy blank article cards on /insights) ===
+(function(){
+  function run(){
+    // Hide any <article> on /insights that has no <a href> child (legacy static placeholder)
+    if(!/^\/insights/.test(location.pathname)) return;
+    var articles = document.querySelectorAll('article.oc-ic-1, article.oc-ins-article-card');
+    for(var i=0;i<articles.length;i++){
+      var a = articles[i];
+      var link = a.querySelector('a[href*="/insights/"]');
+      var heading = a.querySelector('h1, h2, h3, h4, .oc-ic-title-1-2, [class*="title"]');
+      var hasContent = link || (heading && heading.textContent.trim().length > 5);
+      if(!hasContent){
+        a.style.display = 'none';
+      }
+    }
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+  setTimeout(run,500);
+  setTimeout(run,1500);
 })();
 
 // === ocemptylisthide.js (v1.0.0 — hide Webflow empty Collection List messages) ===
