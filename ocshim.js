@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.9.5
+// ocshim.js -- Consolidated Olive Cover site shims v1.9.6
+// v1.9.6 (2026-05-22): Branded form success/fail messages. All 3 forms
+//   (homepage, CRV, contact) had Webflow's generic "Thank you!" + "Oops!"
+//   defaults. Replaced with form-specific helpful text that tells users
+//   what happens next + provides phone + email fallback. Conversion-path
+//   UX critical pre-launch.
 // v1.9.5 (2026-05-22): Fix "Example Text" Webflow-default placeholders on
 //   Coverage Review form inputs. 7 visible fields had unhelpful default
 //   placeholder text instead of useful hints. Runtime swap until canonical
@@ -166,6 +171,46 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ocformmessages.js (v1.0.0 — branded form success/fail messages) ===
+(function(){
+  var MESSAGES = {
+    '/': {
+      done: "Thanks! Our team will follow up shortly. For anything urgent, call us at (678) 888-1011.",
+      fail: "Something went wrong on our end. Please try again, or reach us directly at (678) 888-1011 or askolive@olivecover.com.",
+    },
+    '/coverage-review': {
+      done: "Coverage Review submitted. A licensed Olive Cover agent will reach out within one business day. Need to talk sooner? Call (678) 888-1011.",
+      fail: "Something went wrong submitting your review. Please try again in a moment, or call us at (678) 888-1011 to start your Coverage Review by phone.",
+    },
+    '/contact': {
+      done: "Message received. We will respond shortly. For anything urgent, call (678) 888-1011 or email askolive@olivecover.com.",
+      fail: "Something went wrong sending your message. Please try again, or reach us directly at (678) 888-1011 or askolive@olivecover.com.",
+    },
+  };
+  function run(){
+    var msgs = MESSAGES[location.pathname];
+    if(!msgs) return;
+    var dones = document.querySelectorAll('.w-form-done');
+    for(var i=0;i<dones.length;i++){
+      var d = dones[i];
+      // Only swap if it contains the Webflow default text
+      if(d.textContent.indexOf('Your submission has been received') >= 0 || d.textContent.trim() === 'Thank you!'){
+        d.innerHTML = '<div style="font:14px Inter,sans-serif;color:#1B3A5C;line-height:1.5">' + msgs.done + '</div>';
+      }
+    }
+    var fails = document.querySelectorAll('.w-form-fail');
+    for(var i=0;i<fails.length;i++){
+      var f = fails[i];
+      if(f.textContent.indexOf('Oops') >= 0 || f.textContent.indexOf('Something went wrong while') >= 0){
+        f.innerHTML = '<div style="font:14px Inter,sans-serif;color:#1B3A5C;line-height:1.5">' + msgs.fail + '</div>';
+      }
+    }
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+  setTimeout(run, 500);
+  setTimeout(run, 1500);
 })();
 
 // === occrvplaceholders.js (v1.0.0 — fix Coverage Review form placeholders) ===
