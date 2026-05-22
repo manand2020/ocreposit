@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.9.2
+// ocshim.js -- Consolidated Olive Cover site shims v1.9.3
+// v1.9.3 (2026-05-22): Hide "No items found." messages on empty Collection Lists
+//   site-wide (Webflow's default w-dyn-empty text). Quality polish so visitors
+//   never see the placeholder string. Pairs with content fixes that populate
+//   featured-faqs and state-notes.
 // v1.9.2 (2026-05-22): JSON-LD coverage extended to /faq/{slug}, /claims,
 //   /insights (hub), /states/{slug}, /where-we-do-business. AEO completeness.
 // v1.9.1 (2026-05-22): Simpler state-select notice copy. Non-licensed states now
@@ -153,6 +157,44 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ocemptylisthide.js (v1.0.0 — hide Webflow empty Collection List messages) ===
+(function(){
+  // Webflow renders 'No items found.' inside .w-dyn-empty when a Collection List
+  // has no items. Hide these site-wide; populate the underlying CMS field instead
+  // for content. Also hide if the section heading and the empty are the only kids.
+  function run(){
+    var emp = document.querySelectorAll('.w-dyn-empty');
+    for(var i=0;i<emp.length;i++){
+      var el=emp[i];
+      // Hide the empty itself
+      el.style.display='none';
+      // Walk up: if parent section's text content is now just a heading + nothing,
+      // and the heading is "Frequently Asked Questions" or "How this works in Georgia",
+      // hide the whole section to avoid orphan heading.
+      var parent=el.closest('section, .w-section, [class*="-section"]');
+      if(parent){
+        var visible=parent.querySelectorAll('.w-dyn-item, .oc-faq-item, p, ul, ol, .oc-state-notes-body');
+        var hasVisibleContent=false;
+        for(var j=0;j<visible.length;j++){
+          if(visible[j].offsetParent!==null && visible[j].textContent.trim().length>10){
+            hasVisibleContent=true; break;
+          }
+        }
+        if(!hasVisibleContent){
+          // Hide the whole section if it has a heading + empty list and nothing else
+          var headings=parent.querySelectorAll('h1,h2,h3');
+          if(headings.length>0 && headings.length<=2){
+            parent.style.display='none';
+          }
+        }
+      }
+    }
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+  setTimeout(run,800);
+  setTimeout(run,2000);
 })();
 
 // === ocpositioncfixes.js (v1.0.0 — Position C template tone replacement) ===
