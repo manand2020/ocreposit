@@ -1,4 +1,15 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.6.0
+// ocshim.js -- Consolidated Olive Cover site shims v1.8.0
+// v1.8.0 (2026-05-22): Position C JSON-LD alignment. /carriers/{slug} pages
+//   now emit Review schema (itemReviewed: InsuranceCompany, author: Olive Cover)
+//   instead of InsuranceAgency (which incorrectly framed Olive Cover as the
+//   carrier's parent org). Aligns the structured-data signal to the visitor-
+//   facing review tone established in v1.7.0.
+// v1.7.0 (2026-05-22): expanded the carrier-page rating disclaimer into the
+//   uniform carrier-section disclaimer covering BOTH rating data attribution
+//   AND the placement-via-appointments-or-partnerships clarification. Applies
+//   to all /carriers pages including the hub. Pairs with the universal review-
+//   style positioning across all 43 carrier pages (no appointed vs not-appointed
+//   distinction in visitor-facing copy).
 // v1.6.0 (2026-05-21): inject the rating disclaimer near the ratings section on
 //   all 41 carrier pages (legal/compliance requirement per CLAUDE.md). Was missing
 //   from every carrier page; now rendered client-side until Designer template
@@ -28,7 +39,7 @@
 // === ocaeleven.js ===
 (function(){function run(){var inputs=document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([aria-label]):not([aria-labelledby]), textarea:not([aria-label]):not([aria-labelledby])');inputs.forEach(function(el){if(el.labels&&el.labels.length)return;var label=el.getAttribute('placeholder')||el.getAttribute('name')||el.id||'Form input';el.setAttribute('aria-label',label);});}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}setTimeout(run,1500);})();
 
-// === ocschemaexpand.js (v1.3.2 — hub-page coverage added) ===
+// === ocschemaexpand.js (v1.4.0 — Position C: carrier pages now use Review schema) ===
 (function(){
   function inject(obj){
     var e=document.createElement('script');
@@ -54,12 +65,12 @@
       var st=sl.replace(/-insurance$/,'').replace(/-/g,' ');
       s={'@context':'https://schema.org','@type':'Service','name':n,'provider':ag,'description':d,'areaServed':ar,'serviceType':st,'url':siteUrl+p};
     }
-    // /carriers/{slug} → InsuranceAgency
-    else if(/^\/carriers\/[^/]+$/.test(p)&&existing.indexOf('InsuranceAgency')<0){
+    // /carriers/{slug} → Review (Position C: carrier reviewed by Olive Cover, not represented)
+    else if(/^\/carriers\/[^/]+$/.test(p)&&existing.indexOf('Review')<0){
       var cs=p.substring(10);
       var cn=getH1()||cs.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
-      var cd=getDesc()||'Carrier profile for '+cn+'.';
-      s={'@context':'https://schema.org','@type':'InsuranceAgency','name':cn,'description':cd,'url':siteUrl+p,'areaServed':ar,'parentOrganization':ag};
+      var cd=getDesc()||'Carrier review for '+cn+'.';
+      s={'@context':'https://schema.org','@type':'Review','itemReviewed':{'@type':'InsuranceCompany','name':cn,'areaServed':ar},'author':{'@type':'Organization','name':'Olive Cover','url':siteUrl},'publisher':ag,'reviewBody':cd,'url':siteUrl+p,'datePublished':new Date().toISOString().substring(0,10)};
     }
     // /coverage-review → Service (Free Coverage Review)
     else if(p==='/coverage-review'&&existing.indexOf('Service')<0){
@@ -162,27 +173,31 @@
         img.src = s;
       }
     });
-    // Carrier pages: inject the rating disclaimer near the ratings section
-    // (legal/compliance requirement per CLAUDE.md — applies to all 41 carrier pages).
-    if(path.indexOf('/carriers/') === 0 && path.length > 10){
-      if(!document.getElementById('oc-carrier-rating-disclaimer')){
-        // Find the ratings section: H2 with "How This Carrier Rates" / "Ratings" / ratings card
-        var ratingsAnchor = document.querySelector('#carrier-ratings-heading, [id*="carrier-ratings"], h2');
-        if(ratingsAnchor){
-          var node = ratingsAnchor;
-          // Walk forward to find the end of the ratings block (e.g., closest grid container)
-          var ratingsContainer = ratingsAnchor.closest('section') || ratingsAnchor.parentElement;
-          if(ratingsContainer){
-            var disclaimer = document.createElement('p');
-            disclaimer.id = 'oc-carrier-rating-disclaimer';
-            disclaimer.style.cssText = 'font-family:Inter,sans-serif;font-size:0.75rem;color:#6B7280;font-style:italic;line-height:1.45;margin:16px auto 0;padding:12px 20px;max-width:980px;text-align:center;border-top:1px solid rgba(184,147,74,0.18);';
-            disclaimer.textContent = 'Ratings are based on publicly available industry data and are provided for informational purposes only. They do not constitute an endorsement of any carrier.';
-            // Append after the ratings container
-            if(ratingsContainer.nextSibling){
-              ratingsContainer.parentNode.insertBefore(disclaimer, ratingsContainer.nextSibling);
-            } else {
-              ratingsContainer.parentNode.appendChild(disclaimer);
-            }
+    // Carrier pages: inject the uniform carrier-section disclaimer (covers rating data
+    // attribution AND placement-via-appointments-or-partnerships clarification).
+    // Applies to all carrier pages including the /carriers hub.
+    if(path.indexOf('/carriers') === 0){
+      if(!document.getElementById('oc-carrier-section-disclaimer')){
+        // Pick the anchor: prefer ratings section if present, otherwise top of main content
+        var anchor = document.querySelector('#carrier-ratings-heading, [id*="carrier-ratings"]');
+        var disclaimerHost = null;
+        if(anchor){
+          disclaimerHost = anchor.closest('section') || anchor.parentElement;
+        }
+        // Fallback: insert at top of main carrier content area
+        if(!disclaimerHost){
+          disclaimerHost = document.querySelector('main, .oc-carrier-wrap, .oc-wrap') || document.body;
+        }
+        if(disclaimerHost){
+          var disclaimer = document.createElement('p');
+          disclaimer.id = 'oc-carrier-section-disclaimer';
+          disclaimer.style.cssText = 'font-family:Inter,sans-serif;font-size:0.75rem;color:#6B7280;font-style:italic;line-height:1.5;margin:16px auto 0;padding:12px 20px;max-width:980px;text-align:center;border-top:1px solid rgba(184,147,74,0.18);';
+          disclaimer.textContent = 'Carrier reviews and financial-strength ratings on this site are based on publicly available industry data and are provided for informational purposes only. They do not constitute an endorsement of any carrier. Olive Cover places coverage through active carrier appointments and partnerships; not every carrier reviewed here is part of our current placement list. Talk to us about which carriers fit your situation.';
+          // Insert near the anchor or at the top of the host
+          if(anchor && disclaimerHost.nextSibling){
+            disclaimerHost.parentNode.insertBefore(disclaimer, disclaimerHost.nextSibling);
+          } else {
+            disclaimerHost.appendChild(disclaimer);
           }
         }
       }
