@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.5
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.6
+// v1.10.6 (2026-05-22): /personal-insurance + /commercial-insurance hub pages
+//   get "More coverage we review" section injected before footer. Discoverability
+//   for the 12 new Insurance pages (6 personal + 6 commercial) that weren't on
+//   the static hub cards. Closes manual queue items 5 + 6 without Designer work.
 // v1.10.5 (2026-05-22): /carriers hub + /commercial-carriers static text
 //   runtime swaps. Headlines and intro paragraphs reframed to Position C
 //   neutral review tone (was: "We Work With..." / "We are appointed with..."
@@ -213,6 +217,102 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ochubmore.js (v1.0.0 — inject "More coverage we review" section on /personal-insurance + /commercial-insurance hubs) ===
+(function(){
+  var p = location.pathname.replace(/\/$/,'');
+  var personal = (p === '/personal-insurance');
+  var commercial = (p === '/commercial-insurance');
+  if(!personal && !commercial) return;
+
+  var PERSONAL_MORE = [
+    {slug:'rv-insurance', name:'RV Insurance', tag:'Motorhome, travel trailer, fifth-wheel'},
+    {slug:'mobile-home-insurance', name:'Mobile Home Insurance', tag:'Manufactured and mobile home coverage'},
+    {slug:'vacant-home-insurance', name:'Vacant Home Insurance', tag:'Empty home between owners or in transition'},
+    {slug:'pet-insurance', name:'Pet Insurance', tag:'Market review (direct-to-consumer carriers)'},
+    {slug:'identity-theft-insurance', name:'Identity Theft Insurance', tag:'Recovery expense, often a home endorsement'},
+    {slug:'equine-insurance', name:'Equine Insurance', tag:'Horse mortality, medical, liability'},
+    {slug:'collector-auto-insurance', name:'Collector Auto', tag:'Classic, antique, and modified vehicle coverage'},
+    {slug:'boat-insurance', name:'Boat Insurance', tag:'Powerboat, sailboat, personal watercraft'},
+    {slug:'motorcycle-insurance', name:'Motorcycle Insurance', tag:'Road bike, cruiser, scooter coverage'},
+    {slug:'short-term-rental-insurance', name:'Short-Term Rental', tag:'Airbnb, VRBO, and vacation rental hosts'},
+    {slug:'jewelry-insurance', name:'Jewelry Insurance', tag:'Scheduled valuables and engagement rings'},
+    {slug:'scheduled-articles-insurance', name:'Scheduled Personal Property', tag:'Fine art, collectibles, instruments'},
+    {slug:'farm-rural-property-insurance', name:'Farm and Rural Property', tag:'Hobby farms, ranches, rural acreage'},
+    {slug:'other-personal-insurance', name:'Other Personal Coverage', tag:'See the full personal lines list'},
+  ];
+  var COMMERCIAL_MORE = [
+    {slug:'commercial-property-insurance', name:'Commercial Property', tag:'Building, business income, extra expense'},
+    {slug:'liquor-liability-insurance', name:'Liquor Liability', tag:'Restaurants, bars, breweries'},
+    {slug:'inland-marine-insurance', name:'Inland Marine', tag:'Contractor equipment and goods in transit'},
+    {slug:'builders-risk-insurance', name:'Builders Risk', tag:'Coverage during construction'},
+    {slug:'equipment-breakdown-insurance', name:'Equipment Breakdown', tag:'Mechanical and electrical failure of business systems'},
+    {slug:'commercial-crime-insurance', name:'Commercial Crime', tag:'Employee theft, fidelity, wire fraud'},
+    {slug:'management-liability-insurance', name:'Management Liability', tag:'D&O, EPLI, fiduciary for private companies'},
+    {slug:'home-business-insurance', name:'Home Business', tag:'Coverage gaps on home offices and side businesses'},
+    {slug:'nonprofit-insurance', name:'Nonprofit Insurance', tag:'Liability, property, D&O for charitable orgs'},
+    {slug:'habitational-insurance', name:'Habitational', tag:'Apartments, condos, HOAs'},
+    {slug:'other-commercial-insurance', name:'Other Commercial Coverage', tag:'See the full commercial lines list'},
+  ];
+
+  function injectStyles(){
+    if(document.getElementById('oc-hubmore-styles')) return;
+    var st = document.createElement('style');
+    st.id = 'oc-hubmore-styles';
+    st.textContent =
+      '#oc-hubmore-sec{background:#F5EDD8;padding:64px 5%;font-family:Inter,sans-serif;}'+
+      '#oc-hubmore-sec .wrap{max-width:1280px;margin:0 auto;}'+
+      '#oc-hubmore-sec .eb{font:600 13px Inter,sans-serif;letter-spacing:2px;color:#B8934A;text-transform:uppercase;margin-bottom:8px;display:block;}'+
+      '#oc-hubmore-sec h2{font-family:"Playfair Display",serif;font-weight:600;font-size:2rem;color:#1B3A5C;margin:0 0 12px;line-height:1.2;}'+
+      '#oc-hubmore-sec .sh{font:16px Inter,sans-serif;color:#1B3A5C;max-width:720px;margin:0 0 32px;line-height:1.5;}'+
+      '#oc-hubmore-sec .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}'+
+      '#oc-hubmore-sec .card{background:#fff;border:1px solid #C7A24B;border-radius:8px;padding:18px 20px;text-decoration:none;display:block;transition:transform 0.15s,box-shadow 0.15s;}'+
+      '#oc-hubmore-sec .card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(27,58,92,0.12);}'+
+      '#oc-hubmore-sec .name{font-family:"Playfair Display",serif;font-weight:600;font-size:1.05rem;color:#1B3A5C;margin:0 0 6px;display:block;}'+
+      '#oc-hubmore-sec .tag{font:13px Inter,sans-serif;color:#1B3A5C;opacity:0.75;margin:0 0 8px;display:block;line-height:1.4;}'+
+      '#oc-hubmore-sec .arrow{font:13px Inter,sans-serif;color:#B8934A;font-weight:600;}'+
+      '@media (max-width:768px){#oc-hubmore-sec{padding:40px 5%;}#oc-hubmore-sec h2{font-size:1.5rem;}}';
+    document.head.appendChild(st);
+  }
+
+  function build(){
+    if(document.getElementById('oc-hubmore-sec')) return;
+    injectStyles();
+    var list = personal ? PERSONAL_MORE : COMMERCIAL_MORE;
+    var label = personal ? 'Personal' : 'Commercial';
+    var sec = document.createElement('section');
+    sec.id = 'oc-hubmore-sec';
+    var html = '<div class="wrap">'+
+      '<span class="eb">More coverage</span>'+
+      '<h2>' + label + ' coverage we also review</h2>'+
+      '<p class="sh">Beyond the most common coverages above, we also write and review these ' + label.toLowerCase() + ' lines. Click any to read more.</p>'+
+      '<div class="grid">';
+    list.forEach(function(it){
+      html += '<a class="card" href="/insurance/' + it.slug + '">'+
+        '<span class="name">' + it.name + '</span>'+
+        '<span class="tag">' + it.tag + '</span>'+
+        '<span class="arrow">Read more &rarr;</span>'+
+        '</a>';
+    });
+    html += '</div></div>';
+    sec.innerHTML = html;
+
+    // Insert before footer (use first footer-like element)
+    var footer = document.querySelector('[id*="footer"], footer');
+    if(footer && footer.parentNode){
+      footer.parentNode.insertBefore(sec, footer);
+    } else {
+      document.body.appendChild(sec);
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', build);
+  } else {
+    build();
+  }
+  setTimeout(build, 1000);
 })();
 
 // === ocautohomequote.js (v1.1.0 — wrap Vertafore CRQ in REAL Olive Cover nav + footer) ===
