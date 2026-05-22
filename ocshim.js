@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.5.2
+// ocshim.js -- Consolidated Olive Cover site shims v1.6.0
+// v1.6.0 (2026-05-21): inject the rating disclaimer near the ratings section on
+//   all 41 carrier pages (legal/compliance requirement per CLAUDE.md). Was missing
+//   from every carrier page; now rendered client-side until Designer template
+//   edit adds it to static HTML too.
 // v1.5.2 (2026-05-21): fixHeroPhotos was overwriting fixCrvHeroBg's softened
 //   gradient with the old 0.82-uniform one. Updated fixHeroPhotos to use the
 //   same softened 105deg gradient so /coverage-review (and any other page where
@@ -158,6 +162,31 @@
         img.src = s;
       }
     });
+    // Carrier pages: inject the rating disclaimer near the ratings section
+    // (legal/compliance requirement per CLAUDE.md — applies to all 41 carrier pages).
+    if(path.indexOf('/carriers/') === 0 && path.length > 10){
+      if(!document.getElementById('oc-carrier-rating-disclaimer')){
+        // Find the ratings section: H2 with "How This Carrier Rates" / "Ratings" / ratings card
+        var ratingsAnchor = document.querySelector('#carrier-ratings-heading, [id*="carrier-ratings"], h2');
+        if(ratingsAnchor){
+          var node = ratingsAnchor;
+          // Walk forward to find the end of the ratings block (e.g., closest grid container)
+          var ratingsContainer = ratingsAnchor.closest('section') || ratingsAnchor.parentElement;
+          if(ratingsContainer){
+            var disclaimer = document.createElement('p');
+            disclaimer.id = 'oc-carrier-rating-disclaimer';
+            disclaimer.style.cssText = 'font-family:Inter,sans-serif;font-size:0.75rem;color:#6B7280;font-style:italic;line-height:1.45;margin:16px auto 0;padding:12px 20px;max-width:980px;text-align:center;border-top:1px solid rgba(184,147,74,0.18);';
+            disclaimer.textContent = 'Ratings are based on publicly available industry data and are provided for informational purposes only. They do not constitute an endorsement of any carrier.';
+            // Append after the ratings container
+            if(ratingsContainer.nextSibling){
+              ratingsContainer.parentNode.insertBefore(disclaimer, ratingsContainer.nextSibling);
+            } else {
+              ratingsContainer.parentNode.appendChild(disclaimer);
+            }
+          }
+        }
+      }
+    }
     // Insurance template: soften the navy hero so the photo shows through.
     // Section has solid #1B3A5C bg covering the absolutely-positioned IMG behind it.
     // Replace with a gradient overlay that lets the photo show.
