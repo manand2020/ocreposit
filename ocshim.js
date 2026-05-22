@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.8.0
+// ocshim.js -- Consolidated Olive Cover site shims v1.9.0
+// v1.9.0 (2026-05-22): Position C template text replacement. Insurance template
+//   carrier panel "Carriers We Use for This Coverage" + intro paragraph
+//   contained "carriers we work with hold an A rating and are appointed"
+//   leaking placement jargon. Carrier template row "Do We Work With Them?"
+//   similarly. Runtime DOM swaps both to Position C neutral review tone.
+//   These are belt-and-suspenders; canonical fix is Designer canvas (queued).
 // v1.8.0 (2026-05-22): Position C JSON-LD alignment. /carriers/{slug} pages
 //   now emit Review schema (itemReviewed: InsuranceCompany, author: Olive Cover)
 //   instead of InsuranceAgency (which incorrectly framed Olive Cover as the
@@ -115,6 +121,52 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ocpositioncfixes.js (v1.0.0 — Position C template tone replacement) ===
+(function(){
+  // Insurance template + Carrier template have static heading/text that leak
+  // placement jargon ("we work with", "appointed", "Carriers We Use", "Do We
+  // Work With Them?"). Position C requires neutral review tone. Runtime swaps
+  // are belt-and-suspenders; canonical fix is Designer canvas (queued).
+  var REPLS = [
+    // Insurance template carrier panel
+    ['Carriers We Use for This Coverage', 'Carriers in Our Review Set'],
+    ['carriers we work with hold an A or better financial strength rating and are appointed in the state',
+     'carriers in our review set hold an A or better financial strength rating in the state'],
+    ['all carriers we work with hold',
+     'all carriers in our review set hold'],
+    ['All carriers we work with hold',
+     'All carriers in our review set hold'],
+    // Carrier template placement-status row label
+    ['Do We Work With Them?', 'Active Comparison Set'],
+    // Generic safety net for any residual
+    [' we work with ', ' we review '],
+  ];
+  function walk(node){
+    if(!node) return;
+    if(node.nodeType===3){ // text node
+      var t=node.nodeValue;
+      var changed=false;
+      for(var i=0;i<REPLS.length;i++){
+        if(t.indexOf(REPLS[i][0])>=0){
+          t=t.split(REPLS[i][0]).join(REPLS[i][1]);
+          changed=true;
+        }
+      }
+      if(changed) node.nodeValue=t;
+      return;
+    }
+    if(node.nodeType!==1) return;
+    var tag=node.tagName;
+    if(tag==='SCRIPT'||tag==='STYLE'||tag==='NOSCRIPT') return;
+    var k=node.childNodes;
+    for(var i=0;i<k.length;i++) walk(k[i]);
+  }
+  function run(){walk(document.body);}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+  setTimeout(run,800);
+  setTimeout(run,2000);
 })();
 
 // === ocfeedback.js ===
