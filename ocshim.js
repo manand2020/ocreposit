@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.1
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.2
+// v1.10.2 (2026-05-22): /auto-home-quote adds state-aware notice for non-GA
+//   visitors. Reads localStorage.oc_state — if not GA, prepend a clear notice
+//   above the iframe explaining Olive Cover is licensed in Georgia today.
+//   Visitor can still use the form but expectations are set correctly.
 // v1.10.1 (2026-05-22): /auto-home-quote now fetches real #oc-nav and
 //   #oc-footer-new from homepage and clones them in, so the page visually
 //   matches the rest of the site (instead of inline simplified nav/footer).
@@ -213,12 +217,26 @@
       '#oc-ahq-main .sh{font:18px Inter,sans-serif;color:#1B3A5C;max-width:720px;margin:0 0 28px;line-height:1.5;}'+
       '#oc-ahq-main .bail{background:#fff;border-left:3px solid #B8934A;padding:14px 18px;border-radius:4px;margin:0 0 28px;max-width:720px;font:14px Inter,sans-serif;color:#1B3A5C;line-height:1.5;}'+
       '#oc-ahq-main .bail a{color:#B8934A;font-weight:600;text-decoration:underline;text-underline-offset:3px;}'+
+      '#oc-ahq-main .state-notice{background:#FFF7E6;border-left:3px solid #C7A24B;padding:14px 18px;border-radius:4px;margin:0 0 16px;max-width:720px;font:14px Inter,sans-serif;color:#1B3A5C;line-height:1.5;}'+
+      '#oc-ahq-main .state-notice a{color:#B8934A;font-weight:600;text-decoration:underline;text-underline-offset:3px;}'+
       '#oc-ahq-main .ifr{width:100%;min-height:900px;border:1px solid #C7A24B;border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.08);display:block;}'+
       '#oc-ahq-main .ct{font:14px Inter,sans-serif;color:#1B3A5C;margin-top:24px;text-align:center;}'+
       '#oc-ahq-main .ct a{color:#B8934A;font-weight:600;text-decoration:none;}'+
       '#oc-ahq-main .ds{font:12px Inter,sans-serif;color:#666;margin-top:16px;text-align:center;font-style:italic;max-width:600px;margin-left:auto;margin-right:auto;}'+
       '@media (max-width:768px){#oc-ahq-main h1{font-size:1.75rem;}#oc-ahq-main{padding:40px 5% 64px;}#oc-ahq-main .ifr{min-height:700px;}}';
     document.head.appendChild(st);
+  }
+
+  function getState(){
+    try { return (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch(e) { return ''; }
+  }
+
+  function stateNoticeHTML(){
+    var s = getState();
+    if(!s || s === 'GA') return '';
+    var stateNames = {AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CO:'Colorado',CT:'Connecticut',DE:'Delaware',DC:'DC',FL:'Florida',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'};
+    var stateName = stateNames[s] || s;
+    return '<div class="state-notice"><strong>Olive Cover is licensed in Georgia today.</strong> If you are in ' + stateName + ', the quote engine below may still show results, but Olive Cover cannot bind coverage outside Georgia. For ' + stateName + ' guidance, start with the <a href="/coverage-review">Free Coverage Review</a>.</div>';
   }
 
   function buildMainSection(){
@@ -229,6 +247,7 @@
       '<span class="eb">Detailed quotes</span>'+
       '<h1>Detailed home + auto quotes</h1>'+
       '<p class="sh">Compare home and auto rates from A-rated carriers in Georgia. Fill out the form below and we will email comparison results, plus a follow-up call with a licensed agent.</p>'+
+      stateNoticeHTML()+
       '<div class="bail"><strong>Looking for commercial insurance, umbrella, jewelry, life, or other coverage?</strong> Start with the <a href="/coverage-review">Free Coverage Review</a> for those.</div>'+
       '<iframe class="ifr" src="https://secure.consumerratequotes.com/ConsumerV2?id=65159" loading="lazy" title="Olive Cover Quote Engine - Personal Home and Auto"></iframe>'+
       '<p class="ct">Need help? Call <a href="tel:+16788881011">(678) 888-1011</a> or email <a href="mailto:askolive@olivecover.com">askolive@olivecover.com</a></p>'+
