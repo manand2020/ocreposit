@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.0
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.1
+// v1.10.1 (2026-05-22): /auto-home-quote now fetches real #oc-nav and
+//   #oc-footer-new from homepage and clones them in, so the page visually
+//   matches the rest of the site (instead of inline simplified nav/footer).
 // v1.10.0 (2026-05-22): /auto-home-quote page wraps Vertafore CRQ iframe in
 //   Olive Cover branding. Page exists in Webflow as empty page (HTTP 200);
 //   shim injects nav + hero + bail-out callout + iframe + below-fold contact
@@ -194,7 +197,7 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
 })();
 
-// === ocautohomequote.js (v1.0.0 — wrap Vertafore CRQ in Olive Cover branding on /auto-home-quote) ===
+// === ocautohomequote.js (v1.1.0 — wrap Vertafore CRQ in REAL Olive Cover nav + footer) ===
 (function(){
   if(location.pathname !== '/auto-home-quote') return;
 
@@ -203,10 +206,6 @@
     var st = document.createElement('style');
     st.id = 'oc-ahq-styles';
     st.textContent =
-      '#oc-ahq-nav{background:#1B3A5C;padding:16px 5%;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:9000;}'+
-      '#oc-ahq-nav .lg{font-family:"Playfair Display",serif;font-size:24px;font-weight:600;color:#F5EDD8;text-decoration:none;letter-spacing:0.5px;}'+
-      '#oc-ahq-nav .lk{color:#F5EDD8;text-decoration:none;font:14px Inter,sans-serif;margin-left:24px;}'+
-      '#oc-ahq-nav .lk:hover{color:#C7A24B;}'+
       '#oc-ahq-main{background:#F5EDD8;padding:56px 5% 96px;min-height:calc(100vh - 200px);font-family:Inter,sans-serif;}'+
       '#oc-ahq-main .wrap{max-width:1280px;margin:0 auto;}'+
       '#oc-ahq-main .eb{font:600 13px Inter,sans-serif;letter-spacing:2px;color:#B8934A;text-transform:uppercase;margin-bottom:8px;display:block;}'+
@@ -218,22 +217,12 @@
       '#oc-ahq-main .ct{font:14px Inter,sans-serif;color:#1B3A5C;margin-top:24px;text-align:center;}'+
       '#oc-ahq-main .ct a{color:#B8934A;font-weight:600;text-decoration:none;}'+
       '#oc-ahq-main .ds{font:12px Inter,sans-serif;color:#666;margin-top:16px;text-align:center;font-style:italic;max-width:600px;margin-left:auto;margin-right:auto;}'+
-      '#oc-ahq-footer{background:#1B3A5C;color:#F5EDD8;padding:32px 5%;font:14px Inter,sans-serif;}'+
-      '#oc-ahq-footer .row{max-width:1280px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center;}'+
-      '#oc-ahq-footer a{color:#C7A24B;text-decoration:none;margin-left:18px;}'+
-      '#oc-ahq-footer a:hover{color:#F5EDD8;}'+
-      '@media (max-width:768px){#oc-ahq-main h1{font-size:1.75rem;}#oc-ahq-main{padding:40px 5% 64px;}#oc-ahq-nav .lk{margin-left:14px;font-size:12px;}#oc-ahq-main .ifr{min-height:700px;}}';
+      '@media (max-width:768px){#oc-ahq-main h1{font-size:1.75rem;}#oc-ahq-main{padding:40px 5% 64px;}#oc-ahq-main .ifr{min-height:700px;}}';
     document.head.appendChild(st);
   }
 
-  function buildPage(){
-    if(document.getElementById('oc-ahq-nav')) return;
-    injectStyles();
-    var nav = document.createElement('nav');
-    nav.id = 'oc-ahq-nav';
-    nav.innerHTML = '<a href="/" class="lg">Olive Cover</a><div><a href="/coverage-review" class="lk">Free Coverage Review</a><a href="tel:+16788881011" class="lk">(678) 888-1011</a></div>';
-    document.body.insertBefore(nav, document.body.firstChild);
-
+  function buildMainSection(){
+    if(document.getElementById('oc-ahq-main')) return null;
     var main = document.createElement('main');
     main.id = 'oc-ahq-main';
     main.innerHTML = '<div class="wrap">'+
@@ -245,15 +234,47 @@
       '<p class="ct">Need help? Call <a href="tel:+16788881011">(678) 888-1011</a> or email <a href="mailto:askolive@olivecover.com">askolive@olivecover.com</a></p>'+
       '<p class="ds">Quote engine powered by Vertafore. Our secure quote engine collects your details and emails comparison results.</p>'+
       '</div>';
-    document.body.appendChild(main);
+    return main;
+  }
 
-    var footer = document.createElement('footer');
-    footer.id = 'oc-ahq-footer';
-    footer.innerHTML = '<div class="row"><div>&copy; Olive Cover. Olive Insurance Services, LLC. Agency NPN 22116940. Licensed in Georgia.</div>'+
-      '<div><a href="/about">About</a><a href="/where-we-do-business">States</a><a href="/privacy-policy">Privacy</a></div></div>';
-    document.body.appendChild(footer);
+  function cloneNavAndFooter(){
+    // Fetch homepage HTML, extract real OC nav + footer, clone into /auto-home-quote.
+    // This makes the page visually consistent with the rest of the site.
+    fetch('/', {credentials:'same-origin'}).then(function(r){return r.text();}).then(function(html){
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(html, 'text/html');
+      var navEl = doc.getElementById('oc-nav');
+      var footerEl = doc.getElementById('oc-footer-new') || doc.querySelector('[id*="footer"]');
+      var main = buildMainSection();
+      if(navEl){
+        document.body.insertBefore(navEl.cloneNode(true), document.body.firstChild);
+      }
+      if(main){
+        // Insert main after nav (or at top if no nav)
+        var nav = document.getElementById('oc-nav');
+        if(nav && nav.parentNode){
+          nav.parentNode.insertBefore(main, nav.nextSibling);
+        } else {
+          document.body.appendChild(main);
+        }
+      }
+      if(footerEl){
+        document.body.appendChild(footerEl.cloneNode(true));
+      }
+      document.title = 'Detailed Auto + Home Quote | Olive Cover';
+    }).catch(function(err){
+      // Fallback: build minimal page if fetch fails
+      console.error('[ocautohomequote] fetch failed:', err);
+      var main = buildMainSection();
+      if(main) document.body.appendChild(main);
+      document.title = 'Detailed Auto + Home Quote | Olive Cover';
+    });
+  }
 
-    document.title = 'Detailed Auto + Home Quote | Olive Cover';
+  function buildPage(){
+    if(document.getElementById('oc-ahq-main')) return;
+    injectStyles();
+    cloneNavAndFooter();
   }
 
   if(document.readyState === 'loading'){
