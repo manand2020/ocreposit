@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.9.6
+// ocshim.js -- Consolidated Olive Cover site shims v1.9.7
+// v1.9.7 (2026-05-22): Mobile-keyboard input types. Email/phone/ZIP fields
+//   were type="text" — wrong mobile keyboard. Phone gets numpad, email gets
+//   @-key, ZIP gets numpad. Also adds autocomplete attrs. Conversion-path
+//   mobile UX critical.
 // v1.9.6 (2026-05-22): Branded form success/fail messages. All 3 forms
 //   (homepage, CRV, contact) had Webflow's generic "Thank you!" + "Oops!"
 //   defaults. Replaced with form-specific helpful text that tells users
@@ -171,6 +175,39 @@
     if(s){inject(s);}
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ocinputtypes.js (v1.0.0 — mobile-keyboard input types + autocomplete) ===
+(function(){
+  var FIELDS = [
+    // Coverage Review
+    {id:'oc-crv-em', type:'email', autocomplete:'email', inputmode:'email'},
+    {id:'oc-crv-ph', type:'tel', autocomplete:'tel', inputmode:'tel'},
+    {id:'oc-crv-zp', type:'text', autocomplete:'postal-code', inputmode:'numeric', pattern:'[0-9]{5}'},
+    {id:'oc-crv-fn', type:'text', autocomplete:'given-name'},
+    {id:'oc-crv-ln', type:'text', autocomplete:'family-name'},
+    {id:'oc-crv-year-built', type:'text', autocomplete:'off', inputmode:'numeric', pattern:'[0-9]{4}'},
+    // Homepage Ask Olive form (phone is injected by shim as oc-lead-phone)
+    {id:'oc-lead-phone', type:'tel', autocomplete:'tel', inputmode:'tel'},
+    {id:'oc-lead-contact', type:'email', autocomplete:'email', inputmode:'email'},
+    // Widget form
+    {id:'oc-wgt-contact', type:'email', autocomplete:'email', inputmode:'email'},
+    {id:'oc-wgt-contact-val', type:'tel', autocomplete:'tel', inputmode:'tel'},
+  ];
+  function run(){
+    FIELDS.forEach(function(f){
+      var el = document.getElementById(f.id);
+      if(!el) return;
+      if(f.type && el.type !== f.type) el.type = f.type;
+      if(f.autocomplete) el.setAttribute('autocomplete', f.autocomplete);
+      if(f.inputmode) el.setAttribute('inputmode', f.inputmode);
+      if(f.pattern) el.setAttribute('pattern', f.pattern);
+    });
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+  setTimeout(run, 500);
+  setTimeout(run, 1500);
+  setTimeout(run, 3000);
 })();
 
 // === ocformmessages.js (v1.0.0 — branded form success/fail messages) ===
