@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.2
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.3
+// v1.10.3 (2026-05-22): Two more Position C runtime text-swaps:
+//   - /personal-carriers AIG cell: "best-in-class claims" → "specialized
+//     claims handling for high-value homes" (hyperbole cleanup)
+//   - /about brand badge: "Licensed & Appointed Agency" → "Licensed
+//     Independent Agency" (Position C jargon cleanup)
 // v1.10.2 (2026-05-22): /auto-home-quote adds state-aware notice for non-GA
 //   visitors. Reads localStorage.oc_state — if not GA, prepend a clear notice
 //   above the iframe explaining Olive Cover is licensed in Georgia today.
@@ -495,6 +500,11 @@
      'All carriers in our review set hold'],
     // Carrier template placement-status row label
     ['Do We Work With Them?', 'Active Comparison Set'],
+    // /personal-carriers AIG cell — hyperbolic claim cleanup
+    ['best-in-class claims', 'specialized claims handling for high-value homes'],
+    // /about brand badge — Position C jargon cleanup
+    ['Licensed & Appointed Agency', 'Licensed Independent Agency'],
+    ['Licensed &amp; Appointed Agency', 'Licensed Independent Agency'],
     // Generic safety net for any residual
     [' we work with ', ' we review '],
   ];
