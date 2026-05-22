@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.4
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.5
+// v1.10.5 (2026-05-22): /carriers hub + /commercial-carriers static text
+//   runtime swaps. Headlines and intro paragraphs reframed to Position C
+//   neutral review tone (was: "We Work With..." / "We are appointed with..."
+//   → "Independent Carrier Reviews..." / "We review and compare...").
+//   Closes manual queue items 1 + 2.
 // v1.10.4 (2026-05-22): Fix /about brand badge swap — actual text is just
 //   "Licensed & Appointed" (no "Agency" suffix). Now swapping to
 //   "Licensed in Georgia" which is factual + avoids redundancy with the
@@ -510,6 +515,13 @@
     // (without "Agency"; "Agency NPN 22116940" is shown on the line below as a separate sub-label).
     ['Licensed & Appointed', 'Licensed in Georgia'],
     ['Licensed &amp; Appointed', 'Licensed in Georgia'],
+    // /carriers hub static text — Position C neutral review tone
+    ['We Work With the Carriers That Are Right for You', 'Independent Carrier Reviews to Help You Choose'],
+    ['How We Use Our Carrier Relationships', 'How Our Carrier Reviews Work'],
+    ['Having appointments is one thing. Using them well is another.', 'Independent reviews are only useful when they connect to real placement.'],
+    ['As an independent agency, we are not tied to one insurance company. We hold appointments with a range of personal and commercial carriers and place your coverage with the one that fits your situation best.', 'As an independent agency, we review and compare a range of personal and commercial carriers and place your coverage with the one that fits your situation best.'],
+    // /commercial-carriers static text — Position C neutral review tone
+    ['We are appointed with commercial carriers across business package coverage,', 'We review and compare commercial carriers across business package coverage,'],
     // Generic safety net for any residual
     [' we work with ', ' we review '],
   ];
