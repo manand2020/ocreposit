@@ -1,9 +1,13 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.3
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.4
+// v1.10.4 (2026-05-22): Fix /about brand badge swap — actual text is just
+//   "Licensed & Appointed" (no "Agency" suffix). Now swapping to
+//   "Licensed in Georgia" which is factual + avoids redundancy with the
+//   "Independent Agent" sibling badge.
 // v1.10.3 (2026-05-22): Two more Position C runtime text-swaps:
 //   - /personal-carriers AIG cell: "best-in-class claims" → "specialized
 //     claims handling for high-value homes" (hyperbole cleanup)
 //   - /about brand badge: "Licensed & Appointed Agency" → "Licensed
-//     Independent Agency" (Position C jargon cleanup)
+//     Independent Agency" (Position C jargon cleanup) — was wrong text, fixed in v1.10.4
 // v1.10.2 (2026-05-22): /auto-home-quote adds state-aware notice for non-GA
 //   visitors. Reads localStorage.oc_state — if not GA, prepend a clear notice
 //   above the iframe explaining Olive Cover is licensed in Georgia today.
@@ -502,9 +506,10 @@
     ['Do We Work With Them?', 'Active Comparison Set'],
     // /personal-carriers AIG cell — hyperbolic claim cleanup
     ['best-in-class claims', 'specialized claims handling for high-value homes'],
-    // /about brand badge — Position C jargon cleanup
-    ['Licensed & Appointed Agency', 'Licensed Independent Agency'],
-    ['Licensed &amp; Appointed Agency', 'Licensed Independent Agency'],
+    // /about brand badge — Position C jargon cleanup. Actual text is just "Licensed & Appointed"
+    // (without "Agency"; "Agency NPN 22116940" is shown on the line below as a separate sub-label).
+    ['Licensed & Appointed', 'Licensed in Georgia'],
+    ['Licensed &amp; Appointed', 'Licensed in Georgia'],
     // Generic safety net for any residual
     [' we work with ', ' we review '],
   ];
