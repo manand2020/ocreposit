@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.13
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.14
+// v1.10.14 (2026-05-23): ocbreadcrumb v1.0.1 polish -- use document.title
+//   (split on '|') as the final crumb label instead of H1.textContent, which
+//   was including hero taglines. Cleaner labels like "Homeowners Insurance"
+//   instead of "Homeowners insurance for the home you actually live in."
 // v1.10.13 (2026-05-23): ocbreadcrumb module v1.0.0 -- extracts .oc-breadcrumb
 //   DOM items, appends current H1 as final crumb, emits BreadcrumbList JSON-LD.
 //   AEO win for Google search breadcrumb display + AI Overviews context.
@@ -852,7 +856,7 @@
 })();
 
 
-// === ocbreadcrumb.js (v1.0.0 -- emit BreadcrumbList JSON-LD from .oc-breadcrumb DOM) ===
+// === ocbreadcrumb.js (v1.0.1 -- emit BreadcrumbList JSON-LD; use document.title for final crumb) ===
 (function(){
   function build(){
     if(document.getElementById('oc-breadcrumb-schema')) return;
@@ -872,13 +876,16 @@
       items.push({ name: text, href: href });
     });
     if(items.length === 0) return;
-    // Append current H1 as final crumb if not already present
-    var h1 = document.querySelector('h1');
-    if(h1){
-      var h1Text = (h1.textContent||'').trim();
-      if(h1Text && !items.some(function(it){ return it.name === h1Text; })){
-        items.push({ name: h1Text, href: location.pathname });
-      }
+    // Append current page as final crumb -- prefer document.title (split on '|') 
+    // because H1 may include tagline/subtitle. Fall back to H1 text if title is empty.
+    var pageTitle = (document.title || '').split('|')[0].split(' - ')[0].trim();
+    if(!pageTitle){
+      var h1 = document.querySelector('h1');
+      if(h1) pageTitle = (h1.textContent||'').split('
+')[0].trim().substring(0, 80);
+    }
+    if(pageTitle && !items.some(function(it){ return it.name === pageTitle; })){
+      items.push({ name: pageTitle, href: location.pathname });
     }
     var origin = location.protocol + '//' + location.host;
     var schema = {
