@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.12
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.13
+// v1.10.13 (2026-05-23): ocbreadcrumb module v1.0.0 -- extracts .oc-breadcrumb
+//   DOM items, appends current H1 as final crumb, emits BreadcrumbList JSON-LD.
+//   AEO win for Google search breadcrumb display + AI Overviews context.
 // v1.10.12 (2026-05-23): ocfaqschema module v1.0.0 -- detects DOM FAQs
 //   (.oc-faq-q + .oc-faq-a or .oc-faq-short-q/a pairs), extracts Q+A text,
 //   emits FAQPage JSON-LD at runtime. Big AEO win for Google AI Overviews
@@ -846,6 +849,60 @@
   }
   setTimeout(build, 2000);
   setTimeout(build, 4000);
+})();
+
+
+// === ocbreadcrumb.js (v1.0.0 -- emit BreadcrumbList JSON-LD from .oc-breadcrumb DOM) ===
+(function(){
+  function build(){
+    if(document.getElementById('oc-breadcrumb-schema')) return;
+    // Skip if BreadcrumbList already present
+    var existing = document.querySelectorAll('script[type="application/ld+json"]');
+    for(var i=0;i<existing.length;i++){
+      if(/"@type"\s*:\s*"BreadcrumbList"/.test(existing[i].textContent||'')) return;
+    }
+    var nav = document.querySelector('.oc-breadcrumb');
+    if(!nav) return;
+    var items = [];
+    nav.querySelectorAll('.oc-breadcrumb-item').forEach(function(li){
+      var a = li.querySelector('a');
+      var text = (li.textContent||'').trim();
+      if(!text) return;
+      var href = a ? a.getAttribute('href') : null;
+      items.push({ name: text, href: href });
+    });
+    if(items.length === 0) return;
+    // Append current H1 as final crumb if not already present
+    var h1 = document.querySelector('h1');
+    if(h1){
+      var h1Text = (h1.textContent||'').trim();
+      if(h1Text && !items.some(function(it){ return it.name === h1Text; })){
+        items.push({ name: h1Text, href: location.pathname });
+      }
+    }
+    var origin = location.protocol + '//' + location.host;
+    var schema = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': items.map(function(it, i){
+        var url = it.href ? (it.href.indexOf('http')===0 ? it.href : origin + it.href) : null;
+        var entry = { '@type': 'ListItem', position: i+1, name: it.name };
+        if(url) entry.item = url;
+        return entry;
+      })
+    };
+    var s = document.createElement('script');
+    s.id = 'oc-breadcrumb-schema';
+    s.type = 'application/ld+json';
+    s.textContent = JSON.stringify(schema);
+    document.head.appendChild(s);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(build, 400); });
+  } else {
+    setTimeout(build, 400);
+  }
+  setTimeout(build, 1800);
 })();
 
 // === ocwgthealer.js ===
