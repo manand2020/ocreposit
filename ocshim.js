@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.11
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.12
+// v1.10.12 (2026-05-23): ocfaqschema module v1.0.0 -- detects DOM FAQs
+//   (.oc-faq-q + .oc-faq-a or .oc-faq-short-q/a pairs), extracts Q+A text,
+//   emits FAQPage JSON-LD at runtime. Big AEO win for Google AI Overviews
+//   on Insurance pages (8-16 FAQs each), Carrier pages, and any other
+//   surface with the FAQ markup. Skips if FAQPage schema already present.
 // v1.10.11 (2026-05-22): occarrierurls bumped to v1.0.1 -- use CMS carrier-name
 //   as brand label source instead of parsing H1. Fixes 3 carriers where H1 was
 //   a long descriptor (AEGIS Deductible Buy-Back..., Forge Small Business...,
@@ -779,6 +784,68 @@
   setTimeout(fix, 3000);
   window.addEventListener('resize', fix);
   window.addEventListener('orientationchange', fix);
+})();
+
+
+// === ocfaqschema.js (v1.0.0 -- emit FAQPage JSON-LD from DOM FAQs) ===
+(function(){
+  function build(){
+    if(document.getElementById('oc-faq-schema')) return;
+    // Skip if any existing FAQPage JSON-LD is already on the page
+    var existing = document.querySelectorAll('script[type="application/ld+json"]');
+    for(var i=0;i<existing.length;i++){
+      var t = (existing[i].textContent||'');
+      if(/"@type"\s*:\s*"FAQPage"/.test(t)) return;
+    }
+    // Collect Q/A pairs from common FAQ patterns
+    var pairs = [];
+    var qs = document.querySelectorAll('.oc-faq-q, .oc-faq-short-q, .oc-ifaq-q, .oc-fqc-q');
+    qs.forEach(function(q){
+      var qText = (q.textContent||'').trim();
+      if(qText.length < 8 || qText.length > 200) return;
+      var aText = null;
+      var p = q.parentElement;
+      if(p){
+        var aEl = p.querySelector('.oc-faq-a, .oc-faq-short-a, .oc-ifaq-a, .oc-fqc-a');
+        if(aEl) aText = (aEl.textContent||'').trim();
+      }
+      if(!aText){
+        var next = q.nextElementSibling;
+        while(next && !aText){
+          var c = (next.className||'').toString();
+          if(/oc-(faq|ifaq|fqc).*-(a|short-a)/i.test(c)) aText = (next.textContent||'').trim();
+          next = next.nextElementSibling;
+        }
+      }
+      if(aText && aText.length >= 20 && aText.length <= 2000){
+        pairs.push({ q: qText, a: aText });
+      }
+    });
+    if(pairs.length === 0) return;
+    var schema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': pairs.map(function(p){
+        return {
+          '@type': 'Question',
+          'name': p.q,
+          'acceptedAnswer': { '@type': 'Answer', 'text': p.a }
+        };
+      })
+    };
+    var s = document.createElement('script');
+    s.id = 'oc-faq-schema';
+    s.type = 'application/ld+json';
+    s.textContent = JSON.stringify(schema);
+    document.head.appendChild(s);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(build, 500); });
+  } else {
+    setTimeout(build, 500);
+  }
+  setTimeout(build, 2000);
+  setTimeout(build, 4000);
 })();
 
 // === ocwgthealer.js ===
