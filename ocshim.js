@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.15
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.16
+// v1.10.16 (2026-05-23): ocstep4reorder module v1.0.0 -- /coverage-review Step 4
+//   reorder: upload (decFile + polFile) and "Anything we should know?" textarea
+//   move to TOP of the panel (above personal/commercial detail sections). The
+//   "Current coverage (optional)" sub-section stays in place. Pure DOM reorder;
+//   form field names + Firestore payload unchanged.
 // v1.10.15 (2026-05-23): ocbreadcrumb v1.0.2 hotfix -- v1.10.14 had a literal
 //   newline inside a JS string literal which broke the entire file parse and
 //   caused FAQPage + Breadcrumb to silently not emit. This fix removes the
@@ -908,6 +913,54 @@
     setTimeout(build, 400);
   }
   setTimeout(build, 1800);
+})();
+
+
+// === ocstep4reorder.js (v1.0.0 -- /coverage-review Step 4: upload + textarea on top) ===
+(function(){
+  if(location.pathname.replace(/\/$/,'') !== '/coverage-review') return;
+  function run(){
+    var p4 = document.getElementById('oc-crv-p4');
+    if(!p4) return;
+    if(p4.getAttribute('data-oc-step4-reordered') === '1') return;
+    var shared = document.getElementById('oc-crv-p4-shared');
+    if(!shared) return;
+    // Find boundary: H4 with text "Current coverage"
+    var boundary = null;
+    var kids = Array.from(shared.children);
+    for(var i = 0; i < kids.length; i++){
+      if(/h[1-6]/i.test(kids[i].tagName) && /current\s+coverage/i.test(kids[i].textContent || '')){
+        boundary = i; break;
+      }
+    }
+    if(boundary === null || boundary === 0) return;
+    // Children 0..boundary-1 are the upload section + textarea + descriptions
+    var toMove = kids.slice(0, boundary);
+    if(toMove.length === 0) return;
+    // Create new wrapper at top of p4 (after panel H3 title)
+    var intro = document.createElement('div');
+    intro.id = 'oc-crv-p4-intro';
+    intro.setAttribute('data-oc-step4-intro', '1');
+    // Move the nodes
+    toMove.forEach(function(n){ intro.appendChild(n); });
+    // Insert after panel title (first H heading direct child of p4)
+    var title = null;
+    Array.from(p4.children).forEach(function(c){
+      if(!title && /h[1-6]/i.test(c.tagName)) title = c;
+    });
+    if(title && title.nextSibling){
+      p4.insertBefore(intro, title.nextSibling);
+    } else {
+      p4.insertBefore(intro, p4.firstChild);
+    }
+    p4.setAttribute('data-oc-step4-reordered', '1');
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(run, 300); });
+  } else {
+    setTimeout(run, 300);
+  }
+  setTimeout(run, 1500);
 })();
 
 // === ocwgthealer.js ===
