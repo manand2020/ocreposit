@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.16
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.17
+// v1.10.17 (2026-05-23): ocstep4reorder v1.0.1 -- wrap dec + policy upload
+//   inputs in a flex row so they sit side-by-side on desktop. Auto-stack on
+//   mobile via flex-wrap + min-width:240px on each child.
 // v1.10.16 (2026-05-23): ocstep4reorder module v1.0.0 -- /coverage-review Step 4
 //   reorder: upload (decFile + polFile) and "Anything we should know?" textarea
 //   move to TOP of the panel (above personal/commercial detail sections). The
@@ -916,7 +919,7 @@
 })();
 
 
-// === ocstep4reorder.js (v1.0.0 -- /coverage-review Step 4: upload + textarea on top) ===
+// === ocstep4reorder.js (v1.0.1 -- upload + textarea on top, dec/policy side-by-side) ===
 (function(){
   if(location.pathname.replace(/\/$/,'') !== '/coverage-review') return;
   function run(){
@@ -954,6 +957,21 @@
       p4.insertBefore(intro, p4.firstChild);
     }
     p4.setAttribute('data-oc-step4-reordered', '1');
+    // v1.0.1: wrap dec + policy upload areas in a flex row for side-by-side
+    var dec = document.getElementById('oc-crv-dec-area');
+    var pol = document.getElementById('oc-crv-pol-area');
+    if(dec && pol && dec.parentNode === pol.parentNode && !document.getElementById('oc-crv-upload-row')){
+      var row = document.createElement('div');
+      row.id = 'oc-crv-upload-row';
+      row.style.cssText = 'display:flex;flex-wrap:wrap;gap:16px;margin:0 0 16px 0;';
+      dec.parentNode.insertBefore(row, dec);
+      [dec, pol].forEach(function(el){
+        el.style.setProperty('flex','1 1 240px','important');
+        el.style.setProperty('min-width','0','important');
+        el.style.setProperty('margin','0','important');
+        row.appendChild(el);
+      });
+    }
   }
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', function(){ setTimeout(run, 300); });
