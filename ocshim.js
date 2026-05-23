@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.14
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.15
+// v1.10.15 (2026-05-23): ocbreadcrumb v1.0.2 hotfix -- v1.10.14 had a literal
+//   newline inside a JS string literal which broke the entire file parse and
+//   caused FAQPage + Breadcrumb to silently not emit. This fix removes the
+//   broken H1 fallback block (document.title is always populated anyway).
 // v1.10.14 (2026-05-23): ocbreadcrumb v1.0.1 polish -- use document.title
 //   (split on '|') as the final crumb label instead of H1.textContent, which
 //   was including hero taglines. Cleaner labels like "Homeowners Insurance"
@@ -856,7 +860,7 @@
 })();
 
 
-// === ocbreadcrumb.js (v1.0.1 -- emit BreadcrumbList JSON-LD; use document.title for final crumb) ===
+// === ocbreadcrumb.js (v1.0.2 -- hotfix: remove broken H1 fallback block) ===
 (function(){
   function build(){
     if(document.getElementById('oc-breadcrumb-schema')) return;
@@ -876,14 +880,8 @@
       items.push({ name: text, href: href });
     });
     if(items.length === 0) return;
-    // Append current page as final crumb -- prefer document.title (split on '|') 
-    // because H1 may include tagline/subtitle. Fall back to H1 text if title is empty.
+    // Append current page as final crumb -- use document.title (split on '|') 
     var pageTitle = (document.title || '').split('|')[0].split(' - ')[0].trim();
-    if(!pageTitle){
-      var h1 = document.querySelector('h1');
-      if(h1) pageTitle = (h1.textContent||'').split('
-')[0].trim().substring(0, 80);
-    }
     if(pageTitle && !items.some(function(it){ return it.name === pageTitle; })){
       items.push({ name: pageTitle, href: location.pathname });
     }
