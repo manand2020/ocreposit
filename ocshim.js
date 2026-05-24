@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.29
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.30
+// v1.10.30 (2026-05-24): ocbatch1024 v1.0.9 -- Insights detail hero photo background.
+//   /insights/{slug} pages have a CMS-bound <img> inside .oc-art-hero-wrap with the
+//   article's hero photo, but it renders at 0x0 by default. Promote the img URL to be
+//   the wrap's background-image, hide the img, apply navy 75-92% gradient overlay via
+//   ::before — matching /personal-insurance hero treatment. JS reads the src at runtime
+//   so each article gets its own page-specific hero photo.
 // v1.10.29 (2026-05-24): ocbatch1024 v1.0.8 -- force .oc-pi-id-inner to single column.
 //   The section below hero (".oc-pi-id-section" / "If any of these sound familiar") has
 //   .oc-pi-id-inner set as 2-col grid in Webflow, splitting H2 + subtitle + cards into
@@ -1426,7 +1432,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.8 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.9 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1682,6 +1688,45 @@ html body .oc-ci-id-inner > .oc-ci-id-divider {
   margin: 24px 0 !important;
 }
 
+/* Insights detail page hero: promote CMS-bound <img> to background-image + navy overlay.
+   The article hero (.oc-art-hero-wrap) has a CMS-bound <img> with the hero photo URL
+   but it renders at 0x0 by default. Make wrap relative + bg-image (set via JS),
+   hide the <img>, add navy gradient overlay matching /personal-insurance treatment. */
+html body .oc-art-hero-wrap {
+  position: relative !important;
+  min-height: 420px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  isolation: isolate !important;
+}
+html body .oc-art-hero-wrap > img {
+  display: none !important;
+}
+html body .oc-art-hero-wrap::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(180deg, rgba(27,58,92,0.75) 0%, rgba(27,58,92,0.92) 100%) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+html body .oc-art-hero-wrap > .oc-art-hero-left,
+html body .oc-art-hero-wrap > .oc-art-hero-right {
+  position: relative !important;
+  z-index: 1 !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+html body .oc-art-hero-wrap h1 {
+  color: #F5EDD8 !important;
+}
+html body .oc-art-hero-wrap p,
+html body .oc-art-hero-wrap [class*="eyebrow"],
+html body .oc-art-hero-wrap [class*="meta"] {
+  color: rgba(245, 237, 216, 0.92) !important;
+}
+
 /* /coverage: hide only the question-prompt eyebrow + question cards, NOT the hero section
    that contains them. v1.0.2 used section:has() which removed the whole hero — too aggressive.
    Target the specific question-related classes individually. */
@@ -1867,6 +1912,27 @@ p.oc-cov2-q,
             heroWrap.style.setProperty('background-position', 'center', 'important');
             heroWrap.style.setProperty('background-repeat', 'no-repeat', 'important');
             heroWrap.dataset.bgApplied = '1';
+          }
+        }
+      }
+    }
+
+    // (5.7) Insights detail page hero: read CMS-bound <img src> inside .oc-art-hero-wrap
+    // and apply as background-image on the wrap. <img> is rendering 0x0 by default; CSS
+    // already hides it. Setting the bg-image via JS at runtime so each article gets its
+    // own page-specific hero photo without per-page CSS rules.
+    if (location.pathname.indexOf('/insights/') === 0 && location.pathname !== '/insights') {
+      var artHero = document.querySelector('.oc-art-hero-wrap');
+      if (artHero && !artHero.dataset.bgApplied) {
+        var artImg = artHero.querySelector('img[src*="website-files.com"]');
+        if (artImg) {
+          var artUrl = artImg.getAttribute('src');
+          if (artUrl && artUrl.indexOf('olive_logo') < 0) {
+            artHero.style.setProperty('background-image', 'url("' + artUrl + '")', 'important');
+            artHero.style.setProperty('background-size', 'cover', 'important');
+            artHero.style.setProperty('background-position', 'center', 'important');
+            artHero.style.setProperty('background-repeat', 'no-repeat', 'important');
+            artHero.dataset.bgApplied = '1';
           }
         }
       }
