@@ -1548,10 +1548,10 @@ html body .oc-ci-id-card .oc-ci-id-icon {
   height: 28px !important;
 }
 
-/* Insurance pages "What's Covered" / "What's NOT Covered" card grids.
+/* Insurance pages "Whats Covered" / "Whats NOT Covered" card grids.
    .oc-grid4 holds 4 .oc-card cards in each section. Force 4-col grid with equal-height
    cards via grid-auto-rows: 1fr so visual heights match across the row even when content
-   lengths vary. Cards stay flex-column with `flex:1` content area + sticky footer. */
+   lengths vary. Cards stay flex-column with flex:1 content area + sticky footer. */
 html body .oc-grid4 {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
