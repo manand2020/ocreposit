@@ -1,4 +1,13 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.18
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.19
+// v1.10.19 (2026-05-24): ocnavcarrcomm v1.0.0 -- fix commercial column carrier
+//   nav links that wrongly pointed to personal/generic carrier slugs. Three swaps:
+//   travelers-insurance -> travelers-commercial-insurance, hartford-insurance ->
+//   hartford-commercial-insurance, nationwide-insurance -> nationwide-commercial-
+//   insurance. AIG stays generic (no aig-commercial-insurance slug exists).
+//   Runtime DOM patch: finds "Commercial Lines" label in nav panels (desktop +
+//   mobile) and updates the href on matching <a> elements within the column
+//   container. Independent of Designer canvas (canonical fix is to edit the OC
+//   Nav component link hrefs but that requires Designer access).
 // v1.10.18 (2026-05-24): ocinsfix v1.0.0 -- /insights page polish + Insurance
 //   What is Covered cards equal-height. Four targeted fixes:
 //   (1) oc-ins-featured-grid + oc-ins-all-grid: force 4-column equal cards
@@ -1265,4 +1274,45 @@
   }
   setTimeout(fix, 1500);
   setTimeout(fix, 3000);
+})();
+
+// === ocnavcarrcomm v1.0.0 (2026-05-24): fix commercial-column carrier nav links ===
+(function(){
+  if (window.__ocnavcarrcomm_init) return;
+  window.__ocnavcarrcomm_init = true;
+  var SWAPS = {
+    '/carriers/travelers-insurance': '/carriers/travelers-commercial-insurance',
+    '/carriers/hartford-insurance': '/carriers/hartford-commercial-insurance',
+    '/carriers/nationwide-insurance': '/carriers/nationwide-commercial-insurance'
+  };
+  function fix(){
+    var labels = Array.prototype.filter.call(
+      document.querySelectorAll('p, span, h3, h4, .oc-nav-panel-col-label'),
+      function(el){ return (el.textContent || '').trim() === 'Commercial Lines'; }
+    );
+    labels.forEach(function(lbl){
+      var col = lbl.parentElement;
+      for (var i = 0; i < 5 && col; i++) {
+        if (col.querySelector && col.querySelector('a[href*="/carriers/"]')) break;
+        col = col.parentElement;
+      }
+      if (!col) return;
+      col.querySelectorAll('a[href]').forEach(function(a){
+        try {
+          var u = new URL(a.href, location.origin);
+          if (SWAPS[u.pathname]) {
+            a.setAttribute('href', SWAPS[u.pathname]);
+          }
+        } catch (e) {}
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fix);
+  } else {
+    fix();
+  }
+  setTimeout(fix, 800);
+  setTimeout(fix, 2000);
+  setTimeout(fix, 4000);
 })();
