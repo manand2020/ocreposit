@@ -1,4 +1,11 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.37
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.38
+// v1.10.38 (2026-05-24): ocbatch1024 v1.0.17 -- Insights featured card compact + CTA strip full-bleed.
+//   (1) Featured + all-articles cards compressed: padding 16px (was 24px), title font 15px
+//       with 3-line clamp, excerpt 12.5px with 3-line clamp, badges 10px inline. Stops cards
+//       from being 800+px tall when content is long.
+//   (2) .oc-ins-cta-strip is now full-bleed (100% width) so the blue background extends
+//       edge-to-edge, while the INNER content + paragraphs are constrained to 1180px
+//       (and 760px for paragraphs) centered, matching other sections.
 // v1.10.37 (2026-05-24): ocbatch1024 v1.0.16 -- constrain .oc-ins-cta-strip width.
 //   The "Send us your declarations page" CTA strip between featured + all-articles on
 //   /insights had max-width: none, stretching full-bleed on desktop. Now capped at 1180px
@@ -1470,7 +1477,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.16 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.17 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1795,23 +1802,35 @@ html body .oc-ins-filter-hero > * {
   z-index: 1 !important;
 }
 
-/* Section labels below hero (Featured Articles / All Articles): constrain text width
-   so they sit aligned with the cards grid, not stretching full-bleed.
-   Also constrain .oc-ins-cta-strip (the "Send us your declarations page" CTA between
-   featured and all-articles sections) to match the same 1180px column width. */
+/* Section labels (Featured Articles / All Articles): constrain text width
+   so they sit aligned with the cards grid, not stretching full-bleed. */
 html body .oc-ins-section-label,
 html body .oc-ins-section-h,
-html body .oc-ins-section-sub,
-html body .oc-ins-cta-strip,
-html body .oc-ins-cta-inner {
+html body .oc-ins-section-sub {
   max-width: 1180px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
+/* .oc-ins-cta-strip — full-bleed navy/cream background bar between featured + all-articles,
+   BUT the inner content (text + CTA) is constrained to 1180px centered for readability.
+   Outer wrapper stays 100% width to give the colored band edge-to-edge effect. */
 html body .oc-ins-cta-strip {
-  border-radius: 10px !important;
+  max-width: 100vw !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+}
+html body .oc-ins-cta-strip > *,
+html body .oc-ins-cta-inner {
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 html body .oc-ins-cta-strip p,
 html body .oc-ins-cta-strip h2,
@@ -1855,8 +1874,11 @@ html body #oc-insights-cards-new > * {
   }
 }
 
-/* Compress individual Insights card visuals */
-html body .oc-ic-1 {
+/* Compress individual Insights card visuals (both .oc-ic-1 all-articles cards
+   AND .oc-ins-article-card featured cards). Cards have no image, just text -- so
+   focus on tight padding, smaller fonts, and excerpt line-clamp. */
+html body .oc-ic-1,
+html body .oc-ins-article-card {
   padding: 16px !important;
   border-radius: 8px !important;
   font-size: 13px !important;
@@ -1865,26 +1887,49 @@ html body .oc-ic-title-1-2,
 html body .oc-ic-title-1,
 html body .oc-ic-1 h2,
 html body .oc-ic-1 h3,
-html body .oc-ic-1 a[class*="title"] {
+html body .oc-ic-1 a[class*="title"],
+html body .oc-ins-article-card .oc-ins-card-title,
+html body .oc-ins-article-card h2,
+html body .oc-ins-article-card h3,
+html body .oc-ins-article-card a[class*="card-title"] {
   font-size: 15px !important;
-  line-height: 1.35 !important;
+  line-height: 1.3 !important;
   margin: 0 0 8px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
 }
 html body .oc-ic-ex-1,
-html body .oc-ic-1 p {
+html body .oc-ic-1 p,
+html body .oc-ins-article-card p,
+html body .oc-ins-article-card .oc-ic-ex-1 {
   font-size: 12.5px !important;
-  line-height: 1.45 !important;
+  line-height: 1.4 !important;
   margin: 0 0 8px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
 }
-html body .oc-ic-ft-1 {
-  padding-top: 10px !important;
+html body .oc-ic-ft-1,
+html body .oc-ins-article-card [class*="card-meta"],
+html body .oc-ins-article-card [class*="read-time"] {
+  padding-top: 8px !important;
   font-size: 11px !important;
 }
-html body .oc-ic-badges {
+html body .oc-ic-badges,
+html body .oc-ins-card-badges {
   margin-bottom: 8px !important;
+  font-size: 10px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  line-height: 1 !important;
 }
 html body .oc-ic-1 [class*="image"],
-html body .oc-ic-1 img {
+html body .oc-ic-1 img,
+html body .oc-ins-article-card img {
   max-height: 140px !important;
   object-fit: cover !important;
 }
