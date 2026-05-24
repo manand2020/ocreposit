@@ -309,14 +309,14 @@
   setTimeout(ensureState, 3000);
 })();
 
-// Homepage ochomeleads module loader (v4.13.0)
+// Homepage ochomeleads module loader (v4.14.0) -- bumped to ochomeleads v1.7.0 (sentinel + stopImmediatePropagation, fixes duplicate Lead bug)
 // Runs before the malformed @footer occontact-complete.js tag that hides all subsequent Site Settings scripts.
 (function(){
   if (window.location.pathname !== '/') return;
-  var OCHL_SHA = 'cc3ef468f180c61d5eb1e1d74ee8576bb82a1dfe';
+  var OCHL_SHA = '0e386d5aeaa172fe555b76bbec9963258944f092';
   var s = document.createElement('script');
   s.type = 'module';
-  s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + OCHL_SHA + '/ochomeleads.js?v=1.5.0';
+  s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + OCHL_SHA + '/ochomeleads.js?v=1.7.0';
   document.head.appendChild(s);
 })();
 
