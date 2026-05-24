@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.36
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.37
+// v1.10.37 (2026-05-24): ocbatch1024 v1.0.16 -- constrain .oc-ins-cta-strip width.
+//   The "Send us your declarations page" CTA strip between featured + all-articles on
+//   /insights had max-width: none, stretching full-bleed on desktop. Now capped at 1180px
+//   centered, with inner text capped at 760px for readable line lengths.
 // v1.10.36 (2026-05-24): ocbatch1024 v1.0.15 -- Insights featured 4x1 fix.
 //   Webflow Collection List for .oc-ins-featured-grid is capped at 3 items in Designer.
 //   v1.10.31's grid-4col CSS was misapplied to .oc-ins-article-card (the individual card,
@@ -1466,7 +1470,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.15 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.16 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1792,14 +1796,27 @@ html body .oc-ins-filter-hero > * {
 }
 
 /* Section labels below hero (Featured Articles / All Articles): constrain text width
-   so they sit aligned with the cards grid, not stretching full-bleed. */
+   so they sit aligned with the cards grid, not stretching full-bleed.
+   Also constrain .oc-ins-cta-strip (the "Send us your declarations page" CTA between
+   featured and all-articles sections) to match the same 1180px column width. */
 html body .oc-ins-section-label,
 html body .oc-ins-section-h,
-html body .oc-ins-section-sub {
+html body .oc-ins-section-sub,
+html body .oc-ins-cta-strip,
+html body .oc-ins-cta-inner {
   max-width: 1180px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   width: 100% !important;
+  box-sizing: border-box !important;
+}
+html body .oc-ins-cta-strip {
+  border-radius: 10px !important;
+}
+html body .oc-ins-cta-strip p,
+html body .oc-ins-cta-strip h2,
+html body .oc-ins-cta-strip h3 {
+  max-width: 760px !important;
 }
 
 /* /insights hub: force featured-grid + all-articles grid to 4-col.
