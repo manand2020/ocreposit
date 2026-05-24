@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.30
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.31
+// v1.10.31 (2026-05-24): ocbatch1024 v1.0.10 -- /insights hub card compression + featured 4x1.
+//   .oc-ins-article-card (featured wrapper) and .oc-ins-all-grid (#oc-insights-cards-new)
+//   forced to 4-col grid with responsive media queries. Card visuals compressed:
+//   padding 16px, title font 15px, excerpt 12.5px, footer 11px, image max-height 140px.
+//   Removes the "cards too big" feel on the Insights hub.
 // v1.10.30 (2026-05-24): ocbatch1024 v1.0.9 -- Insights detail hero photo background.
 //   /insights/{slug} pages have a CMS-bound <img> inside .oc-art-hero-wrap with the
 //   article's hero photo, but it renders at 0x0 by default. Promote the img URL to be
@@ -1432,7 +1437,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.9 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.10 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1686,6 +1691,75 @@ html body .oc-ci-id-inner > .oc-ci-id-divider {
   height: 1px !important;
   background: rgba(184, 147, 74, 0.25) !important;
   margin: 24px 0 !important;
+}
+
+/* /insights hub: compress card sizes + force featured + all-articles grids to 4-col.
+   Webflow has .oc-ins-article-card (featured wrapper) as display:block and .oc-ins-all-grid
+   broken to 50px gtc. Force both to 4-col responsive grid with compressed card visuals. */
+html body .oc-ins-article-card,
+html body .oc-ins-all-grid,
+html body #oc-insights-cards-new {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 18px !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+html body .oc-ins-article-card > *,
+html body .oc-ins-all-grid > *,
+html body #oc-insights-cards-new > * {
+  min-width: 0 !important;
+}
+@media (max-width: 991px) {
+  html body .oc-ins-article-card,
+  html body .oc-ins-all-grid,
+  html body #oc-insights-cards-new {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 600px) {
+  html body .oc-ins-article-card,
+  html body .oc-ins-all-grid,
+  html body #oc-insights-cards-new {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Compress individual Insights card visuals */
+html body .oc-ic-1 {
+  padding: 16px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+html body .oc-ic-title-1-2,
+html body .oc-ic-title-1,
+html body .oc-ic-1 h2,
+html body .oc-ic-1 h3,
+html body .oc-ic-1 a[class*="title"] {
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+  margin: 0 0 8px !important;
+}
+html body .oc-ic-ex-1,
+html body .oc-ic-1 p {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  margin: 0 0 8px !important;
+}
+html body .oc-ic-ft-1 {
+  padding-top: 10px !important;
+  font-size: 11px !important;
+}
+html body .oc-ic-badges {
+  margin-bottom: 8px !important;
+}
+html body .oc-ic-1 [class*="image"],
+html body .oc-ic-1 img {
+  max-height: 140px !important;
+  object-fit: cover !important;
 }
 
 /* Insights detail page hero: promote CMS-bound <img> to background-image + navy overlay.
