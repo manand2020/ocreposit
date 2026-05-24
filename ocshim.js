@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.35
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.36
+// v1.10.36 (2026-05-24): ocbatch1024 v1.0.15 -- Insights featured 4x1 fix.
+//   Webflow Collection List for .oc-ins-featured-grid is capped at 3 items in Designer.
+//   v1.10.31's grid-4col CSS was misapplied to .oc-ins-article-card (the individual card,
+//   not the grid container). Now correctly targets .oc-ins-featured-grid. Plus shim DOM
+//   clones a 4th .oc-ins-article-card from the most recent all-articles card not already
+//   in the featured set, so the featured section reads 4x1 instead of 3-and-empty-space.
 // v1.10.35 (2026-05-24): ocbatch1024 v1.0.14 -- Insurance pages .oc-grid4 equal-height cards.
 //   All 27 Insurance pages use .oc-grid4 (4-card grid) for "What's Covered" and "What's NOT
 //   Covered" sections. Add CSS forcing 4-col + grid-auto-rows: 1fr + flex-column children
@@ -1460,7 +1466,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.14 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.15 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1796,10 +1802,11 @@ html body .oc-ins-section-sub {
   width: 100% !important;
 }
 
-/* /insights hub: compress card sizes + force featured + all-articles grids to 4-col.
-   Webflow has .oc-ins-article-card (featured wrapper) as display:block and .oc-ins-all-grid
-   broken to 50px gtc. Force both to 4-col responsive grid with compressed card visuals. */
-html body .oc-ins-article-card,
+/* /insights hub: force featured-grid + all-articles grid to 4-col.
+   Real grid container for featured section is .oc-ins-featured-grid (NOT .oc-ins-article-card,
+   which is the individual card inside the grid). Removed the misapplied .oc-ins-article-card
+   rule that was turning each individual card into its own 4-col grid. */
+html body .oc-ins-featured-grid,
 html body .oc-ins-all-grid,
 html body #oc-insights-cards-new {
   display: grid !important;
@@ -1811,20 +1818,20 @@ html body #oc-insights-cards-new {
   margin-left: auto !important;
   margin-right: auto !important;
 }
-html body .oc-ins-article-card > *,
+html body .oc-ins-featured-grid > *,
 html body .oc-ins-all-grid > *,
 html body #oc-insights-cards-new > * {
   min-width: 0 !important;
 }
 @media (max-width: 991px) {
-  html body .oc-ins-article-card,
+  html body .oc-ins-featured-grid,
   html body .oc-ins-all-grid,
   html body #oc-insights-cards-new {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 @media (max-width: 600px) {
-  html body .oc-ins-article-card,
+  html body .oc-ins-featured-grid,
   html body .oc-ins-all-grid,
   html body #oc-insights-cards-new {
     grid-template-columns: 1fr !important;
@@ -2160,6 +2167,61 @@ p.oc-cov2-q,
       });
       pills.forEach(function (p) { p.style.setProperty('display', 'none', 'important'); });
       document.body.dataset.carrLobFiltered = '1';
+    }
+
+    // (5.85) Insights hub: ensure featured grid has 4 cards (Webflow Collection List caps at 3).
+    // Clone an additional .oc-ins-article-card from the most recent all-articles card so the
+    // featured section visually reads as 4x1 instead of 3-and-empty-space.
+    if (location.pathname === '/insights') {
+      var featGrid = document.querySelector('.oc-ins-featured-grid');
+      if (featGrid && featGrid.children.length === 3 && !featGrid.dataset.padded) {
+        // Look for the first all-articles card NOT already in featured
+        var existingHrefs = new Set();
+        featGrid.querySelectorAll('a[href*="/insights/"]').forEach(function (a) {
+          existingHrefs.add(a.getAttribute('href'));
+        });
+        var donor = null;
+        var allGrid = document.getElementById('oc-insights-cards-new') || document.querySelector('.oc-ins-all-grid');
+        if (allGrid) {
+          var allCards = allGrid.querySelectorAll('a[href*="/insights/"]');
+          for (var i = 0; i < allCards.length; i++) {
+            var href = allCards[i].getAttribute('href');
+            if (!existingHrefs.has(href)) {
+              donor = allCards[i].closest('.oc-ic-1, .oc-ins-article-card, .w-dyn-item') || allCards[i].parentElement;
+              break;
+            }
+          }
+        }
+        if (donor) {
+          // Try cloning the FIRST featured card's structure, then swap content from the donor
+          var template = featGrid.firstElementChild;
+          if (template) {
+            var clone = template.cloneNode(true);
+            // Swap href on the link
+            var donorA = donor.querySelector('a[href*="/insights/"]');
+            var cloneA = clone.querySelector('a[href*="/insights/"]');
+            if (donorA && cloneA) cloneA.setAttribute('href', donorA.getAttribute('href'));
+            // Swap title
+            var donorTitle = donor.querySelector('h2, h3, h4, [class*="title"]');
+            var cloneTitle = clone.querySelector('h2, h3, h4, [class*="title"]');
+            if (donorTitle && cloneTitle) cloneTitle.textContent = donorTitle.textContent;
+            // Swap excerpt
+            var donorEx = donor.querySelector('p, [class*="excerpt"], [class*="body"]');
+            var cloneEx = clone.querySelector('p, [class*="excerpt"], [class*="body"]');
+            if (donorEx && cloneEx && donorEx !== donorTitle) cloneEx.textContent = donorEx.textContent;
+            // Swap image
+            var donorImg = donor.querySelector('img');
+            var cloneImg = clone.querySelector('img');
+            if (donorImg && cloneImg) {
+              cloneImg.setAttribute('src', donorImg.getAttribute('src') || cloneImg.getAttribute('src'));
+              if (donorImg.getAttribute('srcset')) cloneImg.setAttribute('srcset', donorImg.getAttribute('srcset'));
+              cloneImg.setAttribute('alt', donorImg.getAttribute('alt') || '');
+            }
+            featGrid.appendChild(clone);
+            featGrid.dataset.padded = '1';
+          }
+        }
+      }
     }
 
     // (5.8) Insights HUB hero: read the hidden .oc-hero-photo-* element's bg-image URL
