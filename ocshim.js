@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.33
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.34
+// v1.10.34 (2026-05-24): ocbatch1024 v1.0.13 -- /commercial-insurance terms id fix + /about trust strip.
+//   (1) /commercial-insurance terms section uses id="ci-glossary-link" not "pi-glossary-link".
+//       Shim's terms-move logic now matches both ids (plus generic [id$="-glossary-link"]).
+//   (2) /about trust strip real selector is .oc-about-team-block (flex with 4 .oc-about-team-row
+//       children). Adding direct grid-4-col rule on .oc-about-team-block (instead of relying on
+//       runtime data-sec="about-trust-strip" attribute injection).
 // v1.10.33 (2026-05-24): ocbatch1024 v1.0.12 -- Carrier-page LOB section filtering.
 //   Each carrier page is for a single line of business (Personal OR Commercial). LOB is
 //   detected from URL slug: "-commercial-" in slug => Commercial Lines carrier; otherwise
@@ -1449,7 +1455,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.12 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.13 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1537,24 +1543,33 @@ html body .oc-ci-id-card .oc-ci-id-icon {
   height: 28px !important;
 }
 
-/* /about trust-strip: A-Rated/Johns Creek/Licensed/Independent — 4-col */
-[data-sec="about-trust-strip"] {
+/* /about trust-strip: A-Rated/Johns Creek/Licensed/Independent — 4-col.
+   Real selector on /about is .oc-about-team-block (flex container, 4 children). */
+html body [data-sec="about-trust-strip"],
+html body .oc-about-team-block {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   grid-auto-rows: 1fr !important;
   gap: 16px !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
-[data-sec="about-trust-strip"] > * {
+html body [data-sec="about-trust-strip"] > *,
+html body .oc-about-team-block > * {
   height: 100% !important;
   min-width: 0 !important;
 }
 @media (max-width: 991px) {
-  [data-sec="about-trust-strip"] {
+  html body [data-sec="about-trust-strip"],
+  html body .oc-about-team-block {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 @media (max-width: 600px) {
-  [data-sec="about-trust-strip"] {
+  html body [data-sec="about-trust-strip"],
+  html body .oc-about-team-block {
     grid-template-columns: 1fr !important;
   }
 }
@@ -2007,8 +2022,11 @@ p.oc-cov2-q,
     // .oc-widget-panel-footer (inside Ask Olive chat widget) FIRST, so terms got
     // moved INSIDE the widget panel and disappeared from main page flow.
     // Site footer on this Webflow build is #oc-footer-new (direct child of body, no <footer> tag).
+    // v1.0.13 fix: /commercial-insurance uses id="ci-glossary-link" instead of "pi-glossary-link".
     if (location.pathname === '/personal-insurance' || location.pathname === '/commercial-insurance') {
-      var termsSec = document.getElementById('pi-glossary-link');
+      var termsSec = document.getElementById('pi-glossary-link') ||
+                     document.getElementById('ci-glossary-link') ||
+                     document.querySelector('[id$="-glossary-link"]');
       var footer = document.getElementById('oc-footer-new');
       if (termsSec && footer && footer.previousElementSibling !== termsSec) {
         try {
