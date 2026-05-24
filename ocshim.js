@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.21
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.22
+// v1.10.22 (2026-05-24): ocbatch1024 v1.0.1 -- expand /coverage question-section
+//   removal. v1.0.0 targeted h1-h4 + .oc-pi-hero-qlabel + [class*="hero-qlabel"]
+//   but /coverage uses <p class="oc-cov2-q-label"> for the eyebrow and <p
+//   class="oc-cov2-q"> for each of the 4 question cards. Adding [class*="oc-cov2-q"]
+//   to the killSelectors so the parent section gets removed. Also adds a CSS
+//   :has() fallback to hide the section immediately if DOM walk fails.
 // v1.10.21 (2026-05-24): ocbatch1024 v1.0.0 -- comprehensive review-batch fixes.
 //   (1) Footer: update Facebook URL to https://www.facebook.com/olivecoverins
 //       and hide Instagram link (account not yet active).
@@ -1432,6 +1438,13 @@
   line-height: 1.4 !important;
 }
 
+/* /coverage: hide question-prompt section (WHAT BROUGHT YOU HERE + 4 question cards).
+   :has() selector targets the section that contains the .oc-cov2-q-label or .oc-cov2-q elements. */
+section:has(.oc-cov2-q-label),
+section:has(p.oc-cov2-q) {
+  display: none !important;
+}
+
 /* Nav Resources active-state: strip pill background to match plain text */
 .ocnav-link[href*="/insights"].w--current,
 .ocnav-link[href*="resources"].w--current,
@@ -1475,7 +1488,7 @@
       'am i already covered?',
       'what am i missing?'
     ];
-    var killSelectors = 'h1, h2, h3, h4, span.oc-pi-hero-qlabel, span.oc-ci-hero-qlabel, [class*="hero-qlabel"], [class*="eyebrow"]';
+    var killSelectors = 'h1, h2, h3, h4, span.oc-pi-hero-qlabel, span.oc-ci-hero-qlabel, [class*="hero-qlabel"], [class*="eyebrow"], p.oc-cov2-q-label, p.oc-cov2-q';
     document.querySelectorAll(killSelectors).forEach(function(el){
       var t = (el.textContent || '').trim().toLowerCase();
       if (killTexts.indexOf(t) < 0) return;
