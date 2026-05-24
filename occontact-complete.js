@@ -1,4 +1,11 @@
-// Olive Cover - Contact form handler v1.6.0
+// Olive Cover - Contact form handler v1.7.0
+// v1.7.0 (2026-05-23): Capture visitor state from oc_state localStorage and include in
+//       payload. Previously the contact form never read state even though ocstateselect
+//       v1.0.14 injects a <select name="state"> into every form. Result: every contact
+//       Lead in CRM landed with [STATE-UNKNOWN] in Description and empty primary_address_state
+//       (or with the ZIP misrouted there by OC Tech's backend fallback). Fix mirrors the
+//       working ochomeleads.js + ocwidget.js localStorage-based pattern. ocstateselect writes
+//       to localStorage on change, so localStorage is authoritative for the user's selection.
 // v1.6.0 (2026-05-23): Two defensive fixes paralleling ochomeleads v1.7.0 pattern.
 //   (1) e.stopImmediatePropagation() inside onSubmit blocks Webflow's native
 //       forms.js submit listener from firing in parallel. preventDefault alone
@@ -126,11 +133,21 @@ async function onSubmit(e) {
   showInlineError(form, "");
 
   const data = new FormData(form);
+  // State is injected by ocstateselect.js as a <select name="state"> dropdown. Prefer
+  // FormData read since it reflects whatever the user has selected at submit time. Fall
+  // back to localStorage (where ocstateselect writes on change) in case FormData misses it
+  // for any reason (e.g., dropdown injected outside the form element).
+  let stateVal = "";
+  try {
+    stateVal = ((data.get("state") || "") + "").toUpperCase().trim();
+    if (!stateVal) stateVal = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
+  } catch (e) {}
   const payload = {
     name: ((data.get("name") || "") + "").trim(),
     email: ((data.get("email") || "") + "").trim(),
     topic: ((data.get("topic") || "") + "").trim(),
     message: ((data.get("message") || "") + "").trim(),
+    state: stateVal,
     source: "contact-page",
     page: location.pathname,
     referrer: document.referrer || "",
