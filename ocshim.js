@@ -1,4 +1,13 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.24
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.25
+// v1.10.25 (2026-05-24): ocbatch1024 v1.0.4 -- /personal-insurance polish.
+//   (1) Force .oc-pi-sys-stack to 4-column grid (6 cards wrap to 4+2 rows).
+//   (2) Wire each .oc-pi-sys-block as an anchor link to the corresponding
+//       product card below (which already has stable IDs: #homeowners, #auto,
+//       #renters, #flood, #umbrella, #landlord). Cards become clickable +
+//       scroll-to the matching section.
+//   (3) Hero polish: tighten oc-pi-hero spacing + ensure navy overlay so it
+//       reads like the homepage hero treatment. (Full structural match needs
+//       Designer canvas rework — out of shim scope.)
 // v1.10.24 (2026-05-24): ocbatch1024 v1.0.3 HOTFIX -- previous version's
 //   section:has(.oc-cov2-q-label) rule + DOM walk-up to <section> were too
 //   aggressive: they removed the ENTIRE hero section on /coverage (including
@@ -1477,6 +1486,62 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   line-height: 1.4 !important;
 }
 
+/* /personal-insurance .oc-pi-sys-stack: 6 numbered cards in a 4-col grid */
+.oc-pi-sys-stack {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.oc-pi-sys-stack > * {
+  min-width: 0 !important;
+}
+@media (max-width: 991px) {
+  .oc-pi-sys-stack { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (max-width: 600px) {
+  .oc-pi-sys-stack { grid-template-columns: 1fr !important; }
+}
+/* Make oc-pi-sys-block clickable + visual cue */
+a.oc-pi-sys-block-anchor {
+  text-decoration: none !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  display: block !important;
+  transition: transform 0.15s ease !important;
+}
+a.oc-pi-sys-block-anchor:hover {
+  transform: translateY(-2px) !important;
+}
+a.oc-pi-sys-block-anchor:hover .oc-pi-sys-block-name {
+  text-decoration: underline !important;
+}
+
+/* /personal-insurance hero polish - tighten layout, ensure navy overlay treatment */
+.oc-pi-hero-wrap {
+  position: relative !important;
+  min-height: 480px !important;
+}
+.oc-pi-hero-wrap > [class*="oc-hero-photo"] {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+}
+.oc-pi-hero-wrap > [class*="oc-hero-photo"]::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(180deg, rgba(27,58,92,0.7) 0%, rgba(27,58,92,0.85) 100%) !important;
+  z-index: 1 !important;
+}
+.oc-pi-hero-left {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
 /* /coverage: hide only the question-prompt eyebrow + question cards, NOT the hero section
    that contains them. v1.0.2 used section:has() which removed the whole hero — too aggressive.
    Target the specific question-related classes individually. */
@@ -1597,6 +1662,37 @@ p.oc-cov2-q,
           common = common.parentElement;
         }
       }
+    }
+
+    // (5.4) /personal-insurance: wire .oc-pi-sys-block elements as anchor links to product cards
+    if (location.pathname === '/personal-insurance') {
+      var blockNameToId = {
+        'homeowners': 'homeowners',
+        'auto': 'auto',
+        'renters': 'renters',
+        'flood': 'flood',
+        'umbrella': 'umbrella',
+        'landlord': 'landlord'
+      };
+      document.querySelectorAll('.oc-pi-sys-block').forEach(function(block){
+        if (block.dataset.linkWired === '1') return;
+        var nameEl = block.querySelector('.oc-pi-sys-block-name');
+        if (!nameEl) return;
+        var name = (nameEl.textContent || '').trim().toLowerCase();
+        var targetId = blockNameToId[name];
+        if (!targetId) return;
+        // Wrap the block's content in an <a> tag pointing to the target
+        var existing = block.querySelector('a.oc-pi-sys-block-anchor');
+        if (existing) return;
+        var a = document.createElement('a');
+        a.href = '#' + targetId;
+        a.className = 'oc-pi-sys-block-anchor';
+        a.setAttribute('aria-label', 'Jump to ' + name + ' insurance section');
+        // Move all of block's children into the anchor
+        while (block.firstChild) a.appendChild(block.firstChild);
+        block.appendChild(a);
+        block.dataset.linkWired = '1';
+      });
     }
 
     // (5.5) Move Terms/Glossary CTA section above footer on /personal-insurance + /commercial-insurance
