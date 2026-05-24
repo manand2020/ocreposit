@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.38
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.39
+// v1.10.39 (2026-05-24): ocbatch1024 v1.0.18 -- TIGHTER Insights card compression.
+//   All cards (featured + all-articles): padding 14px (was 16/24), title 14px 2-line clamp
+//   (was 15px 3-line), excerpt 12px 2-line (was 12.5 3-line), badges 9.5px tighter inline,
+//   image max-height 110px (was 140), zero card-gap. Aggressive density for scan-style hub.
 // v1.10.38 (2026-05-24): ocbatch1024 v1.0.17 -- Insights featured card compact + CTA strip full-bleed.
 //   (1) Featured + all-articles cards compressed: padding 16px (was 24px), title font 15px
 //       with 3-line clamp, excerpt 12.5px with 3-line clamp, badges 10px inline. Stops cards
@@ -1477,7 +1481,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.17 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.18 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1874,14 +1878,14 @@ html body #oc-insights-cards-new > * {
   }
 }
 
-/* Compress individual Insights card visuals (both .oc-ic-1 all-articles cards
-   AND .oc-ins-article-card featured cards). Cards have no image, just text -- so
-   focus on tight padding, smaller fonts, and excerpt line-clamp. */
+/* TIGHT compression of Insights cards (both featured + all-articles).
+   Cards are text-only (no image). Compact for maximum density. */
 html body .oc-ic-1,
 html body .oc-ins-article-card {
-  padding: 16px !important;
+  padding: 14px !important;
   border-radius: 8px !important;
-  font-size: 13px !important;
+  font-size: 12.5px !important;
+  gap: 0 !important;
 }
 html body .oc-ic-title-1-2,
 html body .oc-ic-title-1,
@@ -1892,11 +1896,11 @@ html body .oc-ins-article-card .oc-ins-card-title,
 html body .oc-ins-article-card h2,
 html body .oc-ins-article-card h3,
 html body .oc-ins-article-card a[class*="card-title"] {
-  font-size: 15px !important;
-  line-height: 1.3 !important;
-  margin: 0 0 8px !important;
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  margin: 0 0 6px !important;
   display: -webkit-box !important;
-  -webkit-line-clamp: 3 !important;
+  -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
   overflow: hidden !important;
 }
@@ -1904,33 +1908,39 @@ html body .oc-ic-ex-1,
 html body .oc-ic-1 p,
 html body .oc-ins-article-card p,
 html body .oc-ins-article-card .oc-ic-ex-1 {
-  font-size: 12.5px !important;
+  font-size: 12px !important;
   line-height: 1.4 !important;
-  margin: 0 0 8px !important;
+  margin: 0 0 6px !important;
   display: -webkit-box !important;
-  -webkit-line-clamp: 3 !important;
+  -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
   overflow: hidden !important;
 }
 html body .oc-ic-ft-1,
 html body .oc-ins-article-card [class*="card-meta"],
 html body .oc-ins-article-card [class*="read-time"] {
-  padding-top: 8px !important;
-  font-size: 11px !important;
+  padding-top: 6px !important;
+  font-size: 10.5px !important;
+  margin: 0 !important;
 }
 html body .oc-ic-badges,
 html body .oc-ins-card-badges {
-  margin-bottom: 8px !important;
-  font-size: 10px !important;
+  margin: 0 0 6px !important;
+  font-size: 9.5px !important;
   display: flex !important;
   flex-wrap: wrap !important;
-  gap: 6px !important;
+  gap: 4px !important;
   line-height: 1 !important;
+}
+html body .oc-ic-badges > *,
+html body .oc-ins-card-badges > * {
+  padding: 2px 6px !important;
+  line-height: 1.1 !important;
 }
 html body .oc-ic-1 [class*="image"],
 html body .oc-ic-1 img,
 html body .oc-ins-article-card img {
-  max-height: 140px !important;
+  max-height: 110px !important;
   object-fit: cover !important;
 }
 
