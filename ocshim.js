@@ -1,4 +1,11 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.32
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.33
+// v1.10.33 (2026-05-24): ocbatch1024 v1.0.12 -- Carrier-page LOB section filtering.
+//   Each carrier page is for a single line of business (Personal OR Commercial). LOB is
+//   detected from URL slug: "-commercial-" in slug => Commercial Lines carrier; otherwise
+//   Personal Lines. Hides h3/h4 headings + adjacent content for the OTHER LOB plus the
+//   "PERSONAL"/"COMMERCIAL" pill that doesn't apply. E.g., on /carriers/hippo-insurance
+//   (Personal), "Customer satisfaction (commercial)" and "Commercial Lines States" are
+//   hidden, along with the COMMERCIAL pill.
 // v1.10.32 (2026-05-24): ocbatch1024 v1.0.11 -- /insights hub hero photo + section label width.
 //   .oc-ins-filter-hero has only a navy gradient (no photo). Hidden .oc-hero-photo-* child
 //   has the CMS photo URL. JS reads it at runtime and applies as wrap bg + adds navy
@@ -1442,7 +1449,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.11 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.12 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -2051,6 +2058,50 @@ p.oc-cov2-q,
           }
         }
       }
+    }
+
+    // (5.85) Carrier pages: hide personal/commercial sections that don't match the carrier's LOB.
+    // Each carrier is either Personal Lines OR Commercial Lines (no "Both" used). Detection by URL slug:
+    // "-commercial-insurance" or "-commercial-" anywhere in slug => Commercial Lines, else Personal Lines.
+    if (location.pathname.indexOf('/carriers/') === 0 && !document.body.dataset.carrLobFiltered) {
+      var slug = location.pathname.split('/').pop() || '';
+      var isCommercial = slug.indexOf('-commercial') >= 0;
+      var lobLabel = isCommercial ? 'COMMERCIAL' : 'PERSONAL';
+      // Hide sections / elements specific to the OTHER LOB
+      var hidePhrases = isCommercial
+        ? ['(personal)', 'personal lines states', 'personal lines —', 'personal lines -']
+        : ['(commercial)', 'commercial lines states', 'commercial lines —', 'commercial lines -'];
+      var headings = document.querySelectorAll('h2, h3, h4, .oc-h3, .oc-h2');
+      headings.forEach(function (h) {
+        var t = (h.textContent || '').trim().toLowerCase();
+        var match = hidePhrases.some(function (p) { return t.indexOf(p) >= 0; });
+        if (!match) return;
+        // Hide the heading itself plus the next sibling block (the content for that heading)
+        h.style.setProperty('display', 'none', 'important');
+        var next = h.nextElementSibling;
+        if (next) next.style.setProperty('display', 'none', 'important');
+        // Walk up to find a parent block to also hide if reasonable
+        var section = h.closest('section, .oc-sec-cream, .oc-sec-white, .oc-sec-navy, [class*="-section"]');
+        // Only hide whole section if the section is dedicated to this LOB
+        if (section) {
+          var allHeadings = section.querySelectorAll('h2, h3, h4');
+          var allMatch = Array.from(allHeadings).every(function (hh) {
+            var tt = (hh.textContent || '').toLowerCase();
+            return hidePhrases.some(function (p) { return tt.indexOf(p) >= 0; });
+          });
+          if (allHeadings.length > 0 && allMatch) {
+            section.style.setProperty('display', 'none', 'important');
+          }
+        }
+      });
+      // Hide the wrong-LOB pill if present
+      var otherPill = isCommercial ? 'PERSONAL' : 'COMMERCIAL';
+      var pills = Array.from(document.querySelectorAll('div, span, p')).filter(function (el) {
+        var t = (el.textContent || '').trim();
+        return t === otherPill && !el.querySelector('*');
+      });
+      pills.forEach(function (p) { p.style.setProperty('display', 'none', 'important'); });
+      document.body.dataset.carrLobFiltered = '1';
     }
 
     // (5.8) Insights HUB hero: read the hidden .oc-hero-photo-* element's bg-image URL
