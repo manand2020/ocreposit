@@ -1,6 +1,14 @@
 /**
-* ocfaq-complete.js v2.2.0
+* ocfaq-complete.js v2.3.0
 * Olive Cover FAQ rendering engine
+*
+* What changed in v2.3.0 (2026-05-24):
+* - Hub search now searches across ALL FAQs in the collection (494 items), not just
+*   the ~34 link rows rendered on /faq. New module: load faq-index.json from
+*   jsDelivr (manand2020/ocreposit@main/faq-index.json), then on each keystroke
+*   filter both the featured 34 rows AND the full index. Cross-FAQ matches are
+*   listed under a "More matching questions" heading at the bottom of the hub,
+*   linking to /faq/{slug}. Matches in the featured groups are de-duped.
 *
 * What changed in v2.2.0:
 * - Replaced API-driven hub module with DOM-based search.
@@ -323,8 +331,45 @@ s.textContent =
 '.oc-fh-si{width:100%;padding:13px 44px 13px 16px;border:1.5px solid rgba(27,58,92,.18);border-radius:10px;font-size:.95rem;font-family:Inter,system-ui,sans-serif;color:#1B3A5C;background:#fff;outline:none;box-sizing:border-box;transition:border-color .2s}' +
 '.oc-fh-si:focus{border-color:#B8934A}' +
 '.oc-fh-sico{position:absolute;right:13px;top:50%;transform:translateY(-50%);color:rgba(27,58,92,.35);pointer-events:none;font-size:1rem}' +
-'.oc-fh-no-results{font-family:Inter,system-ui,sans-serif;font-size:.9rem;color:rgba(27,58,92,.5);padding:12px 0;display:none}';
+'.oc-fh-no-results{font-family:Inter,system-ui,sans-serif;font-size:.9rem;color:rgba(27,58,92,.5);padding:12px 0;display:none}' +
+'.oc-fh-extra{margin-top:28px;padding-top:24px;border-top:1px solid rgba(27,58,92,.12);display:none}' +
+'.oc-fh-extra-h{font-family:"Playfair Display",Georgia,serif;font-size:1.1rem;color:#1B3A5C;margin:0 0 14px;font-weight:600}' +
+'.oc-fh-extra-list{list-style:none;padding:0;margin:0}' +
+'.oc-fh-extra-row{padding:10px 0;border-bottom:1px solid rgba(27,58,92,.08);font-family:Inter,system-ui,sans-serif;font-size:.92rem;line-height:1.5}' +
+'.oc-fh-extra-row:last-child{border-bottom:none}' +
+'.oc-fh-extra-row a{color:#1B3A5C;text-decoration:none;font-weight:500}' +
+'.oc-fh-extra-row a:hover{color:#B8934A;text-decoration:underline}' +
+'.oc-fh-extra-cat{display:inline-block;font-size:.72rem;color:#B8934A;background:rgba(184,147,74,.08);border:1px solid rgba(184,147,74,.25);border-radius:4px;padding:2px 8px;margin-right:10px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;vertical-align:middle}';
 document.head.appendChild(s);
+}
+
+// Full FAQ index lives at jsDelivr (494 items); fetched once and cached.
+var FAQ_INDEX_URL = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@main/faq-index.json';
+var __faqIndex = null;
+var __faqIndexPending = null;
+
+function loadFaqIndex() {
+if (__faqIndex) return Promise.resolve(__faqIndex);
+if (__faqIndexPending) return __faqIndexPending;
+__faqIndexPending = fetch(FAQ_INDEX_URL, { cache: 'force-cache' })
+.then(function (r) { return r.ok ? r.json() : []; })
+.then(function (data) { __faqIndex = data; return data; })
+.catch(function () { __faqIndex = []; return []; });
+return __faqIndexPending;
+}
+
+function searchAllFaqs(q, max) {
+if (!__faqIndex || !q || q.length < 2) return [];
+var lower = q.toLowerCase();
+var results = [];
+for (var i = 0; i < __faqIndex.length && results.length < max; i++) {
+var it = __faqIndex[i];
+if ((it.q || '').toLowerCase().indexOf(lower) >= 0 ||
+    (it.a || '').toLowerCase().indexOf(lower) >= 0) {
+results.push(it);
+}
+}
+return results;
 }
 
 function init() {
@@ -334,15 +379,14 @@ if (!hub) return;
 var groups = Array.prototype.slice.call(hub.querySelectorAll('.oc-faq-group'));
 if (!groups.length) return;
 
-var total = hub.querySelectorAll('.oc-faq-link-row').length;
-
 injectCss();
+loadFaqIndex();
 
 var sw = document.createElement('div');
 sw.className = 'oc-fh-sw';
 sw.innerHTML =
 '<input class="oc-fh-si" id="oc-fh-si" type="text"' +
-' placeholder="Search all ' + total + ' questions..."' +
+' placeholder="Search FAQs"' +
 ' autocomplete="off">' +
 '<span class="oc-fh-sico">&#128269;</span>';
 hub.insertBefore(sw, hub.firstChild);
@@ -352,21 +396,88 @@ noRes.className = 'oc-fh-no-results';
 noRes.textContent = 'No questions found. Try different words.';
 sw.parentNode.insertBefore(noRes, sw.nextSibling);
 
-document.getElementById('oc-fh-si').addEventListener('input', function () {
-var q = this.value.toLowerCase().trim();
-var anyVisible = false;
+// Extra results container (full-FAQ-index hits)
+var extra = document.createElement('div');
+extra.className = 'oc-fh-extra';
+extra.innerHTML =
+'<h3 class="oc-fh-extra-h">More matching questions</h3>' +
+'<ul class="oc-fh-extra-list" id="oc-fh-extra-list"></ul>';
+hub.appendChild(extra);
+var extraList = document.getElementById('oc-fh-extra-list');
+
+// Track which slugs are already shown in the featured groups (avoid duplicates)
+var featuredSlugs = {};
+groups.forEach(function (group) {
+group.querySelectorAll('.oc-faq-link-row').forEach(function (link) {
+var a = link.querySelector('a');
+var href = a ? a.getAttribute('href') : '';
+if (href) {
+var slug = href.split('/').pop();
+if (slug) featuredSlugs[slug.toLowerCase()] = true;
+}
+// Fallback: scan text content for slug
+var slugEl = link.querySelector('.oc-faq-slug');
+if (slugEl) featuredSlugs[slugEl.textContent.trim().toLowerCase()] = true;
+});
+});
+
+function render(q) {
+var lower = q.toLowerCase().trim();
+var anyVisibleInFeatured = false;
 groups.forEach(function (group) {
 var links = Array.prototype.slice.call(group.querySelectorAll('.oc-faq-link-row'));
 var groupHasMatch = false;
 links.forEach(function (link) {
-var show = !q || link.textContent.toLowerCase().indexOf(q) >= 0;
+var show = !lower || link.textContent.toLowerCase().indexOf(lower) >= 0;
 link.style.display = show ? '' : 'none';
 if (show) groupHasMatch = true;
 });
-group.style.display = (!q || groupHasMatch) ? '' : 'none';
-if (groupHasMatch || !q) anyVisible = true;
+group.style.display = (!lower || groupHasMatch) ? '' : 'none';
+if (groupHasMatch || !lower) anyVisibleInFeatured = true;
 });
-noRes.style.display = (q && !anyVisible) ? 'block' : 'none';
+
+// Cross-FAQ-index results
+extraList.innerHTML = '';
+if (lower && lower.length >= 2) {
+var results = searchAllFaqs(lower, 50);
+// Filter out any FAQs already shown in featured groups
+results = results.filter(function (r) { return !featuredSlugs[(r.s || '').toLowerCase()]; });
+if (results.length > 0) {
+extra.style.display = 'block';
+results.forEach(function (r) {
+var li = document.createElement('li');
+li.className = 'oc-fh-extra-row';
+var catSpan = '';
+if (r.c) catSpan = '<span class="oc-fh-extra-cat">' + escapeHtml(r.c) + '</span>';
+li.innerHTML = catSpan + '<a href="/faq/' + encodeURIComponent(r.s) + '">' + escapeHtml(r.q) + '</a>';
+extraList.appendChild(li);
+});
+// We have hits in the index — overall has results
+anyVisibleInFeatured = true;
+} else {
+extra.style.display = 'none';
+}
+} else {
+extra.style.display = 'none';
+}
+
+noRes.style.display = (lower && !anyVisibleInFeatured) ? 'block' : 'none';
+}
+
+function escapeHtml(s) {
+return String(s).replace(/[&<>"']/g, function (c) {
+return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+});
+}
+
+// Debounce search input
+var debounceTimer = null;
+document.getElementById('oc-fh-si').addEventListener('input', function () {
+var val = this.value;
+clearTimeout(debounceTimer);
+debounceTimer = setTimeout(function () {
+loadFaqIndex().then(function () { render(val); });
+}, 80);
 });
 }
 
@@ -375,7 +486,7 @@ document.readyState === 'loading'
 : init();
 
 window.OC = window.OC || {};
-window.OC.faqHub = { version: '1.1.0' };
+window.OC.faqHub = { version: '1.2.0' };
 })();
 
 /* ============================================================
