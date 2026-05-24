@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.40
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.41
+// v1.10.41 (2026-05-24): ocbatch1024 v1.0.20 -- hide long .oc-ins-fc-tag.
+//   4th featured card on /insights has a hardcoded long sentence in .oc-ins-fc-tag instead
+//   of a 2-3 word category. The text "Dwelling limits, wind and hail deductibles..." is
+//   Designer-canvas literal text, not a CMS field. Shim hides any .oc-ins-fc-tag with >4 words
+//   so the card shows just title + meta cleanly.
 // v1.10.40 (2026-05-24): ocbatch1024 v1.0.19 -- Featured cards drop excerpt.
 //   Featured-card excerpt hidden entirely (display:none). Featured cards now show badges +
 //   title + meta only. All-articles cards keep their excerpt at 2-line clamp. Padding 12x14,
@@ -1485,7 +1490,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.19 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.20 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -2251,6 +2256,21 @@ p.oc-cov2-q,
       });
       pills.forEach(function (p) { p.style.setProperty('display', 'none', 'important'); });
       document.body.dataset.carrLobFiltered = '1';
+    }
+
+    // (5.84) Insights hub: hide .oc-ins-fc-tag elements with text >4 words.
+    // The 4th featured card template has a hardcoded "Dwelling limits, wind and hail
+    // deductibles, and flood exclusions are the gaps most policies have." in the .oc-ins-fc-tag
+    // slot (a Designer canvas literal, not a CMS field). User wants the tag to be a real
+    // 2-3 word category, so any tag that's clearly NOT a category gets hidden.
+    if (location.pathname === '/insights') {
+      document.querySelectorAll('.oc-ins-fc-tag').forEach(function (tag) {
+        var t = (tag.textContent || '').trim();
+        var words = t ? t.split(/\s+/).length : 0;
+        if (words > 4) {
+          tag.style.setProperty('display', 'none', 'important');
+        }
+      });
     }
 
     // (5.85) Insights hub: ensure featured grid has 4 cards (Webflow Collection List caps at 3).
