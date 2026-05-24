@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.31
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.32
+// v1.10.32 (2026-05-24): ocbatch1024 v1.0.11 -- /insights hub hero photo + section label width.
+//   .oc-ins-filter-hero has only a navy gradient (no photo). Hidden .oc-hero-photo-* child
+//   has the CMS photo URL. JS reads it at runtime and applies as wrap bg + adds navy
+//   gradient overlay via ::before. Plus constrains .oc-ins-section-label max-width to 1180px
+//   so "Featured Articles" / "All Articles" labels align with the cards grid below.
 // v1.10.31 (2026-05-24): ocbatch1024 v1.0.10 -- /insights hub card compression + featured 4x1.
 //   .oc-ins-article-card (featured wrapper) and .oc-ins-all-grid (#oc-insights-cards-new)
 //   forced to 4-col grid with responsive media queries. Card visuals compressed:
@@ -1437,7 +1442,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.10 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.11 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1691,6 +1696,42 @@ html body .oc-ci-id-inner > .oc-ci-id-divider {
   height: 1px !important;
   background: rgba(184, 147, 74, 0.25) !important;
   margin: 24px 0 !important;
+}
+
+/* /insights hub hero: photo background + navy overlay.
+   Webflow has linear-gradient navy bg only (no photo). The standalone .oc-hero-photo-*
+   block inside the hero has the CMS photo URL but is hidden by ocstylefixes. Promote
+   it to be the hero's bg-image via shim runtime so each Insights hub has a hero photo. */
+html body .oc-ins-filter-hero {
+  position: relative !important;
+  isolation: isolate !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+html body .oc-ins-filter-hero::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(180deg, rgba(27,58,92,0.78) 0%, rgba(27,58,92,0.92) 100%) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+html body .oc-ins-filter-hero > .oc-ins-hero-inner,
+html body .oc-ins-filter-hero > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Section labels below hero (Featured Articles / All Articles): constrain text width
+   so they sit aligned with the cards grid, not stretching full-bleed. */
+html body .oc-ins-section-label,
+html body .oc-ins-section-h,
+html body .oc-ins-section-sub {
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
 }
 
 /* /insights hub: compress card sizes + force featured + all-articles grids to 4-col.
@@ -2007,6 +2048,25 @@ p.oc-cov2-q,
             artHero.style.setProperty('background-position', 'center', 'important');
             artHero.style.setProperty('background-repeat', 'no-repeat', 'important');
             artHero.dataset.bgApplied = '1';
+          }
+        }
+      }
+    }
+
+    // (5.8) Insights HUB hero: read the hidden .oc-hero-photo-* element's bg-image URL
+    // (set via Site Settings head CSS) and apply it to .oc-ins-filter-hero as the wrap bg.
+    if (location.pathname === '/insights') {
+      var insHero = document.querySelector('.oc-ins-filter-hero');
+      if (insHero && !insHero.dataset.bgApplied) {
+        var photoEl2 = insHero.querySelector('[class*="oc-hero-photo"]');
+        if (photoEl2) {
+          var url2 = (getComputedStyle(photoEl2).backgroundImage || '').match(/url\(["']?([^"')]+)["']?\)/);
+          if (url2 && url2[1]) {
+            insHero.style.setProperty('background-image', 'url("' + url2[1] + '")', 'important');
+            insHero.style.setProperty('background-size', 'cover', 'important');
+            insHero.style.setProperty('background-position', 'center', 'important');
+            insHero.style.setProperty('background-repeat', 'no-repeat', 'important');
+            insHero.dataset.bgApplied = '1';
           }
         }
       }
