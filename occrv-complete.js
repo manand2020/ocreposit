@@ -1,4 +1,14 @@
-// Olive Cover - Coverage Review form behavior v2.13.0
+// Olive Cover - Coverage Review form behavior v2.14.0
+// v2.14.0 (2026-05-23): buildPartialPayload now reads state from the actual injected
+//          dropdown element (#oc-state-select, name="state") with localStorage.oc_state
+//          fallback. Previously read from non-existent element ID "oc-crv-st" so every
+//          /coverage-review submission landed in CRM with [STATE-UNKNOWN] in description
+//          and ZIP misrouted into primary_address_state by OC Tech's backend fallback.
+//          The "oc-crv-st" ID never existed because ocstateselect.js injects the state
+//          dropdown with the canonical ID "oc-state-select". This fix mirrors the working
+//          localStorage-first pattern from ochomeleads.js v1.7.0 + ocwidget.js v2.16 +
+//          occontact-complete.js v1.7.0. State now flows correctly to Firestore auto-saves
+//          AND final submission AND GA4 generate_lead event payload.
 // v2.13.0: Fire gtag('event','generate_lead') on successful submit for Google Ads
 //          conversion-optimized bidding. Capture full UTM stack (utm_*, gclid,
 //          fbclid, msclkid, landing_referrer) into Firebase payload for CRM
@@ -337,6 +347,17 @@ function scheduleSave() {
 function buildPartialPayload() {
   const v = (id) => { const el = $(id); return el ? (el.value || "").trim() : ""; };
   const checks = (sel) => Array.from(document.querySelectorAll(sel + ":checked")).map((c) => c.value);
+  // State is injected by ocstateselect.js into the form as a <select id="oc-state-select"
+  // name="state"> dropdown (NOT as oc-crv-st which previous code expected and never found).
+  // Prefer the live element value (reflects user's current selection), fall back to
+  // localStorage where ocstateselect writes on change. Mirrors the working pattern in
+  // ochomeleads.js + ocwidget.js + occontact-complete.js v1.7.0.
+  let stateVal = "";
+  try {
+    const sel = document.getElementById("oc-state-select");
+    if (sel && sel.value) stateVal = sel.value.toUpperCase().trim();
+    if (!stateVal) stateVal = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
+  } catch (e) {}
   return {
     step: STATE.step,
     track: STATE.track,
@@ -347,7 +368,7 @@ function buildPartialPayload() {
       email: v("oc-crv-em"),
       phone: v("oc-crv-ph"),
       zip: v("oc-crv-zp"),
-      state: v("oc-crv-st")
+      state: stateVal
     },
     personalLines: checks("#oc-crv-pl input[type=checkbox]"),
     commercialLines: checks("#oc-crv-cl input[type=checkbox]"),
