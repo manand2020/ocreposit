@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.28
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.29
+// v1.10.29 (2026-05-24): ocbatch1024 v1.0.8 -- force .oc-pi-id-inner to single column.
+//   The section below hero (".oc-pi-id-section" / "If any of these sound familiar") has
+//   .oc-pi-id-inner set as 2-col grid in Webflow, splitting H2 + subtitle + cards into
+//   two side-by-side columns. Override to display:block (single column vertical stack).
 // v1.10.28 (2026-05-24): ocbatch1024 v1.0.7 HOTFIX -- second-overlay-below-text bug.
 //   .oc-pi-hero-left (text column) has its OWN navy linear-gradient bg from Webflow,
 //   stacking on top of the hero wrap's photo + ::before overlay. Result: visible
@@ -1422,7 +1426,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.7 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.8 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1645,6 +1649,37 @@ a.oc-pi-sys-block-anchor:hover .oc-pi-sys-block-name {
 .oc-ci-hero-wrap > .oc-ci-hero-right {
   background: transparent !important;
   background-image: none !important;
+}
+
+/* Force "If any of these sound familiar" section to single-column stack.
+   Webflow set .oc-pi-id-inner as multi-column grid which splits H2 + subtitle + cards
+   into two side-by-side columns. User wants single column (vertical stack). */
+html body .oc-pi-id-inner,
+html body .oc-ci-id-inner {
+  display: block !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+html body .oc-pi-id-inner > .oc-pi-id-h2,
+html body .oc-ci-id-inner > .oc-ci-id-h2 {
+  margin-bottom: 12px !important;
+}
+html body .oc-pi-id-inner > .oc-pi-id-sub,
+html body .oc-ci-id-inner > .oc-ci-id-sub {
+  margin-bottom: 28px !important;
+  max-width: 760px !important;
+}
+html body .oc-pi-id-inner > .oc-pi-id-grid,
+html body .oc-ci-id-inner > .oc-ci-id-grid {
+  margin-bottom: 28px !important;
+}
+html body .oc-pi-id-inner > .oc-pi-id-divider,
+html body .oc-ci-id-inner > .oc-ci-id-divider {
+  height: 1px !important;
+  background: rgba(184, 147, 74, 0.25) !important;
+  margin: 24px 0 !important;
 }
 
 /* /coverage: hide only the question-prompt eyebrow + question cards, NOT the hero section
