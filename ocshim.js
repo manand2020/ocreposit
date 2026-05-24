@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.23
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.24
+// v1.10.24 (2026-05-24): ocbatch1024 v1.0.3 HOTFIX -- previous version's
+//   section:has(.oc-cov2-q-label) rule + DOM walk-up to <section> were too
+//   aggressive: they removed the ENTIRE hero section on /coverage (including
+//   H1 + subtitle). User reported: "now the whole hero section is gone on
+//   coverage page." Replacing with targeted class hides on the eyebrow +
+//   question card classes only, leaving the parent hero intact.
 // v1.10.23 (2026-05-24): ocbatch1024 v1.0.2 -- Terms section move + broader 4x1.
 //   (1) Move "Insurance Terms / Glossary" CTA section (#pi-glossary-link) to be
 //       the LAST section before the footer on /personal-insurance and
@@ -1471,10 +1477,15 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   line-height: 1.4 !important;
 }
 
-/* /coverage: hide question-prompt section (WHAT BROUGHT YOU HERE + 4 question cards).
-   :has() selector targets the section that contains the .oc-cov2-q-label or .oc-cov2-q elements. */
-section:has(.oc-cov2-q-label),
-section:has(p.oc-cov2-q) {
+/* /coverage: hide only the question-prompt eyebrow + question cards, NOT the hero section
+   that contains them. v1.0.2 used section:has() which removed the whole hero — too aggressive.
+   Target the specific question-related classes individually. */
+p.oc-cov2-q-label,
+p.oc-cov2-q,
+[class*="oc-cov2-q-card"],
+[class*="oc-cov2-q-grid"],
+[class*="oc-cov2-q-wrap"],
+[class*="oc-cov2-questions"] {
   display: none !important;
 }
 
@@ -1526,14 +1537,25 @@ section:has(p.oc-cov2-q) {
       var t = (el.textContent || '').trim().toLowerCase();
       if (killTexts.indexOf(t) < 0) return;
       // Walk up to find the enclosing section (or major wrapper)
+      // For oc-cov2-q-label / oc-cov2-q elements, just hide the element + its closest div wrap
+      // (don't walk up to <section> — that's too aggressive on /coverage where the questions
+      // are inside the hero section).
+      var clsName = (el.className || '').toString();
+      if (clsName.indexOf('oc-cov2') >= 0) {
+        // Hide the immediate wrap div (question card container) but not the whole section
+        var wrap = el.closest('[class*="oc-cov2-q"]') || el.closest('div') || el;
+        wrap.style.display = 'none';
+        return;
+      }
+      // For non-coverage pages (e.g. /personal-insurance hero qlabel), walk up to <section>
+      // and remove (legacy behavior preserved for those page-specific eyebrow patterns).
       var node = el;
       for (var i = 0; i < 6 && node && node !== document.body; i++) {
         if (node.tagName === 'SECTION') { node.remove(); return; }
         node = node.parentElement;
       }
-      // Fallback: hide the element + its closest grouping div
-      var wrap = el.closest('div') || el;
-      wrap.style.display = 'none';
+      var wrap2 = el.closest('div') || el;
+      wrap2.style.display = 'none';
     });
 
     // (4) Tag "If any of these sound familiar" + commercial equivalent parent grids — for 4-col CSS rule
