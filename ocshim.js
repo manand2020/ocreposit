@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.34
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.35
+// v1.10.35 (2026-05-24): ocbatch1024 v1.0.14 -- Insurance pages .oc-grid4 equal-height cards.
+//   All 27 Insurance pages use .oc-grid4 (4-card grid) for "What's Covered" and "What's NOT
+//   Covered" sections. Add CSS forcing 4-col + grid-auto-rows: 1fr + flex-column children
+//   so all 4 cards in each row are visually equal height regardless of content length.
+//   Closes the "cards different heights" UX gripe without requiring per-page content rewrites.
 // v1.10.34 (2026-05-24): ocbatch1024 v1.0.13 -- /commercial-insurance terms id fix + /about trust strip.
 //   (1) /commercial-insurance terms section uses id="ci-glossary-link" not "pi-glossary-link".
 //       Shim's terms-move logic now matches both ids (plus generic [id$="-glossary-link"]).
@@ -1455,7 +1460,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.13 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.14 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1541,6 +1546,41 @@ html body .oc-ci-id-card .oc-ci-id-icon {
   color: #B8934A !important;
   width: 28px !important;
   height: 28px !important;
+}
+
+/* Insurance pages "What's Covered" / "What's NOT Covered" card grids.
+   .oc-grid4 holds 4 .oc-card cards in each section. Force 4-col grid with equal-height
+   cards via grid-auto-rows: 1fr so visual heights match across the row even when content
+   lengths vary. Cards stay flex-column with `flex:1` content area + sticky footer. */
+html body .oc-grid4 {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 20px !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+html body .oc-grid4 > * {
+  min-width: 0 !important;
+  height: 100% !important;
+}
+html body .oc-grid4 .oc-card,
+html body .oc-grid4 [class*="oc-card"] {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+@media (max-width: 991px) {
+  html body .oc-grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 600px) {
+  html body .oc-grid4 {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* /about trust-strip: A-Rated/Johns Creek/Licensed/Independent — 4-col.
