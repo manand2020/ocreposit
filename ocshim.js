@@ -1173,66 +1173,67 @@
   setTimeout(fix, 3000);
 })();
 
-// === ocinsfix v1.0.0 (2026-05-24): /insights page polish + Insurance What's Covered cards ===
+// === ocinsfix v1.0.0 (2026-05-24): /insights page polish + Insurance What is Covered cards ===
 (function(){
   if (window.__ocinsfix_init) return;
   window.__ocinsfix_init = true;
 
-  // CSS rules for the four targeted fixes
+  // Inject CSS once via template-literal (no escape issues with apostrophes)
   if (!document.getElementById('oc-insfix-css')) {
     var st = document.createElement('style');
     st.id = 'oc-insfix-css';
-    st.textContent = [
-      '/* /insights featured + all-articles grids -- 4-col equal cards */',
-      '.oc-ins-featured-grid, .oc-ins-all-grid {',
-      '  display: grid !important;',
-      '  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;',
-      '  grid-auto-rows: 1fr !important;',
-      '  gap: 16px !important;',
-      '  width: 100% !important;',
-      '  max-width: 1180px !important;',
-      '  margin-left: auto !important;',
-      '  margin-right: auto !important;',
-      '  padding: 0 20px !important;',
-      '  box-sizing: border-box !important;',
-      '}',
-      '.oc-ins-featured-grid > *, .oc-ins-all-grid > * {',
-      '  width: 100% !important;',
-      '  min-width: 0 !important;',
-      '  height: 100% !important;',
-      '  box-sizing: border-box !important;',
-      '  display: flex !important;',
-      '  flex-direction: column !important;',
-      '}',
-      '@media (max-width: 991px) {',
-      '  .oc-ins-featured-grid, .oc-ins-all-grid {',
-      '    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;',
-      '  }',
-      '}',
-      '@media (max-width: 600px) {',
-      '  .oc-ins-featured-grid, .oc-ins-all-grid {',
-      '    grid-template-columns: 1fr !important;',
-      '  }',
-      '}',
-      '/* Insurance pages -- What's Covered card grids: enforce equal heights */',
-      '.oc-ins-cov-cards-grid, .oc-ins-coverage-grid, .oc-ins-cards-grid, [class*="ins-cov-cards"], [class*="ins-coverage-cards"] {',
-      '  display: grid !important;',
-      '  grid-auto-rows: 1fr !important;',
-      '  align-items: stretch !important;',
-      '}',
-      '.oc-ins-cov-cards-grid > *, .oc-ins-coverage-grid > *, .oc-ins-cards-grid > *, [class*="ins-cov-cards"] > *, [class*="ins-coverage-cards"] > * {',
-      '  height: 100% !important;',
-      '  display: flex !important;',
-      '  flex-direction: column !important;',
-      '  box-sizing: border-box !important;',
-      '}'
-    ].join('
-');
+    st.textContent = `
+/* /insights featured + all-articles grids -- 4-col equal cards */
+.oc-ins-featured-grid, .oc-ins-all-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 16px !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+}
+.oc-ins-featured-grid > *, .oc-ins-all-grid > * {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+@media (max-width: 991px) {
+  .oc-ins-featured-grid, .oc-ins-all-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 600px) {
+  .oc-ins-featured-grid, .oc-ins-all-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* Insurance pages -- "What is Covered" card grids: enforce equal heights */
+.oc-ins-cov-cards-grid, .oc-ins-coverage-grid, .oc-ins-cards-grid,
+[class*="ins-cov-cards"], [class*="ins-coverage-cards"] {
+  display: grid !important;
+  grid-auto-rows: 1fr !important;
+  align-items: stretch !important;
+}
+.oc-ins-cov-cards-grid > *, .oc-ins-coverage-grid > *, .oc-ins-cards-grid > *,
+[class*="ins-cov-cards"] > *, [class*="ins-coverage-cards"] > * {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+`;
     document.head.appendChild(st);
   }
 
   function fix(){
-    // Remove blank oc-ic-1 article cards from /insights All Articles grid
+    // Remove blank oc-ic-1 article cards (no title or no link) from /insights All Articles
     document.querySelectorAll('article.oc-ic-1').forEach(function(card){
       var hasTitle = !!card.querySelector('.oc-ic-title-1-2');
       var hasLink = !!card.querySelector('a[href]:not([href="#"])');
@@ -1240,9 +1241,7 @@
     });
 
     // Remove IN THIS ARTICLE sidebar hint card on /insights/{slug} detail pages.
-    // The hint body is a generic filler paragraph; user flagged as meaningless.
-    // Walk from the hint-body paragraph up to find the enclosing card container
-    // and remove the whole block (label + paragraph + container).
+    // Filler content; post-launch will be replaced with per-article TOC content via CMS.
     document.querySelectorAll('.oc-art-sidebar-hint-body').forEach(function(p){
       var node = p;
       var removed = false;
