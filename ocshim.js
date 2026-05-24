@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.27
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.28
+// v1.10.28 (2026-05-24): ocbatch1024 v1.0.7 HOTFIX -- second-overlay-below-text bug.
+//   .oc-pi-hero-left (text column) has its OWN navy linear-gradient bg from Webflow,
+//   stacking on top of the hero wrap's photo + ::before overlay. Result: visible
+//   navy strip below text. Fix: zero out background on .oc-pi-hero-left / -right (and
+//   /commercial-insurance equivalents) so the photo+overlay show through cleanly.
 // v1.10.27 (2026-05-24): ocbatch1024 v1.0.6 -- /personal-insurance VISUAL polish.
 //   (1) Force ALL 3 page-section grids (.oc-pi-id-grid, .oc-pi-sys-stack, .oc-pi-gaps-grid)
 //       to 4-col on desktop with html-level selector specificity (previous CSS targeted
@@ -1417,7 +1422,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.6 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.7 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1629,6 +1634,17 @@ a.oc-pi-sys-block-anchor:hover .oc-pi-sys-block-name {
 .oc-pi-hero-wrap p,
 .oc-ci-hero-wrap p {
   color: rgba(245, 237, 216, 0.92) !important;
+}
+/* CRITICAL: .oc-pi-hero-left has its own navy linear-gradient bg from Webflow that
+   stacks ON TOP of the hero wrap's photo + ::before overlay, creating a visible
+   second overlay below the text. Make these inner columns transparent so the wrap's
+   photo+overlay shows through cleanly. */
+.oc-pi-hero-wrap > .oc-pi-hero-left,
+.oc-pi-hero-wrap > .oc-pi-hero-right,
+.oc-ci-hero-wrap > .oc-ci-hero-left,
+.oc-ci-hero-wrap > .oc-ci-hero-right {
+  background: transparent !important;
+  background-image: none !important;
 }
 
 /* /coverage: hide only the question-prompt eyebrow + question cards, NOT the hero section
