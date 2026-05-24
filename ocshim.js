@@ -1,4 +1,25 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.20
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.21
+// v1.10.21 (2026-05-24): ocbatch1024 v1.0.0 -- comprehensive review-batch fixes.
+//   (1) Footer: update Facebook URL to https://www.facebook.com/olivecoverins
+//       and hide Instagram link (account not yet active).
+//   (2) /faq: replace search placeholder "Search all 34 questions" with
+//       "Search FAQs" (stale count, total is 494).
+//   (3) /personal-insurance + /commercial-insurance + /coverage: remove the
+//       "What brought you here?" section (low-information UX clutter).
+//   (4) /coverage: also remove "What do I actually need?", "Am I already
+//       covered?", "What am I missing?" — same clutter pattern.
+//   (5) /personal-insurance + /commercial-insurance: force "If any of these
+//       sounds familiar" section card grid to 1-row 4-column.
+//   (6) /about: force A-Rated Carriers/Johns Creek/Licensed in GA/Independent
+//       Agent trust-strip cards to 1-row 4-column.
+//   (7) /insurance-terms: shrink card text + add row-gap so cards are smaller
+//       and rows visibly separated.
+//   (8) Nav: strip pill formatting from Resources active state so it matches
+//       the plain-text treatment of other nav items.
+//   (9) Homepage: force #oc-social-proof "Real Outcomes" cards to 1-row
+//       3-column.
+//   Text-content matching is used for sections without stable IDs (more
+//   robust against Webflow generated class names).
 // v1.10.20 (2026-05-24): ocnavcarrcomm v1.0.1 -- additionally remove the AIG
 //   link from the Commercial Lines column of the Carriers nav panel. /carriers/
 //   aig-insurance is AIG Private Client (personal lines high-net-worth), not
@@ -1318,6 +1339,208 @@
       });
     });
   }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fix);
+  } else {
+    fix();
+  }
+  setTimeout(fix, 800);
+  setTimeout(fix, 2000);
+  setTimeout(fix, 4000);
+})();
+
+// === ocbatch1024 v1.0.0 (2026-05-24): batch review fixes for layout + footer ===
+(function(){
+  if (window.__ocbatch1024_init) return;
+  window.__ocbatch1024_init = true;
+
+  // Inject CSS once
+  if (!document.getElementById('oc-batch1024-css')) {
+    var st = document.createElement('style');
+    st.id = 'oc-batch1024-css';
+    st.textContent = `
+/* /personal-insurance + /commercial-insurance: force "If any of these sounds familiar" + similar 1-up-4-card sections to 4-col */
+.oc-pi-sf-grid, .oc-ci-sf-grid, [data-sec="sounds-familiar"] {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 16px !important;
+}
+.oc-pi-sf-grid > *, .oc-ci-sf-grid > *, [data-sec="sounds-familiar"] > * {
+  height: 100% !important;
+  min-width: 0 !important;
+}
+@media (max-width: 991px) {
+  .oc-pi-sf-grid, .oc-ci-sf-grid, [data-sec="sounds-familiar"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 600px) {
+  .oc-pi-sf-grid, .oc-ci-sf-grid, [data-sec="sounds-familiar"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* /about trust-strip: A-Rated/Johns Creek/Licensed/Independent — 4-col */
+[data-sec="about-trust-strip"] {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 16px !important;
+}
+[data-sec="about-trust-strip"] > * {
+  height: 100% !important;
+  min-width: 0 !important;
+}
+@media (max-width: 991px) {
+  [data-sec="about-trust-strip"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 600px) {
+  [data-sec="about-trust-strip"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Homepage social-proof: Real Outcomes Near You — 3-col */
+#oc-social-proof .oc-sp-grid, [data-sec="social-proof-grid"] {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 24px !important;
+}
+@media (max-width: 991px) {
+  #oc-social-proof .oc-sp-grid, [data-sec="social-proof-grid"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* /insurance-terms: shrink card text + add row-gap */
+.oc-it-grid {
+  row-gap: 20px !important;
+}
+.oc-it-card {
+  padding: 16px !important;
+}
+.oc-it-card .oc-it-card-title, .oc-it-card h2, .oc-it-card h3 {
+  font-size: 0.95rem !important;
+  line-height: 1.3 !important;
+}
+.oc-it-card .oc-it-card-body, .oc-it-card p {
+  font-size: 0.8125rem !important;
+  line-height: 1.4 !important;
+}
+
+/* Nav Resources active-state: strip pill background to match plain text */
+.ocnav-link[href*="/insights"].w--current,
+.ocnav-link[href*="resources"].w--current,
+#ocn-item-resources .ocnav-link.w--current,
+#ocn-item-resources a.w--current {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  padding: inherit !important;
+  box-shadow: none !important;
+}
+`;
+    document.head.appendChild(st);
+  }
+
+  // ----- DOM patches -----
+  function fix(){
+    // (1) Footer social: Facebook URL update + Instagram hide
+    document.querySelectorAll('a[href*="facebook.com/olivecover"]').forEach(function(a){
+      a.href = 'https://www.facebook.com/olivecoverins';
+      a.setAttribute('aria-label', 'Olive Cover on Facebook');
+    });
+    document.querySelectorAll('a[href*="instagram.com/olivecover"]').forEach(function(a){
+      a.style.display = 'none';
+      a.setAttribute('aria-hidden', 'true');
+    });
+
+    // (2) /faq search placeholder
+    document.querySelectorAll('input[placeholder*="Search all" i], input[placeholder*="questions" i]').forEach(function(inp){
+      if (/\d+/.test(inp.placeholder || '')) {
+        inp.placeholder = 'Search FAQs';
+      }
+    });
+
+    // (3) Remove "What brought you here?" eyebrow + 4 question-sections on /coverage.
+    // Match: eyebrow labels (uppercase span) AND headings (any case).
+    // Removes the largest enclosing <section> if found, else just the element.
+    var killTexts = [
+      'what brought you here?',
+      'what do i actually need?',
+      'am i already covered?',
+      'what am i missing?'
+    ];
+    var killSelectors = 'h1, h2, h3, h4, span.oc-pi-hero-qlabel, span.oc-ci-hero-qlabel, [class*="hero-qlabel"], [class*="eyebrow"]';
+    document.querySelectorAll(killSelectors).forEach(function(el){
+      var t = (el.textContent || '').trim().toLowerCase();
+      if (killTexts.indexOf(t) < 0) return;
+      // Walk up to find the enclosing section (or major wrapper)
+      var node = el;
+      for (var i = 0; i < 6 && node && node !== document.body; i++) {
+        if (node.tagName === 'SECTION') { node.remove(); return; }
+        node = node.parentElement;
+      }
+      // Fallback: hide the element + its closest grouping div
+      var wrap = el.closest('div') || el;
+      wrap.style.display = 'none';
+    });
+
+    // (4) Tag "If any of these sound familiar" + commercial equivalent parent grids — for 4-col CSS rule
+    var familiarPhrases = [
+      'any of these sound familiar',      // /personal-insurance singular
+      'any of these sounds familiar',     // variant
+      'if any of these describe your situation',  // /commercial-insurance
+      'any of these describe your situation'
+    ];
+    document.querySelectorAll('h1, h2, h3, h4').forEach(function(h){
+      var t = (h.textContent || '').trim().toLowerCase();
+      var match = familiarPhrases.some(function(p){ return t.indexOf(p) >= 0; });
+      if (!match) return;
+      // Walk forward to find the next grid container with cards
+      var section = h.closest('section') || h.parentElement;
+      if (!section) return;
+      var grid = section.querySelector('[class*="grid"], [class*="cards"], .w-layout-grid, [class*="oc-pi-id"], [class*="oc-ci-id"]');
+      if (grid) {
+        grid.setAttribute('data-sec', 'sounds-familiar');
+      }
+    });
+
+    // (5) Tag /about trust-strip parent — when on /about path
+    if (location.pathname === '/about') {
+      var trustWords = ['A-Rated Carriers', 'Based in Johns Creek', 'Licensed in Georgia', 'Independent Agent'];
+      var foundTrustEls = [];
+      document.querySelectorAll('h2, h3, h4, p, strong, span').forEach(function(el){
+        var t = (el.textContent || '').trim();
+        if (trustWords.indexOf(t) >= 0) foundTrustEls.push(el);
+      });
+      // If found, walk up to the common ancestor
+      if (foundTrustEls.length >= 3) {
+        var common = foundTrustEls[0];
+        for (var i = 0; i < 8 && common; i++) {
+          if (common.contains(foundTrustEls[1]) && common.contains(foundTrustEls[2])) {
+            common.setAttribute('data-sec', 'about-trust-strip');
+            break;
+          }
+          common = common.parentElement;
+        }
+      }
+    }
+
+    // (6) Tag homepage social-proof grid — when on home
+    if (location.pathname === '/' || location.pathname === '') {
+      var sp = document.getElementById('oc-social-proof') || document.querySelector('[id*="social-proof"]');
+      if (sp) {
+        var grid = sp.querySelector('[class*="grid"], [class*="cards"], .w-layout-grid');
+        if (grid) grid.setAttribute('data-sec', 'social-proof-grid');
+      }
+    }
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fix);
   } else {
