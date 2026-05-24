@@ -1,4 +1,22 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.17
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.18
+// v1.10.18 (2026-05-24): ocinsfix v1.0.0 -- /insights page polish + Insurance
+//   What is Covered cards equal-height. Four targeted fixes:
+//   (1) oc-ins-featured-grid + oc-ins-all-grid: force 4-column equal cards
+//       (cards previously collapsed to 0px width and uneven heights).
+//   (2) Remove blank article.oc-ic-1 cards (no title + no link) from All
+//       Articles section. Legacy Designer placeholders left over from pre-CMS
+//       wiring. Was hidden in v1.9.4 via display:none; this version removes
+//       them from the DOM entirely so they do not affect grid sizing.
+//   (3) Remove .oc-art-sidebar-hint-body container on /insights/{slug} detail
+//       pages. The IN THIS ARTICLE sidebar hint had generic filler text (Use
+//       the headings below to navigate. Each section explains a specific
+//       aspect of this topic clearly and without jargon.) which provides no
+//       useful content. Post-launch this will be replaced with per-article
+//       researched TOC content via CMS field; until then, hide the empty
+//       shell.
+//   (4) Insurance template What is Covered cards: enforce equal heights on
+//       the card grids via grid-auto-rows:1fr and flex column layout so
+//       uneven body text length does not produce uneven card heights.
 // v1.10.17 (2026-05-23): ocstep4reorder v1.0.1 -- wrap dec + policy upload
 //   inputs in a flex row so they sit side-by-side on desktop. Auto-stack on
 //   mobile via flex-wrap + min-width:240px on each child.
@@ -1147,6 +1165,101 @@
     }
   }
   if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', fix);
+  } else {
+    fix();
+  }
+  setTimeout(fix, 1500);
+  setTimeout(fix, 3000);
+})();
+
+// === ocinsfix v1.0.0 (2026-05-24): /insights page polish + Insurance What's Covered cards ===
+(function(){
+  if (window.__ocinsfix_init) return;
+  window.__ocinsfix_init = true;
+
+  // CSS rules for the four targeted fixes
+  if (!document.getElementById('oc-insfix-css')) {
+    var st = document.createElement('style');
+    st.id = 'oc-insfix-css';
+    st.textContent = [
+      '/* /insights featured + all-articles grids -- 4-col equal cards */',
+      '.oc-ins-featured-grid, .oc-ins-all-grid {',
+      '  display: grid !important;',
+      '  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;',
+      '  grid-auto-rows: 1fr !important;',
+      '  gap: 16px !important;',
+      '  width: 100% !important;',
+      '  max-width: 1180px !important;',
+      '  margin-left: auto !important;',
+      '  margin-right: auto !important;',
+      '  padding: 0 20px !important;',
+      '  box-sizing: border-box !important;',
+      '}',
+      '.oc-ins-featured-grid > *, .oc-ins-all-grid > * {',
+      '  width: 100% !important;',
+      '  min-width: 0 !important;',
+      '  height: 100% !important;',
+      '  box-sizing: border-box !important;',
+      '  display: flex !important;',
+      '  flex-direction: column !important;',
+      '}',
+      '@media (max-width: 991px) {',
+      '  .oc-ins-featured-grid, .oc-ins-all-grid {',
+      '    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;',
+      '  }',
+      '}',
+      '@media (max-width: 600px) {',
+      '  .oc-ins-featured-grid, .oc-ins-all-grid {',
+      '    grid-template-columns: 1fr !important;',
+      '  }',
+      '}',
+      '/* Insurance pages -- What's Covered card grids: enforce equal heights */',
+      '.oc-ins-cov-cards-grid, .oc-ins-coverage-grid, .oc-ins-cards-grid, [class*="ins-cov-cards"], [class*="ins-coverage-cards"] {',
+      '  display: grid !important;',
+      '  grid-auto-rows: 1fr !important;',
+      '  align-items: stretch !important;',
+      '}',
+      '.oc-ins-cov-cards-grid > *, .oc-ins-coverage-grid > *, .oc-ins-cards-grid > *, [class*="ins-cov-cards"] > *, [class*="ins-coverage-cards"] > * {',
+      '  height: 100% !important;',
+      '  display: flex !important;',
+      '  flex-direction: column !important;',
+      '  box-sizing: border-box !important;',
+      '}'
+    ].join('
+');
+    document.head.appendChild(st);
+  }
+
+  function fix(){
+    // Remove blank oc-ic-1 article cards from /insights All Articles grid
+    document.querySelectorAll('article.oc-ic-1').forEach(function(card){
+      var hasTitle = !!card.querySelector('.oc-ic-title-1-2');
+      var hasLink = !!card.querySelector('a[href]:not([href="#"])');
+      if (!hasTitle || !hasLink) { card.remove(); }
+    });
+
+    // Remove IN THIS ARTICLE sidebar hint card on /insights/{slug} detail pages.
+    // The hint body is a generic filler paragraph; user flagged as meaningless.
+    // Walk from the hint-body paragraph up to find the enclosing card container
+    // and remove the whole block (label + paragraph + container).
+    document.querySelectorAll('.oc-art-sidebar-hint-body').forEach(function(p){
+      var node = p;
+      var removed = false;
+      for (var i = 0; i < 6 && node && node !== document.body; i++) {
+        var cls = (node.className || '').toString();
+        if (/sidebar.?hint|art-sidebar/i.test(cls) && node !== p) {
+          node.remove();
+          removed = true;
+          break;
+        }
+        node = node.parentElement;
+      }
+      if (!removed) { p.remove(); }
+    });
+  }
+
+  if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fix);
   } else {
     fix();
