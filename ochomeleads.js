@@ -1,7 +1,21 @@
-// Olive Cover - Homepage Lead Capture v1.6.0
+// Olive Cover - Homepage Lead Capture v1.7.0
 // Quick intake form: name + email + phone + intent -> Firestore home-leads collection (submissions DB)
 // Source: github.com/manand2020/ocreposit/ochomeleads.js
 // Loaded as ES module via IIFE registered script on homepage footer.
+// v1.7.0 (2026-05-23): Two-fix release for production reliability.
+//   (1) Sentinel guard via window.__ochomeleads_v17_init prevents double-init when the script is
+//       loaded via multiple paths (page-level inline-site-script slot AND the ocnav-complete.js
+//       loader IIFE). Symptom before fix: every homepage submission created TWO identical CRM
+//       Leads at the same timestamp (verified live 2026-05-23 20:00 ET with 2 duplicate
+//       "WF Probe Home 0523" records). Sentinel logs to console when it skips so future
+//       regressions are observable.
+//   (2) e.stopImmediatePropagation() inside the submit handler stops Webflow's native forms.js
+//       listener from firing in parallel. preventDefault() alone only stops the browser's
+//       default form action; it does NOT stop other JS listeners attached to the same event.
+//       Symptom before fix: every homepage submission sent a no-reply notification from
+//       no-reply-forms@webflow.com to the site owner, containing only "phone: 6788881011"
+//       because Webflow's FormData binding only recognized the shim-injected oc-lead-phone
+//       name="phone" input. Stops the noise email pipeline cleanly.
 // v1.6.0: Fire gtag('event','generate_lead') on success for Google Ads conversion
 //         optimization. Capture full UTM stack (utm_*, gclid, fbclid, msclkid,
 //         referrer) into Firebase payload so OC Tech can write to CRM Lead
@@ -72,6 +86,7 @@ function init() {
 
   form.addEventListener("submit", async function(e) {
     e.preventDefault();
+    e.stopImmediatePropagation();
 
     const name = (document.getElementById("oc-lead-name").value || "").trim();
     const emailEl = document.getElementById("oc-lead-email") || document.getElementById("oc-lead-contact");
@@ -142,8 +157,18 @@ function init() {
   });
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+// Sentinel guard: defend against dual-load paths (page-level inline-site-script slot +
+// ocnav-complete.js IIFE loader). ES module dedup is supposed to handle this, but if the
+// two loaders use different fetch paths (e.g. different SHA pins, dynamic appendChild vs
+// inline script) the browser treats them as separate module records and runs init() twice,
+// binding the submit handler twice, creating duplicate CRM Leads on every submission.
+if (window.__ochomeleads_v17_init) {
+  console.log("[oc-leads] init already registered (sentinel triggered, second load skipped)");
 } else {
-  init();
+  window.__ochomeleads_v17_init = true;
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 }
