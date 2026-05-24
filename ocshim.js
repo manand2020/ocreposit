@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.25
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.26
+// v1.10.26 (2026-05-24): ocbatch1024 v1.0.5 HOTFIX -- Terms-section-move target was
+//   matching .oc-widget-panel-footer (inside Ask Olive widget) instead of the real
+//   site footer. Result: on /personal-insurance the Terms section was getting moved
+//   INSIDE the chat widget panel and disappearing from main page flow. Fixed by
+//   pinning the footer target to #oc-footer-new (the actual site footer DIV).
 // v1.10.25 (2026-05-24): ocbatch1024 v1.0.4 -- /personal-insurance polish.
 //   (1) Force .oc-pi-sys-stack to 4-column grid (6 cards wrap to 4+2 rows).
 //   (2) Wire each .oc-pi-sys-block as an anchor link to the corresponding
@@ -1403,7 +1408,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.0 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.5 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1695,12 +1700,15 @@ p.oc-cov2-q,
       });
     }
 
-    // (5.5) Move Terms/Glossary CTA section above footer on /personal-insurance + /commercial-insurance
+    // (5.5) Move Terms/Glossary CTA section above the SITE FOOTER on /personal-insurance + /commercial-insurance
+    // v1.0.5 fix: Previous selector 'footer, .oc-footer, [class*="footer"]' matched
+    // .oc-widget-panel-footer (inside Ask Olive chat widget) FIRST, so terms got
+    // moved INSIDE the widget panel and disappeared from main page flow.
+    // Site footer on this Webflow build is #oc-footer-new (direct child of body, no <footer> tag).
     if (location.pathname === '/personal-insurance' || location.pathname === '/commercial-insurance') {
       var termsSec = document.getElementById('pi-glossary-link');
-      var footer = document.querySelector('footer, .oc-footer, [class*="footer"]');
+      var footer = document.getElementById('oc-footer-new');
       if (termsSec && footer && footer.previousElementSibling !== termsSec) {
-        // Move terms section to be the immediate sibling before footer
         try {
           footer.parentNode.insertBefore(termsSec, footer);
         } catch (e) {}
