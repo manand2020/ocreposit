@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.19
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.20
+// v1.10.20 (2026-05-24): ocnavcarrcomm v1.0.1 -- additionally remove the AIG
+//   link from the Commercial Lines column of the Carriers nav panel. /carriers/
+//   aig-insurance is AIG Private Client (personal lines high-net-worth), not
+//   commercial. There is no /carriers/aig-commercial-insurance slug. Cleanest
+//   fix is removing it from the Commercial column entirely until/unless a
+//   commercial AIG slug is added later.
 // v1.10.19 (2026-05-24): ocnavcarrcomm v1.0.0 -- fix commercial column carrier
 //   nav links that wrongly pointed to personal/generic carrier slugs. Three swaps:
 //   travelers-insurance -> travelers-commercial-insurance, hartford-insurance ->
@@ -1302,6 +1308,11 @@
           var u = new URL(a.href, location.origin);
           if (SWAPS[u.pathname]) {
             a.setAttribute('href', SWAPS[u.pathname]);
+          }
+          // Remove AIG link from Commercial column. AIG Private Client is personal-lines.
+          if (u.pathname === '/carriers/aig-insurance') {
+            var item = a.closest('li, [role="menuitem"]') || a;
+            if (item && item.parentNode) item.parentNode.removeChild(item);
           }
         } catch (e) {}
       });
