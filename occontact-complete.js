@@ -1,4 +1,16 @@
-// Olive Cover - Contact form handler v1.5.0
+// Olive Cover - Contact form handler v1.6.0
+// v1.6.0 (2026-05-23): Two defensive fixes paralleling ochomeleads v1.7.0 pattern.
+//   (1) e.stopImmediatePropagation() inside onSubmit blocks Webflow's native
+//       forms.js submit listener from firing in parallel. preventDefault alone
+//       stops the browser's default form action but not other JS listeners.
+//       Without this, every contact submission risks a Webflow no-reply
+//       notification email (containing only the phone field) sent to the site
+//       owner, mirroring the homepage form noise pattern observed 2026-05-23.
+//   (2) Sentinel guard via window.__occontact_v16_init prevents double-init if
+//       the script ever gets loaded via multiple paths in the future. ES module
+//       dedup works only for identical URLs; if dual loaders pin to different
+//       commits the dedup fails and the submit handler binds twice. Defense
+//       in depth.
 // v1.5.0: Capture full UTM stack (utm_*, gclid, fbclid, msclkid, landing_referrer)
 //         into payload. Fire gtag('event','generate_lead') on successful submit
 //         for Google Ads conversion-optimized bidding.
@@ -109,6 +121,7 @@ function showFail(form) {
 
 async function onSubmit(e) {
   e.preventDefault();
+  e.stopImmediatePropagation();
   const form = e.currentTarget;
   showInlineError(form, "");
 
@@ -169,5 +182,13 @@ async function onSubmit(e) {
   }
 }
 
-ready(init);
+// Sentinel guard: defend against future dual-loader regressions. If the script is loaded
+// twice via different fetch paths (page-level inline-site-script + some other loader), the
+// second load's init() is a no-op so we never bind the submit handler twice.
+if (window.__occontact_v16_init) {
+  console.log("[oc-contact] init already registered (sentinel triggered, second load skipped)");
+} else {
+  window.__occontact_v16_init = true;
+  ready(init);
+}
 
