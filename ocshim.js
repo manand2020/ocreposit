@@ -1,4 +1,15 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.22
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.23
+// v1.10.23 (2026-05-24): ocbatch1024 v1.0.2 -- Terms section move + broader 4x1.
+//   (1) Move "Insurance Terms / Glossary" CTA section (#pi-glossary-link) to be
+//       the LAST section before the footer on /personal-insurance and
+//       /commercial-insurance. Pure DOM reorder; CMS content unchanged.
+//   (2) Broaden 4x1 card grid CSS so the section-below-hero on the insurance
+//       hubs also gets the 4-column treatment when it has ~4 cards.
+//   NOTE on items deferred from this session's review: "/personal-insurance
+//   hero = 100% match homepage" requires Designer canvas template rework
+//   (different DOM structures between oc-pi-hero-* and oc-hero-*) and cannot
+//   be done at runtime via shim. Card anchor-links to sections below also
+//   deferred because many target sections lack stable IDs.
 // v1.10.22 (2026-05-24): ocbatch1024 v1.0.1 -- expand /coverage question-section
 //   removal. v1.0.0 targeted h1-h4 + .oc-pi-hero-qlabel + [class*="hero-qlabel"]
 //   but /coverage uses <p class="oc-cov2-q-label"> for the eyebrow and <p
@@ -1256,6 +1267,28 @@
     grid-template-columns: 1fr !important;
   }
 }
+/* /personal-insurance + /commercial-insurance: force any card grid with ~4 children to 4-col layout.
+   Targets common Webflow grid wrapper classes used on these hubs. */
+body[class*="personal-insurance"] .w-layout-grid:has(> :nth-child(4):last-child),
+body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-child) {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 16px !important;
+}
+@media (max-width: 991px) {
+  body[class*="personal-insurance"] .w-layout-grid:has(> :nth-child(4):last-child),
+  body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 600px) {
+  body[class*="personal-insurance"] .w-layout-grid:has(> :nth-child(4):last-child),
+  body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-child) {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Insurance pages -- "What is Covered" card grids: enforce equal heights */
 .oc-ins-cov-cards-grid, .oc-ins-coverage-grid, .oc-ins-cards-grid,
 [class*="ins-cov-cards"], [class*="ins-coverage-cards"] {
@@ -1541,6 +1574,18 @@ section:has(p.oc-cov2-q) {
           }
           common = common.parentElement;
         }
+      }
+    }
+
+    // (5.5) Move Terms/Glossary CTA section above footer on /personal-insurance + /commercial-insurance
+    if (location.pathname === '/personal-insurance' || location.pathname === '/commercial-insurance') {
+      var termsSec = document.getElementById('pi-glossary-link');
+      var footer = document.querySelector('footer, .oc-footer, [class*="footer"]');
+      if (termsSec && footer && footer.previousElementSibling !== termsSec) {
+        // Move terms section to be the immediate sibling before footer
+        try {
+          footer.parentNode.insertBefore(termsSec, footer);
+        } catch (e) {}
       }
     }
 
