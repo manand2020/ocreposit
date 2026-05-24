@@ -1,4 +1,13 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.26
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.27
+// v1.10.27 (2026-05-24): ocbatch1024 v1.0.6 -- /personal-insurance VISUAL polish.
+//   (1) Force ALL 3 page-section grids (.oc-pi-id-grid, .oc-pi-sys-stack, .oc-pi-gaps-grid)
+//       to 4-col on desktop with html-level selector specificity (previous CSS targeted
+//       only .oc-pi-sf-grid which is not the actual class used).
+//   (2) Hero bg-image set DIRECTLY on .oc-pi-hero-wrap (the standalone photo block is
+//       hidden by ocstylefixes.fixHeroPhotos; wrap-level bg ensures hero photo renders).
+//       Navy 78-92% gradient overlay via ::before for readability.
+//   (3) .oc-pi-id-card polish: white bg, gold border on hover, lift on hover, subtle shadow.
+//   Parallel rules added for /commercial-insurance (.oc-ci-* variants) for symmetry.
 // v1.10.26 (2026-05-24): ocbatch1024 v1.0.5 HOTFIX -- Terms-section-move target was
 //   matching .oc-widget-panel-footer (inside Ask Olive widget) instead of the real
 //   site footer. Result: on /personal-insurance the Terms section was getting moved
@@ -1408,7 +1417,7 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
   setTimeout(fix, 4000);
 })();
 
-// === ocbatch1024 v1.0.5 (2026-05-24): batch review fixes for layout + footer ===
+// === ocbatch1024 v1.0.6 (2026-05-24): batch review fixes for layout + footer ===
 (function(){
   if (window.__ocbatch1024_init) return;
   window.__ocbatch1024_init = true;
@@ -1418,26 +1427,82 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
     var st = document.createElement('style');
     st.id = 'oc-batch1024-css';
     st.textContent = `
-/* /personal-insurance + /commercial-insurance: force "If any of these sounds familiar" + similar 1-up-4-card sections to 4-col */
-.oc-pi-sf-grid, .oc-ci-sf-grid, [data-sec="sounds-familiar"] {
+/* /personal-insurance + /commercial-insurance: force ALL section grids to 4-col on desktop.
+   Real grid classes on these pages: .oc-pi-id-grid (Identify), .oc-pi-sys-stack (Numbered),
+   .oc-pi-gaps-grid (Coverage Gaps), .oc-pi-sf-grid (If any sounds familiar - legacy). */
+html body .oc-pi-id-grid,
+html body .oc-pi-gaps-grid,
+html body .oc-pi-sf-grid,
+html body .oc-ci-id-grid,
+html body .oc-ci-gaps-grid,
+html body .oc-ci-sf-grid,
+html body [data-sec="sounds-familiar"] {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   grid-auto-rows: 1fr !important;
-  gap: 16px !important;
+  gap: 20px !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
-.oc-pi-sf-grid > *, .oc-ci-sf-grid > *, [data-sec="sounds-familiar"] > * {
+html body .oc-pi-id-grid > *,
+html body .oc-pi-gaps-grid > *,
+html body .oc-pi-sf-grid > *,
+html body .oc-ci-id-grid > *,
+html body .oc-ci-gaps-grid > *,
+html body .oc-ci-sf-grid > *,
+html body [data-sec="sounds-familiar"] > * {
   height: 100% !important;
   min-width: 0 !important;
 }
 @media (max-width: 991px) {
-  .oc-pi-sf-grid, .oc-ci-sf-grid, [data-sec="sounds-familiar"] {
+  html body .oc-pi-id-grid,
+  html body .oc-pi-gaps-grid,
+  html body .oc-pi-sf-grid,
+  html body .oc-ci-id-grid,
+  html body .oc-ci-gaps-grid,
+  html body .oc-ci-sf-grid,
+  html body [data-sec="sounds-familiar"] {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 @media (max-width: 600px) {
-  .oc-pi-sf-grid, .oc-ci-sf-grid, [data-sec="sounds-familiar"] {
+  html body .oc-pi-id-grid,
+  html body .oc-pi-gaps-grid,
+  html body .oc-pi-sf-grid,
+  html body .oc-ci-id-grid,
+  html body .oc-ci-gaps-grid,
+  html body .oc-ci-sf-grid,
+  html body [data-sec="sounds-familiar"] {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* "If any of these sound familiar" section card polish - white bg, gold accent, hover lift */
+html body .oc-pi-id-card,
+html body .oc-ci-id-card {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(184, 147, 74, 0.25) !important;
+  border-radius: 10px !important;
+  padding: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
+  box-shadow: 0 1px 3px rgba(27, 58, 92, 0.06) !important;
+}
+html body .oc-pi-id-card:hover,
+html body .oc-ci-id-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: #B8934A !important;
+  box-shadow: 0 8px 20px rgba(27, 58, 92, 0.12) !important;
+}
+html body .oc-pi-id-card .oc-pi-id-icon,
+html body .oc-ci-id-card .oc-ci-id-icon {
+  color: #B8934A !important;
+  width: 28px !important;
+  height: 28px !important;
 }
 
 /* /about trust-strip: A-Rated/Johns Creek/Licensed/Independent — 4-col */
@@ -1525,26 +1590,45 @@ a.oc-pi-sys-block-anchor:hover .oc-pi-sys-block-name {
   text-decoration: underline !important;
 }
 
-/* /personal-insurance hero polish - tighten layout, ensure navy overlay treatment */
-.oc-pi-hero-wrap {
+/* /personal-insurance + /commercial-insurance hero: set bg-image directly on hero wrap
+   (the standalone photo block is hidden by ocstylefixes.fixHeroPhotos, so we cannot
+   rely on it as a positioned child anymore). Set bg-image on the wrap itself and overlay
+   with a navy gradient via ::before for the content stacking. */
+.oc-pi-hero-wrap,
+.oc-ci-hero-wrap {
   position: relative !important;
-  min-height: 480px !important;
+  min-height: 520px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  isolation: isolate !important;
 }
-.oc-pi-hero-wrap > [class*="oc-hero-photo"] {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 0 !important;
+.oc-pi-hero-wrap {
+  background-image: url('https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/6a0201a3f074c287a2a3ca00_hero-personal-insurance.jpg') !important;
 }
-.oc-pi-hero-wrap > [class*="oc-hero-photo"]::after {
+.oc-pi-hero-wrap::before,
+.oc-ci-hero-wrap::before {
   content: "" !important;
   position: absolute !important;
   inset: 0 !important;
-  background: linear-gradient(180deg, rgba(27,58,92,0.7) 0%, rgba(27,58,92,0.85) 100%) !important;
+  background: linear-gradient(180deg, rgba(27,58,92,0.78) 0%, rgba(27,58,92,0.92) 100%) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+.oc-pi-hero-wrap > *,
+.oc-ci-hero-wrap > * {
+  position: relative !important;
   z-index: 1 !important;
 }
-.oc-pi-hero-left {
-  position: relative !important;
-  z-index: 2 !important;
+.oc-pi-hero-h1,
+.oc-ci-hero-h1 {
+  color: #F5EDD8 !important;
+}
+.oc-pi-hero-sub,
+.oc-ci-hero-sub,
+.oc-pi-hero-wrap p,
+.oc-ci-hero-wrap p {
+  color: rgba(245, 237, 216, 0.92) !important;
 }
 
 /* /coverage: hide only the question-prompt eyebrow + question cards, NOT the hero section
@@ -1712,6 +1796,28 @@ p.oc-cov2-q,
         try {
           footer.parentNode.insertBefore(termsSec, footer);
         } catch (e) {}
+      }
+    }
+
+    // (5.6) Hero photo bg-image: dynamically discover hero photo URL from the (hidden)
+    // standalone photo block and apply it as background-image on the hero wrap. CSS already
+    // sets a known URL for /personal-insurance, this DOM step covers /commercial-insurance
+    // (and other Insurance subpaths) where the URL is page-specific.
+    if (location.pathname === '/personal-insurance' || location.pathname === '/commercial-insurance' || location.pathname.indexOf('/insurance/') === 0) {
+      var heroWrap = document.querySelector('.oc-pi-hero-wrap, .oc-ci-hero-wrap, [class*="oc-hero-wrap"]');
+      if (heroWrap && !heroWrap.dataset.bgApplied) {
+        var photoEl = heroWrap.querySelector('[class*="oc-hero-photo"]') ||
+                      document.querySelector('section [class*="oc-hero-photo"]');
+        if (photoEl) {
+          var url = (getComputedStyle(photoEl).backgroundImage || '').match(/url\(["']?([^"')]+)["']?\)/);
+          if (url && url[1]) {
+            heroWrap.style.setProperty('background-image', 'url("' + url[1] + '")', 'important');
+            heroWrap.style.setProperty('background-size', 'cover', 'important');
+            heroWrap.style.setProperty('background-position', 'center', 'important');
+            heroWrap.style.setProperty('background-repeat', 'no-repeat', 'important');
+            heroWrap.dataset.bgApplied = '1';
+          }
+        }
       }
     }
 
