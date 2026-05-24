@@ -1,4 +1,14 @@
-// Olive Cover - Contact form handler v1.7.0
+// Olive Cover - Contact form handler v1.8.0
+// v1.8.0 (2026-05-24): Frontend workaround for CRM Lead Description field-completeness gap.
+//       The backend Cloud Function template that converts contact-submissions Firestore docs
+//       to SuiteCRM Lead Description blobs currently OMITS State, session_id, page, referrer,
+//       userAgent (it preserves them in the Firestore doc but doesn't echo them in the
+//       operator-visible Description blob — see _oc-tech-deliverables/contact-crm-description-
+//       field-completeness-2026-05-24.md for the proper P0 backend fix request). Until OC Tech
+//       ships the backend template enhancement, this version appends a "--- Submission
+//       diagnostics ---" suffix to the message field so producers see all relevant context
+//       in the CRM Lead Description. Revert the diagnostic-suffix block in onSubmit() after
+//       OC Tech ships the backend Description-template fix.
 // v1.7.0 (2026-05-23): Capture visitor state from oc_state localStorage and include in
 //       payload. Previously the contact form never read state even though ocstateselect
 //       v1.0.14 injects a <select name="state"> into every form. Result: every contact
@@ -142,21 +152,41 @@ async function onSubmit(e) {
     stateVal = ((data.get("state") || "") + "").toUpperCase().trim();
     if (!stateVal) stateVal = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
   } catch (e) {}
+
+  // v1.8.0 workaround: backend Cloud Function template (contact-submissions -> Lead) does NOT
+  // currently surface State, session_id, page, referrer, userAgent in the CRM Description blob.
+  // Until OC Tech ships the backend template fix (deliverable: contact-crm-description-field-completeness-2026-05-24),
+  // we append a Submission diagnostics suffix to the message field so producers see complete
+  // context in the CRM Lead Description's "Message:" section. Revert this block after backend ships.
+  const _userMessage = ((data.get("message") || "") + "").trim();
+  const _pageVal = location.pathname;
+  const _referrerVal = document.referrer || "";
+  const _uaVal = (navigator.userAgent || "").slice(0, 300);
+  const _sessionVal = window.OC_SESSION?.uid() ?? null;
+  const _diagLines = [
+    stateVal ? "State: " + stateVal : null,
+    _sessionVal ? "Session: " + _sessionVal : null,
+    _pageVal ? "Page: " + _pageVal : null,
+    _referrerVal ? "Referrer: " + _referrerVal : null,
+    _uaVal ? "User-Agent: " + _uaVal : null
+  ].filter(Boolean);
+  const _enrichedMessage = _userMessage + (_diagLines.length ? "\n\n--- Submission diagnostics ---\n" + _diagLines.join("\n") : "");
+
   const payload = {
     name: ((data.get("name") || "") + "").trim(),
     email: ((data.get("email") || "") + "").trim(),
     topic: ((data.get("topic") || "") + "").trim(),
-    message: ((data.get("message") || "") + "").trim(),
+    message: _enrichedMessage,
     state: stateVal,
     source: "contact-page",
-    page: location.pathname,
-    referrer: document.referrer || "",
+    page: _pageVal,
+    referrer: _referrerVal,
     landing_referrer: document.referrer || "",
-    userAgent: (navigator.userAgent || "").slice(0, 300),
+    userAgent: _uaVal,
     submittedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
     status: "new",
-    session_id: window.OC_SESSION?.uid() ?? null,
+    session_id: _sessionVal,
     utm_source: _utm.utm_source || null,
     utm_medium: _utm.utm_medium || null,
     utm_campaign: _utm.utm_campaign || null,
