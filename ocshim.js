@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.48
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.49
+// v1.10.49 (2026-05-24): /personal-insurance Coverage Gaps section 2x2 grid (was 4x1).
+//   .oc-pi-gaps-grid + .oc-ci-gaps-grid split out from the 4-col rule into their own 2-col
+//   rule for better readability on desktop. Mobile breakpoints unchanged (still 1-col).
 // v1.10.48 (2026-05-24): widget v2.17.0 pin -- friendlier fallback ack wording.
 //   Replaced "Thanks, your message is saved. You can also email askolive@olivecover.com,
 //   call (678) 888-1011, or visit /coverage-review for a Free Coverage Review." with
@@ -1644,20 +1647,31 @@ body[class*="commercial-insurance"] .w-layout-grid:has(> :nth-child(4):last-chil
     var st = document.createElement('style');
     st.id = 'oc-batch1024-css';
     st.textContent = `
-/* /personal-insurance + /commercial-insurance: force ALL section grids to 4-col on desktop.
+/* /personal-insurance + /commercial-insurance: force section grids to 4-col on desktop,
+   EXCEPT the Coverage Gaps grid which is 2x2 by request.
    Real grid classes on these pages: .oc-pi-id-grid (Identify), .oc-pi-sys-stack (Numbered),
-   .oc-pi-gaps-grid (Coverage Gaps), .oc-pi-sf-grid (If any sounds familiar - legacy). */
+   .oc-pi-gaps-grid (Coverage Gaps -- 2x2), .oc-pi-sf-grid (If any sounds familiar - legacy). */
 html body .oc-pi-id-grid,
-html body .oc-pi-gaps-grid,
 html body .oc-pi-sf-grid,
 html body .oc-ci-id-grid,
-html body .oc-ci-gaps-grid,
 html body .oc-ci-sf-grid,
 html body [data-sec="sounds-familiar"] {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   grid-auto-rows: 1fr !important;
   gap: 20px !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+/* Coverage Gaps section: 2x2 grid (was 4-col, user requested 2x2 for better readability). */
+html body .oc-pi-gaps-grid,
+html body .oc-ci-gaps-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important;
+  gap: 24px !important;
   width: 100% !important;
   max-width: 1180px !important;
   margin-left: auto !important;
