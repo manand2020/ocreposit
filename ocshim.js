@@ -1,8 +1,11 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.45
-// v1.10.45 (2026-05-24): /about hero full-bleed fix.
-//   #oc-about-hero section had max-width:1180px inline, making the hero photo + navy
-//   overlay float in a narrow box. Override to width:100% / max-width:none on section,
-//   keep the inner text wrapper centered at 1180px reading width.
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.46
+// v1.10.46 (2026-05-24): /about hero full-bleed v2.
+//   v1.10.45 CSS override (html body #oc-about-hero) lost on specificity to Webflow's
+//   .inline-section-0-1-2-...-110 generated class (110 chained classes). Switched to JS
+//   that sets inline style directly via setProperty(..., 'important') -- inline styles
+//   beat all class-based rules regardless of specificity. Inner text wrappers still
+//   centered at 1180px via the same inline-style mechanism.
+// v1.10.45 (2026-05-24): /about hero full-bleed fix (CSS-only -- DID NOT WIN specificity).
 // v1.10.44 (2026-05-24): TWO fixes.
 //   (a) ocinsightsnewcards trim -- shortened ACV/RCV + tornado card excerpts to ~100-130 chars
 //       so they fit the 2-line clamp on all-articles cards (earlier 178-198 chars overflowed).
@@ -761,6 +764,36 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
   setTimeout(run, 500);
   setTimeout(run, 1500);
+})();
+
+// === ocabouthero.js (v1.0.0 — /about hero full-bleed via inline style) ===
+// CSS-only override loses to Webflow's auto-generated .inline-section-0-1-2-...-110 class
+// (110 chained classes -> huge specificity score even vs !important). Setting inline style
+// directly on the element beats all class-based rules.
+(function(){
+  if (!/^\/about\/?$/.test(location.pathname)) return;
+  function run(){
+    var sec = document.getElementById('oc-about-hero');
+    if (!sec) return;
+    sec.style.setProperty('max-width', 'none', 'important');
+    sec.style.setProperty('width', '100%', 'important');
+    sec.style.setProperty('margin-left', '0', 'important');
+    sec.style.setProperty('margin-right', '0', 'important');
+    // Inner text wrapper (not the hero-layers absolute div): center at 1180px reading width
+    var kids = sec.children;
+    for (var i = 0; i < kids.length; i++) {
+      var k = kids[i];
+      if (k.classList.contains('oc-about-hero-layers')) continue;
+      k.style.setProperty('max-width', '1180px', 'important');
+      k.style.setProperty('margin-left', 'auto', 'important');
+      k.style.setProperty('margin-right', 'auto', 'important');
+      k.style.setProperty('width', '100%', 'important');
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  setTimeout(run, 300);
+  setTimeout(run, 1000);
 })();
 
 // === ocinsightsnewcards.js (v1.0.0 — inject 3 new article cards on /insights hub) ===
