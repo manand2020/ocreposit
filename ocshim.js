@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.51
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.52
+// v1.10.52 (2026-05-24): occarrierratecards v1.0.0 -- hide irrelevant Customer Satisfaction
+//   card on carrier pages by LOB. Personal-lines carriers hide Card 3 (commercial), commercial
+//   carriers hide Card 2 (personal). Slug detection for /carriers/{slug}.
 // v1.10.51 (2026-05-24): Resources nav submenu compact. #ocn-item-learn-panel padding /
 //   item font-sizes / gap reduced so the dropdown is shorter and less imposing. Title 14px,
 //   description 12px, icon 16x16, panel max-width 440px, item padding 8x10.
@@ -788,6 +791,28 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
   setTimeout(run, 500);
   setTimeout(run, 1500);
+})();
+
+// === occarrierratecards.js (v1.0.0 — hide irrelevant card per carrier LOB) ===
+// Personal-lines carriers: hide Card 3 (Customer satisfaction commercial) — not relevant.
+// Commercial-lines carriers: hide Card 2 (Customer satisfaction personal) — not relevant.
+// Detection via URL slug.
+(function(){
+  if (!/^\/carriers\//.test(location.pathname)) return;
+  var slug = location.pathname.replace(/^\/carriers\//, '').replace(/\/$/, '');
+  var isCommercial = /\bcommercial\b|workers-comp/.test(slug);
+  var hideId = isCommercial ? 'carrier-jdpower' : 'carrier-jdpower-comm';
+  function run(){
+    var el = document.getElementById(hideId);
+    if (el) {
+      var card = el.closest('.oc-card');
+      if (card) card.style.setProperty('display', 'none', 'important');
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  setTimeout(run, 400);
+  setTimeout(run, 1200);
 })();
 
 // === ocabouthero.js (v1.0.0 — /about hero full-bleed via inline style) ===
