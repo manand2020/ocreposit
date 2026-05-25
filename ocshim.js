@@ -1,4 +1,11 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.57
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.58
+// v1.10.58 (2026-05-25): Brand vs legal-entity clarification in JSON-LD.
+//   Per Mahesh: "Olive Cover is not an agency. Olive Insurance Services is the agency.
+//   Olive Cover is a brand name of Olive Insurance Services."
+//   Added legalName:"Olive Insurance Services, LLC" + alternateName:"Olive Insurance Services"
+//   to the InsuranceAgency 'ag' object (used across ocschemaexpand rules) AND to the
+//   /contact ContactPage mainEntity. /about AboutPage already had legalName.
+//   This satisfies AI engines that look for the legal-entity-to-brand mapping in structured data.
 // v1.10.57 (2026-05-25): Rich Results Test fixes after v1.10.56 validation.
 //   (1) /faq/{slug} QAPage CRITICAL fix -- acceptedAnswer.text was empty because the selector
 //       couldn't find the answer. Webflow FAQ template structure is <h1>Q</h1><div><p>A</p></div>,
@@ -432,7 +439,7 @@
   function run(){
     var p=location.pathname.replace(/\/$/,'')||'/';
     var existing=Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function(s){try{return JSON.parse(s.textContent)['@type'];}catch(e){return null;}});
-    var ag={'@type':'InsuranceAgency','name':'Olive Cover','url':'https://www.olivecover.com','telephone':'+1-678-888-1011'};
+    var ag={'@type':'InsuranceAgency','name':'Olive Cover','legalName':'Olive Insurance Services, LLC','alternateName':'Olive Insurance Services','url':'https://olivecover.com','telephone':'+1-678-888-1011'};
     var ar={'@type':'State','name':'Georgia'};
     var siteUrl='https://www.olivecover.com';
     var s=null;
@@ -706,6 +713,8 @@
         'mainEntity':{
           '@type':'InsuranceAgency',
           'name':'Olive Cover',
+          'legalName':'Olive Insurance Services, LLC',
+          'alternateName':'Olive Insurance Services',
           'url':siteUrl,
           'telephone':'+1-678-888-1011',
           'email':'askolive@olivecover.com',
@@ -727,12 +736,13 @@
         '@context':'https://schema.org',
         '@type':'AboutPage',
         'name':getH1()||'About Olive Cover',
-        'description':getDesc()||'About Olive Cover, an independent property and casualty insurance agency based in Johns Creek, Georgia.',
+        'description':getDesc()||'About Olive Cover (consumer brand of Olive Insurance Services, LLC), an independent property and casualty agency based in Johns Creek, Georgia.',
         'url':siteUrl+p,
         'mainEntity':{
           '@type':'InsuranceAgency',
           'name':'Olive Cover',
           'legalName':'Olive Insurance Services, LLC',
+          'alternateName':'Olive Insurance Services',
           'url':siteUrl,
           'telephone':'+1-678-888-1011',
           'address':{
