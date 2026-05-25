@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.41
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.42
+// v1.10.42 (2026-05-24): HOTFIX -- featured-excerpt-hide selector was wrong.
+//   v1.10.33's rule used .oc-ins-article-card to hide featured excerpts, but featured cards
+//   are .oc-ins-fc-card. The first all-articles card uses .oc-ins-article-card so the rule
+//   was wrongly hiding its excerpt. Selector corrected to .oc-ins-fc-card .oc-ins-fc-excerpt.
+//   First all-articles card excerpt now visible. Featured cards remain compact.
 // v1.10.41 (2026-05-24): ocbatch1024 v1.0.20 -- hide long .oc-ins-fc-tag.
 //   4th featured card on /insights has a hardcoded long sentence in .oc-ins-fc-tag instead
 //   of a 2-3 word category. The text "Dwelling limits, wind and hail deductibles..." is
@@ -1925,11 +1930,13 @@ html body .oc-ic-1 p {
   -webkit-box-orient: vertical !important;
   overflow: hidden !important;
 }
-/* Featured cards: HIDE the excerpt entirely for maximum compactness */
-html body .oc-ins-article-card p,
-html body .oc-ins-article-card .oc-ic-ex-1,
-html body .oc-ins-article-card [class*="excerpt"],
-html body .oc-ins-article-card [class*="body"]:not([class*="title"]):not([class*="meta"]):not(.oc-ic-badges) {
+/* Featured cards: HIDE the excerpt entirely for maximum compactness.
+   IMPORTANT: featured cards are .oc-ins-fc-card -- NOT .oc-ins-article-card
+   (which is the FIRST all-articles card, not a featured card).
+   The earlier selector wrongly hid the first all-articles card excerpt. */
+html body .oc-ins-fc-card .oc-ins-fc-excerpt,
+html body .oc-ins-fc-card p:not(.oc-ins-fc-tag):not(.oc-ins-fc-meta),
+html body .oc-ins-fc-card [class*="excerpt"] {
   display: none !important;
 }
 html body .oc-ic-ft-1,
