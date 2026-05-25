@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.59
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.60
+// v1.10.60 (2026-05-25): ocbrandtext v1.0.0 -- DOM text rewrite for brand-vs-agency.
+//   Live scan found body text on /about and /contact saying "Olive Cover is an independent
+//   property and casualty insurance agency" -- which is incorrect per Mahesh. New module
+//   walks text nodes site-wide and rewrites all variants ("Olive Cover is an X agency" and
+//   "Olive Cover, an X agency") to the proper brand-of-agency form.
 // v1.10.59 (2026-05-25): patchExistingSchemas -- walks ALL existing JSON-LD scripts on
 //   every page and patches them for the brand-vs-agency rule. Adds legalName +
 //   alternateName to any InsuranceAgency/LocalBusiness/Organization missing them.
@@ -851,6 +856,56 @@
     }
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
+})();
+
+// === ocbrandtext.js (v1.0.0 — site-wide DOM text rewrite for brand-vs-agency rule) ===
+// Walks visible text nodes on every page and rewrites any "Olive Cover is/an agency" phrasing
+// to correctly identify Olive Insurance Services, LLC as the licensed agency and Olive Cover
+// as its consumer brand. Belt-and-suspenders: legacy Webflow Designer canvas text on /about,
+// /contact, etc. can't be edited via MCP, so this fixes them at runtime.
+(function(){
+  function brandTextFix(){
+    if (document.body.dataset.ocBrandTextFixed === '1') return;
+    var REPLACEMENTS = [
+      [/Olive Cover is an independent property and casualty insurance agency/g, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent property and casualty agency'],
+      [/Olive Cover is an independent property and casualty agency/g, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent property and casualty agency'],
+      [/Olive Cover is an independent insurance agency/g, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent insurance agency'],
+      [/Olive Cover is an independent P&C insurance agency/g, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent P&C agency'],
+      [/Olive Cover, an independent property and casualty insurance agency/g, 'Olive Cover (operated by Olive Insurance Services, LLC, an independent property and casualty agency)'],
+      [/Olive Cover, an independent property and casualty agency/g, 'Olive Cover (operated by Olive Insurance Services, LLC, an independent property and casualty agency)'],
+      [/Olive Cover, an independent insurance agency/g, 'Olive Cover (operated by Olive Insurance Services, LLC, an independent insurance agency)'],
+      [/Olive Cover, an independent P&C insurance agency/g, 'Olive Cover (operated by Olive Insurance Services, LLC, an independent P&C agency)']
+    ];
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(n){
+        if (!n.parentElement) return NodeFilter.FILTER_REJECT;
+        if (n.parentElement.closest('script, style, .oc-faq-slug, .oc-term-card, .oc-it-card')) return NodeFilter.FILTER_REJECT;
+        var v = n.nodeValue || '';
+        for (var i = 0; i < REPLACEMENTS.length; i++) {
+          if (REPLACEMENTS[i][0].test(v)) return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_REJECT;
+      }
+    });
+    var node;
+    var changed = 0;
+    while ((node = walker.nextNode())) {
+      var orig = node.nodeValue;
+      var fixed = orig;
+      for (var i = 0; i < REPLACEMENTS.length; i++) {
+        fixed = fixed.replace(REPLACEMENTS[i][0], REPLACEMENTS[i][1]);
+      }
+      if (fixed !== orig) {
+        node.nodeValue = fixed;
+        changed++;
+      }
+    }
+    document.body.dataset.ocBrandTextFixed = '1';
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', brandTextFix);
+  else brandTextFix();
+  setTimeout(brandTextFix, 600);
+  setTimeout(brandTextFix, 1800);
 })();
 
 // === ochubmore.js (v1.0.0 — inject "More coverage we review" section on /personal-insurance + /commercial-insurance hubs) ===
