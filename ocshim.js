@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.50
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.51
+// v1.10.51 (2026-05-24): Resources nav submenu compact. #ocn-item-learn-panel padding /
+//   item font-sizes / gap reduced so the dropdown is shorter and less imposing. Title 14px,
+//   description 12px, icon 16x16, panel max-width 440px, item padding 8x10.
 // v1.10.50 (2026-05-24): claims pages -- CTA text colors against navy hero overlay.
 //   v1.10.44 added the hero bg+navy overlay to /claims + 9 /claims-* sub-pages and colored
 //   the h1/p/breadcrumb text cream, but the CTA buttons (.oc-stub-cta-primary / -secondary
@@ -2108,6 +2111,66 @@ html body .oc-stub-hero .oc-stub-cta-secondary:hover {
 }
 html body .oc-stub-hero .oc-stub-eyebrow {
   color: #B8934A !important;
+}
+
+/* Resources nav submenu (#ocn-item-learn-panel): compact -- reduce padding, font sizes,
+   gap between items so the dropdown is shorter and less imposing. */
+html body #ocn-item-learn-panel {
+  padding: 12px 14px !important;
+  min-width: 360px !important;
+  max-width: 440px !important;
+}
+html body #ocn-item-learn-panel > div:first-child {
+  font-size: 0.75rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  color: #6B7280 !important;
+  font-weight: 600 !important;
+}
+html body #ocn-item-learn-panel > a {
+  padding: 8px 10px !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  text-decoration: none !important;
+}
+html body #ocn-item-learn-panel > a:hover {
+  background: rgba(184, 147, 74, 0.08) !important;
+}
+html body #ocn-item-learn-panel > a > span {
+  flex: 0 0 auto !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin-top: 2px !important;
+  color: #B8934A !important;
+}
+html body #ocn-item-learn-panel > a > span svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+html body #ocn-item-learn-panel > a > div {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+html body #ocn-item-learn-panel > a > div > div:first-child,
+html body #ocn-item-learn-panel > a > div > div:first-child > div {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: #1B3A5C !important;
+  line-height: 1.3 !important;
+  margin: 0 0 2px !important;
+}
+html body #ocn-item-learn-panel > a > div > div:nth-child(2),
+html body #ocn-item-learn-panel > a > div > div:nth-child(2) > div {
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: #6B7280 !important;
+  line-height: 1.35 !important;
+  margin: 0 !important;
 }
 
 @media (max-width: 991px) {
