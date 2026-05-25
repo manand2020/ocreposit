@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.44
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.45
+// v1.10.45 (2026-05-24): /about hero full-bleed fix.
+//   #oc-about-hero section had max-width:1180px inline, making the hero photo + navy
+//   overlay float in a narrow box. Override to width:100% / max-width:none on section,
+//   keep the inner text wrapper centered at 1180px reading width.
 // v1.10.44 (2026-05-24): TWO fixes.
 //   (a) ocinsightsnewcards trim -- shortened ACV/RCV + tornado card excerpts to ~100-130 chars
 //       so they fit the 2-line clamp on all-articles cards (earlier 178-198 chars overflowed).
@@ -1966,6 +1970,22 @@ html body .oc-ins-featured-grid > *,
 html body .oc-ins-all-grid > *,
 html body #oc-insights-cards-new > * {
   min-width: 0 !important;
+}
+
+/* /about hero: was constrained by max-width:1180px on the section itself, leaving the
+   hero photo + navy overlay floating in a narrow box. Make the section full-bleed; keep
+   the inner text wrapper centered at the standard 1180px reading width. */
+html body #oc-about-hero {
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+html body #oc-about-hero > div:not(.oc-about-hero-layers) {
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
 }
 
 /* /claims hub + /claims-* sub-pages: hero needs a background image plus navy overlay
