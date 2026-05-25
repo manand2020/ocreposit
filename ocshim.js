@@ -1,4 +1,11 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.56
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.57
+// v1.10.57 (2026-05-25): Rich Results Test fixes after v1.10.56 validation.
+//   (1) /faq/{slug} QAPage CRITICAL fix -- acceptedAnswer.text was empty because the selector
+//       couldn't find the answer. Webflow FAQ template structure is <h1>Q</h1><div><p>A</p></div>,
+//       so we now walk H1's nextElementSibling for the first <p> with >=50 chars.
+//   (2) Article datePublished now full ISO with timezone (was date-only -- non-critical warning).
+//   (3) QAPage dateCreated on Question + Answer now full ISO with timezone.
+//   Verified path on /faq/what-is-identity-theft-insurance from Rich Results Test result.
 // v1.10.56 (2026-05-25): ocfootergbp v1.0.1 -- Google "G" icon (was Maps pin) + GBP
 //   knowledge-panel URL (was Maps search). Goes to the actual Olive Cover Google Business
 //   Profile public view, not the Maps app.
@@ -489,20 +496,27 @@
     // QAPage is more specific than FAQPage for individual Q&A pages.
     else if(/^\/faq\/[^/]+$/.test(p)&&existing.indexOf('QAPage')<0&&existing.indexOf('FAQPage')<0){
       var faqSlug=p.substring(5);
-      var q=getH1()||faqSlug.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
-      // Pull short answer if present (highest signal density)
-      var shortEl=document.querySelector('.oc-faq-short, [class*="short-answer"], .oc-faq-summary, [class*="faq-summary"]');
-      var shortAns=shortEl?(shortEl.textContent||'').trim().substring(0,300):'';
-      // Full answer body
-      var aEl=document.querySelector('.oc-faq-answer, .oc-faq-a, [class*="faq-answer"], article p, main p');
-      var a=aEl?(aEl.textContent||'').trim().substring(0,1500):getDesc();
-      var category=document.querySelector('.oc-faq-category, [class*="category"]');
-      var catText=category?(category.textContent||'').trim():'';
-      // Detect related entity (Insurance/Terms page) from category text
-      var aboutThing=null;
-      if(catText){
-        aboutThing={'@type':'Thing','name':catText};
+      var faqH1El=document.querySelector('h1');
+      var q=(faqH1El&&faqH1El.textContent.trim())||faqSlug.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+      // Find the answer: first substantial <p> in a sibling element of the H1
+      // Webflow FAQ template structure: <h1>Q</h1><div><p>A</p></div>
+      var a='';
+      if(faqH1El){
+        var sib=faqH1El.nextElementSibling;
+        while(sib&&!a){
+          var pEl=(sib.tagName==='P')?sib:sib.querySelector('p');
+          if(pEl){
+            var t=(pEl.textContent||'').trim();
+            if(t.length>=50) a=t.substring(0,2500);
+          }
+          sib=sib.nextElementSibling;
+        }
       }
+      if(!a) a=getDesc()||q;
+      // Short answer
+      var faqShortEl=document.querySelector('.oc-faq-short, [class*="short-answer"], .oc-faq-summary, [class*="faq-summary"]');
+      var shortAns=faqShortEl?(faqShortEl.textContent||'').trim().substring(0,300):a.substring(0,200);
+      var nowISO=new Date().toISOString();
       s={
         '@context':'https://schema.org',
         '@type':'QAPage',
@@ -522,18 +536,18 @@
           'text':q,
           'answerCount':1,
           'author':{'@type':'Organization','name':'Olive Cover','url':siteUrl},
-          'dateCreated':new Date().toISOString().substring(0,10),
-          'about':aboutThing||{'@type':'Thing','name':'Insurance'},
+          'dateCreated':nowISO,
+          'about':{'@type':'Thing','name':'Insurance'},
           'acceptedAnswer':{
             '@type':'Answer',
             'text':a,
             'url':siteUrl+p,
             'author':{'@type':'Organization','name':'Olive Cover','url':siteUrl},
-            'dateCreated':new Date().toISOString().substring(0,10),
+            'dateCreated':nowISO,
             'upvoteCount':1
           }
         },
-        'speakable':{'@type':'SpeakableSpecification','cssSelector':['.oc-faq-short','.oc-faq-answer','.oc-faq-a','[class*="short-answer"]']},
+        'speakable':{'@type':'SpeakableSpecification','cssSelector':['h1','h1 + div p','h1 ~ div p','.oc-faq-short','[class*="short-answer"]']},
         'publisher':ag
       };
     }
@@ -594,7 +608,10 @@
           if(!isNaN(d)) pubDate=d.toISOString().substring(0,10);
         }
       }
-      if(!pubDate) pubDate=new Date().toISOString().substring(0,10);
+      // Default to full ISO datetime with timezone (Google prefers this over date-only)
+      if(!pubDate) pubDate=new Date().toISOString();
+      // If we extracted just a date string, append time to make valid ISO
+      else if(/^\d{4}-\d{2}-\d{2}$/.test(pubDate)) pubDate=pubDate+'T00:00:00Z';
       // Author defaults to The Olive Cover Team
       var authorEl=document.querySelector('[class*="author"], [rel="author"]');
       var authorName=(authorEl&&authorEl.textContent.trim())||'The Olive Cover Team';
