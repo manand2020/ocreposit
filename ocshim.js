@@ -1,4 +1,17 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.53
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.54
+// v1.10.54 (2026-05-25): MAJOR AEO push for AI engine citation eligibility.
+//   ocschemaexpand expanded with:
+//   (1) Article schema on /insights/{slug} (Google AI Overviews + Google News + Bing Copilot)
+//   (2) QAPage + speakable on /faq/{slug} (top tier for Perplexity, ChatGPT Search, Claude)
+//   (3) Rich DefinedTerm on /insurance-terms/{slug} with sameAs Wikipedia links, alternateName
+//       synonyms (ACV, RCV, BOP, GL, WC, E&O, D&O), speakable, disambiguatingDescription
+//   (4) ContactPage + AboutPage schemas with full PostalAddress + InsuranceAgency mainEntity
+//   (5) BreadcrumbList universal -- injected for any page with breadcrumb nav
+//   (6) Article schema for 9 /claims-* educational sub-pages
+//   (7) CollectionPage for /personal-carriers and /commercial-carriers
+//   (8) SearchResultsPage for /search
+//   Net: every educational page on the site now has an appropriate schema type for AI citation.
+//   Plus llms.txt added at /llms.txt (via jsDelivr GitHub host -- Webflow can't serve root files).
 // v1.10.53 (2026-05-24): ocfooterlogo v1.0.0 -- replace "Olive Cover" footer text with
 //   the stacked olive-wordmark + "COVER" label brand asset. Uses the existing nav white
 //   logo on the Webflow CDN; "COVER" rendered as a separator-lined caption below.
@@ -464,21 +477,251 @@
     else if(p==='/insurance-terms'&&existing.indexOf('CollectionPage')<0){
       s={'@context':'https://schema.org','@type':'CollectionPage','name':getH1()||'Insurance Terms','description':getDesc()||'Plain-language definitions of common insurance terms, organized by category.','url':siteUrl+p,'publisher':ag};
     }
-    // /faq/{slug} (individual FAQ) → FAQPage with one Question
-    else if(/^\/faq\/[^/]+$/.test(p)&&existing.indexOf('FAQPage')<0){
-      var q=getH1()||p.substring(5).replace(/-/g,' ');
-      // Try to extract answer body from common DOM patterns
-      var aEl=document.querySelector('.oc-faq-answer, [class*="faq-answer"], article p, main p');
-      var a=aEl?(aEl.textContent||'').trim().substring(0,500):getDesc();
-      s={'@context':'https://schema.org','@type':'FAQPage','mainEntity':[{'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}}],'url':siteUrl+p};
+    // /faq/{slug} → QAPage + Question/Answer (highest AEO value: Google AI Overviews, Bing
+    // Copilot, ChatGPT Search, Perplexity, Claude all favor QAPage for direct answer extraction).
+    // QAPage is more specific than FAQPage for individual Q&A pages.
+    else if(/^\/faq\/[^/]+$/.test(p)&&existing.indexOf('QAPage')<0&&existing.indexOf('FAQPage')<0){
+      var faqSlug=p.substring(5);
+      var q=getH1()||faqSlug.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+      // Pull short answer if present (highest signal density)
+      var shortEl=document.querySelector('.oc-faq-short, [class*="short-answer"], .oc-faq-summary, [class*="faq-summary"]');
+      var shortAns=shortEl?(shortEl.textContent||'').trim().substring(0,300):'';
+      // Full answer body
+      var aEl=document.querySelector('.oc-faq-answer, .oc-faq-a, [class*="faq-answer"], article p, main p');
+      var a=aEl?(aEl.textContent||'').trim().substring(0,1500):getDesc();
+      var category=document.querySelector('.oc-faq-category, [class*="category"]');
+      var catText=category?(category.textContent||'').trim():'';
+      // Detect related entity (Insurance/Terms page) from category text
+      var aboutThing=null;
+      if(catText){
+        aboutThing={'@type':'Thing','name':catText};
+      }
+      s={
+        '@context':'https://schema.org',
+        '@type':'QAPage',
+        'name':q,
+        'description':shortAns||getDesc(),
+        'url':siteUrl+p,
+        'inLanguage':'en-US',
+        'isPartOf':{'@type':'WebSite','@id':siteUrl+'/#website','name':'Olive Cover','url':siteUrl},
+        'breadcrumb':{'@type':'BreadcrumbList','itemListElement':[
+          {'@type':'ListItem','position':1,'name':'Home','item':siteUrl},
+          {'@type':'ListItem','position':2,'name':'FAQ','item':siteUrl+'/faq'},
+          {'@type':'ListItem','position':3,'name':q,'item':siteUrl+p}
+        ]},
+        'mainEntity':{
+          '@type':'Question',
+          'name':q,
+          'text':q,
+          'answerCount':1,
+          'author':{'@type':'Organization','name':'Olive Cover','url':siteUrl},
+          'dateCreated':new Date().toISOString().substring(0,10),
+          'about':aboutThing||{'@type':'Thing','name':'Insurance'},
+          'acceptedAnswer':{
+            '@type':'Answer',
+            'text':a,
+            'url':siteUrl+p,
+            'author':{'@type':'Organization','name':'Olive Cover','url':siteUrl},
+            'dateCreated':new Date().toISOString().substring(0,10),
+            'upvoteCount':1
+          }
+        },
+        'speakable':{'@type':'SpeakableSpecification','cssSelector':['.oc-faq-short','.oc-faq-answer','.oc-faq-a','[class*="short-answer"]']},
+        'publisher':ag
+      };
     }
     // /claims → Service (claims handling)
     else if(p==='/claims'&&existing.indexOf('Service')<0){
       s={'@context':'https://schema.org','@type':'Service','name':getH1()||'Insurance Claims Handling','provider':ag,'description':getDesc()||'Insurance claims guidance and advocacy for Olive Cover policyholders in Georgia.','areaServed':ar,'serviceType':'Insurance claims handling','url':siteUrl+p};
     }
+    // /claims-* sub-pages → Article (claims-first-24-hours, claims-what-to-say, claims-document-loss,
+    // claims-pitfalls, claims-acknowledgment-timeline, claims-decision-timeline, claims-bad-faith,
+    // claims-filing-complaint, claims-state-rights). All are educational guides; Article schema
+    // makes them eligible for Google AI Overviews + Bing Copilot citations.
+    else if(/^\/claims-/.test(p)&&existing.indexOf('Article')<0){
+      var claimsHeadline=getH1()||p.substring(1).replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+      s={
+        '@context':'https://schema.org',
+        '@type':'Article',
+        'headline':claimsHeadline.substring(0,110),
+        'description':getDesc()||'Claims guidance article from Olive Cover.',
+        'image':getOgImg()||'',
+        'datePublished':new Date().toISOString().substring(0,10),
+        'dateModified':new Date().toISOString().substring(0,10),
+        'author':{'@type':'Organization','name':'The Olive Cover Team','url':siteUrl},
+        'publisher':{'@type':'Organization','name':'Olive Cover','logo':{'@type':'ImageObject','url':'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png'}},
+        'mainEntityOfPage':{'@type':'WebPage','@id':siteUrl+p},
+        'url':siteUrl+p,
+        'inLanguage':'en-US',
+        'about':{'@type':'Thing','name':'Insurance claims'},
+        'isPartOf':{'@type':'WebPage','name':'Claims Hub','url':siteUrl+'/claims'},
+        'speakable':{'@type':'SpeakableSpecification','cssSelector':['.oc-stub-h1','h1','.oc-stub-sub','main p:first-of-type']}
+      };
+    }
+    // /personal-carriers, /commercial-carriers → CollectionPage (carrier list pages)
+    else if((p==='/personal-carriers'||p==='/commercial-carriers')&&existing.indexOf('CollectionPage')<0){
+      var pcName=getH1()||(p==='/personal-carriers'?'Personal Lines Carriers':'Commercial Lines Carriers');
+      s={'@context':'https://schema.org','@type':'CollectionPage','name':pcName,'description':getDesc()||'Insurance carriers Olive Cover reviews for placement.','url':siteUrl+p,'publisher':ag};
+    }
+    // /search → SearchResultsPage
+    else if(p==='/search'&&existing.indexOf('SearchResultsPage')<0){
+      s={'@context':'https://schema.org','@type':'SearchResultsPage','name':'Site Search','url':siteUrl+p,'publisher':ag};
+    }
     // /insights (hub) → CollectionPage (blog index)
     else if(p==='/insights'&&existing.indexOf('CollectionPage')<0){
       s={'@context':'https://schema.org','@type':'CollectionPage','name':getH1()||'Insurance Insights','description':getDesc()||'Insurance education, market analysis, and consumer guidance from Olive Cover.','url':siteUrl+p,'publisher':ag,'about':{'@type':'Thing','name':'Insurance education'}};
+    }
+    // /insights/{slug} → Article (high AEO value: Google AI Overviews, Bing Copilot, ChatGPT citations)
+    else if(/^\/insights\/[^/]+$/.test(p)&&existing.indexOf('Article')<0&&existing.indexOf('NewsArticle')<0&&existing.indexOf('BlogPosting')<0){
+      var headline=getH1()||p.substring(10).replace(/-/g,' ');
+      var img=getOgImg();
+      var desc=getDesc()||'';
+      // Try to extract published date from the page DOM (CMS-bound date element)
+      var dateEl=document.querySelector('time[datetime], [datetime], .oc-insights-date, .oc-ins-detail-date, [class*="published"], [class*="-date"]');
+      var pubDate=null;
+      if(dateEl){
+        pubDate=dateEl.getAttribute('datetime')||dateEl.textContent.trim();
+        // Normalize to ISO 8601 if possible
+        if(pubDate&&!/^\d{4}-\d{2}-\d{2}/.test(pubDate)){
+          var d=new Date(pubDate);
+          if(!isNaN(d)) pubDate=d.toISOString().substring(0,10);
+        }
+      }
+      if(!pubDate) pubDate=new Date().toISOString().substring(0,10);
+      // Author defaults to The Olive Cover Team
+      var authorEl=document.querySelector('[class*="author"], [rel="author"]');
+      var authorName=(authorEl&&authorEl.textContent.trim())||'The Olive Cover Team';
+      s={
+        '@context':'https://schema.org',
+        '@type':'Article',
+        'headline':headline.substring(0,110),
+        'description':desc,
+        'image':img||(siteUrl+'/og-default.jpg'),
+        'datePublished':pubDate,
+        'dateModified':pubDate,
+        'author':{'@type':'Organization','name':authorName,'url':siteUrl},
+        'publisher':{'@type':'Organization','name':'Olive Cover','logo':{'@type':'ImageObject','url':'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png'}},
+        'mainEntityOfPage':{'@type':'WebPage','@id':siteUrl+p},
+        'url':siteUrl+p,
+        'inLanguage':'en-US',
+        'about':{'@type':'Thing','name':'Insurance'}
+      };
+    }
+    // /insurance-terms/{slug} → DefinedTerm with rich AEO fields. Even though the static page
+    // may already have a basic DefinedTerm, this layer adds: speakable, sameAs (Wikipedia where
+    // applicable), about (linked products), alternateName (synonyms), subjectOf (related FAQ),
+    // and inLanguage. Major AEO signal for AI engines that extract definitions.
+    else if(/^\/insurance-terms\/[^/]+$/.test(p)){
+      var termSlug=p.substring(17);
+      var termName=getH1()||termSlug.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+      var termDesc=getDesc()||'';
+      var shortAnswerEl=document.querySelector('.oc-term-short-answer, [class*="short-answer"], .oc-term-summary');
+      var shortAnswer=shortAnswerEl?shortAnswerEl.textContent.trim():termDesc;
+      var fullDefEl=document.querySelector('.oc-term-definition, .oc-term-full, [class*="full-definition"]');
+      var fullDef=fullDefEl?fullDefEl.textContent.trim().substring(0,1500):'';
+      // Wikipedia sameAs map for the most common terms
+      var WIKI={
+        'declarations-page':'https://en.wikipedia.org/wiki/Declaration_(insurance)',
+        'deductible':'https://en.wikipedia.org/wiki/Deductible',
+        'premium':'https://en.wikipedia.org/wiki/Insurance#Insurance_premium',
+        'actual-cash-value':'https://en.wikipedia.org/wiki/Actual_cash_value',
+        'replacement-cost-value':'https://en.wikipedia.org/wiki/Replacement_cost',
+        'umbrella-insurance':'https://en.wikipedia.org/wiki/Umbrella_insurance',
+        'comprehensive-coverage':'https://en.wikipedia.org/wiki/Vehicle_insurance#Comprehensive',
+        'collision-coverage':'https://en.wikipedia.org/wiki/Vehicle_insurance#Collision',
+        'liability-coverage':'https://en.wikipedia.org/wiki/Liability_insurance',
+        'flood-insurance':'https://en.wikipedia.org/wiki/Flood_insurance',
+        'business-owners-policy':'https://en.wikipedia.org/wiki/Business_owner%27s_policy',
+        'workers-compensation':'https://en.wikipedia.org/wiki/Workers%27_compensation',
+        'general-liability':'https://en.wikipedia.org/wiki/General_liability_insurance',
+        'subrogation':'https://en.wikipedia.org/wiki/Subrogation',
+        'insurable-interest':'https://en.wikipedia.org/wiki/Insurable_interest',
+        'underwriting':'https://en.wikipedia.org/wiki/Underwriting',
+        'policy-limit':'https://en.wikipedia.org/wiki/Insurance_policy#Policy_limits'
+      };
+      // alternateName for common synonyms
+      var ALT={
+        'declarations-page':['Dec Page','Dec','Policy Declarations','Coverage Summary'],
+        'actual-cash-value':['ACV','Depreciated Value'],
+        'replacement-cost-value':['RCV','Replacement Cost'],
+        'business-owners-policy':['BOP'],
+        'general-liability':['GL','CGL','Commercial General Liability'],
+        'workers-compensation':['WC','Workers Comp','Workmans Comp'],
+        'professional-liability':['Errors and Omissions','E&O','Malpractice Insurance'],
+        'management-liability':['D&O','Directors and Officers']
+      };
+      var schemaObj={
+        '@context':'https://schema.org',
+        '@type':'DefinedTerm',
+        'name':termName,
+        'description':shortAnswer||termDesc,
+        'inDefinedTermSet':{
+          '@type':'DefinedTermSet',
+          'name':'Olive Cover Insurance Glossary',
+          'url':siteUrl+'/insurance-terms',
+          'inLanguage':'en-US',
+          'publisher':ag
+        },
+        'url':siteUrl+p,
+        'inLanguage':'en-US',
+        'speakable':{'@type':'SpeakableSpecification','cssSelector':['.oc-term-short-answer','.oc-term-definition','.oc-term-full','h1']}
+      };
+      if(WIKI[termSlug]) schemaObj.sameAs=WIKI[termSlug];
+      if(ALT[termSlug]&&ALT[termSlug].length) schemaObj.alternateName=ALT[termSlug];
+      if(fullDef) schemaObj.disambiguatingDescription=fullDef.substring(0,500);
+      s=schemaObj;
+    }
+    // /contact → ContactPage with InsuranceAgency embedded
+    else if(p==='/contact'&&existing.indexOf('ContactPage')<0){
+      s={
+        '@context':'https://schema.org',
+        '@type':'ContactPage',
+        'name':getH1()||'Contact Olive Cover',
+        'description':getDesc()||'Contact Olive Cover for insurance consultation, quotes, and policy support.',
+        'url':siteUrl+p,
+        'mainEntity':{
+          '@type':'InsuranceAgency',
+          'name':'Olive Cover',
+          'url':siteUrl,
+          'telephone':'+1-678-888-1011',
+          'email':'askolive@olivecover.com',
+          'address':{
+            '@type':'PostalAddress',
+            'streetAddress':'6470 East Johns Crossing Suite 160',
+            'addressLocality':'Johns Creek',
+            'addressRegion':'GA',
+            'postalCode':'30097',
+            'addressCountry':'US'
+          },
+          'areaServed':ar
+        }
+      };
+    }
+    // /about → AboutPage with InsuranceAgency embedded
+    else if(p==='/about'&&existing.indexOf('AboutPage')<0){
+      s={
+        '@context':'https://schema.org',
+        '@type':'AboutPage',
+        'name':getH1()||'About Olive Cover',
+        'description':getDesc()||'About Olive Cover, an independent property and casualty insurance agency based in Johns Creek, Georgia.',
+        'url':siteUrl+p,
+        'mainEntity':{
+          '@type':'InsuranceAgency',
+          'name':'Olive Cover',
+          'legalName':'Olive Insurance Services, LLC',
+          'url':siteUrl,
+          'telephone':'+1-678-888-1011',
+          'address':{
+            '@type':'PostalAddress',
+            'streetAddress':'6470 East Johns Crossing Suite 160',
+            'addressLocality':'Johns Creek',
+            'addressRegion':'GA',
+            'postalCode':'30097',
+            'addressCountry':'US'
+          },
+          'areaServed':ar
+        }
+      };
     }
     // /states/{slug} → WebPage with about Place
     else if(/^\/states\/[^/]+$/.test(p)&&existing.indexOf('WebPage')<0){
@@ -491,6 +734,28 @@
       s={'@context':'https://schema.org','@type':'WebPage','name':getH1()||'Where We Do Business','description':getDesc()||'States and territories where Olive Cover places insurance coverage, plus our service area expansion plans.','url':siteUrl+p,'publisher':ag,'about':{'@type':'AdministrativeArea','name':'Olive Cover service area'}};
     }
     if(s){inject(s);}
+
+    // BreadcrumbList — inject for any page with an existing breadcrumb nav. Major AEO signal
+    // for Google AI Overviews + Bing Copilot + Perplexity (helps engines understand site structure).
+    if(existing.indexOf('BreadcrumbList')<0){
+      var crumbs=document.querySelectorAll('.oc-breadcrumb-list .oc-breadcrumb-item a, nav.oc-breadcrumb a, [class*="breadcrumb"] a');
+      if(crumbs.length>=2){
+        var items=[];
+        crumbs.forEach(function(a,i){
+          var href=a.getAttribute('href')||'';
+          if(href.startsWith('/')) href=siteUrl+href;
+          var name=(a.textContent||'').trim();
+          if(name) items.push({'@type':'ListItem','position':i+1,'name':name,'item':href});
+        });
+        // Add current page as last item if not already there
+        if(items.length && items[items.length-1].item.indexOf(p)<0){
+          items.push({'@type':'ListItem','position':items.length+1,'name':getH1()||document.title,'item':siteUrl+p});
+        }
+        if(items.length>=2){
+          inject({'@context':'https://schema.org','@type':'BreadcrumbList','itemListElement':items});
+        }
+      }
+    }
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
 })();
