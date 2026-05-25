@@ -1,4 +1,11 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.58
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.59
+// v1.10.59 (2026-05-25): patchExistingSchemas -- walks ALL existing JSON-LD scripts on
+//   every page and patches them for the brand-vs-agency rule. Adds legalName +
+//   alternateName to any InsuranceAgency/LocalBusiness/Organization missing them.
+//   Also rewrites description strings that misrepresent Olive Cover as "an agency".
+//   Solves the live /contact + /about pages which have hardcoded Webflow-Designer
+//   JSON-LD calling Olive Cover an agency. Belt-and-suspenders: 3 CMS FAQs that had
+//   the same misrepresentation in answer text were also patched via Data API (3 IDs).
 // v1.10.58 (2026-05-25): Brand vs legal-entity clarification in JSON-LD.
 //   Per Mahesh: "Olive Cover is not an agency. Olive Insurance Services is the agency.
 //   Olive Cover is a brand name of Olive Insurance Services."
@@ -433,10 +440,62 @@
     e.textContent=JSON.stringify(obj);
     document.head.appendChild(e);
   }
+  // patchExistingSchemas: walks all existing JSON-LD scripts and patches them for the
+  // brand-vs-legal-entity rule. Olive Cover is NOT an agency; Olive Insurance Services
+  // LLC is. Adds legalName + alternateName to any InsuranceAgency missing them, and
+  // rewrites descriptions that incorrectly call Olive Cover "an agency".
+  function patchExistingSchemas(){
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var i = 0; i < scripts.length; i++) {
+      var s = scripts[i];
+      if (s.dataset.ocBrandPatched === '1') continue;
+      var raw = s.textContent || '';
+      if (!raw.trim()) continue;
+      var changed = false;
+      var data;
+      try { data = JSON.parse(raw); } catch (e) { continue; }
+      // Helper: walk an object and patch InsuranceAgency entries
+      function patchNode(obj){
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) { obj.forEach(patchNode); return; }
+        // Patch InsuranceAgency / LocalBusiness / Organization that names Olive Cover
+        var t = obj['@type'];
+        var isAgency = t === 'InsuranceAgency' || t === 'LocalBusiness' || t === 'Organization';
+        if (isAgency && obj.name && /olive\s*cover/i.test(obj.name)) {
+          if (!obj.legalName) { obj.legalName = 'Olive Insurance Services, LLC'; changed = true; }
+          if (!obj.alternateName) { obj.alternateName = 'Olive Insurance Services'; changed = true; }
+        }
+        // Patch description strings that misrepresent the brand
+        for (var k in obj) {
+          if (typeof obj[k] === 'string') {
+            var orig = obj[k];
+            var fixed = orig
+              .replace(/Olive Cover, an independent insurance agency/gi, 'Olive Cover (the consumer brand of Olive Insurance Services, LLC, an independent insurance agency)')
+              .replace(/Olive Cover, an independent property and casualty agency/gi, 'Olive Cover (the consumer brand of Olive Insurance Services, LLC, an independent property and casualty agency)')
+              .replace(/Olive Cover, an independent P&C insurance agency/gi, 'Olive Cover (the consumer brand of Olive Insurance Services, LLC, an independent P&C agency)')
+              .replace(/Olive Cover is an independent insurance agency/gi, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent insurance agency')
+              .replace(/Olive Cover is an independent property and casualty agency/gi, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent property and casualty agency')
+              .replace(/Olive Cover is a licensed Georgia property and casualty insurance agency/gi, 'Olive Insurance Services, LLC (operating under the Olive Cover brand) is a licensed Georgia property and casualty agency');
+            if (fixed !== orig) { obj[k] = fixed; changed = true; }
+          } else if (typeof obj[k] === 'object') {
+            patchNode(obj[k]);
+          }
+        }
+      }
+      patchNode(data);
+      if (changed) {
+        s.textContent = JSON.stringify(data);
+      }
+      s.dataset.ocBrandPatched = '1';
+    }
+  }
   function getH1(){var h=document.querySelector('h1');return h?h.textContent.trim():'';}
   function getDesc(){var d=document.querySelector('meta[name=description]');return d?d.content:'';}
   function getOgImg(){var o=document.querySelector('meta[property="og:image"]');return o?o.content:'';}
   function run(){
+    // First: patch existing JSON-LD scripts that misrepresent the brand-vs-agency relationship.
+    // Runs BEFORE the existence checks below so the patched versions are reflected in 'existing'.
+    patchExistingSchemas();
     var p=location.pathname.replace(/\/$/,'')||'/';
     var existing=Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function(s){try{return JSON.parse(s.textContent)['@type'];}catch(e){return null;}});
     var ag={'@type':'InsuranceAgency','name':'Olive Cover','legalName':'Olive Insurance Services, LLC','alternateName':'Olive Insurance Services','url':'https://olivecover.com','telephone':'+1-678-888-1011'};
