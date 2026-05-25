@@ -1,0 +1,105 @@
+# Olive Cover
+
+> Olive Cover is an independent property and casualty insurance agency based in Johns Creek, Georgia. We compare home, auto, and business coverage across A-rated carriers and work for our clients, not for any one insurance company.
+
+Olive Cover is the trade name of Olive Insurance Services, LLC, a licensed P&C agency. Agency NPN 22116940. Licensed in Georgia with expansion into additional states underway. Lead producer is Mahesh Anand (NPN 2790083).
+
+The site is structured around three primary user goals: (1) plain-language coverage education, (2) carrier comparison and review, and (3) free coverage review consultations.
+
+## Brand and contact
+
+- Site: https://www.olivecover.com
+- Phone: (678) 888-1011
+- Email: askolive@olivecover.com
+- Address: 6470 East Johns Crossing Suite 160, Johns Creek GA 30097
+
+## Core pages
+
+- [Free Coverage Review](https://www.olivecover.com/coverage-review): 5-minute structured intake for a free coverage consultation
+- [About Olive Cover](https://www.olivecover.com/about): independent agency model, team, philosophy
+- [Contact](https://www.olivecover.com/contact): phone, email, address, contact form
+- [Claims](https://www.olivecover.com/claims): claims handling guidance, what to do in the first 24 hours, how Olive Cover advocates for clients
+- [Insights](https://www.olivecover.com/insights): coverage guides and local insurance market analysis
+- [Insurance Terms Glossary](https://www.olivecover.com/insurance-terms): 69 plain-language definitions of common insurance terms
+
+## Personal insurance product pages
+
+- [Auto Insurance](https://www.olivecover.com/insurance/auto-insurance)
+- [Homeowners Insurance](https://www.olivecover.com/insurance/homeowners-insurance)
+- [Home and Auto Bundle](https://www.olivecover.com/insurance/home-auto-bundle)
+- [Renters Insurance](https://www.olivecover.com/insurance/renters-insurance)
+- [Condo Insurance](https://www.olivecover.com/insurance/condo-insurance)
+- [Umbrella Insurance](https://www.olivecover.com/insurance/umbrella-insurance)
+- [Motorcycle Insurance](https://www.olivecover.com/insurance/motorcycle-insurance)
+- [Boat Insurance](https://www.olivecover.com/insurance/boat-insurance)
+- [Flood Insurance](https://www.olivecover.com/insurance/flood-insurance)
+- [Landlord Insurance](https://www.olivecover.com/insurance/landlord-insurance)
+- [Mobile Home Insurance](https://www.olivecover.com/insurance/mobile-home-insurance)
+- [RV Insurance](https://www.olivecover.com/insurance/rv-insurance)
+- [Collector Auto Insurance](https://www.olivecover.com/insurance/collector-auto-insurance)
+- [Jewelry Insurance](https://www.olivecover.com/insurance/jewelry-insurance)
+- [Scheduled Articles Insurance](https://www.olivecover.com/insurance/scheduled-articles-insurance)
+- [Identity Theft Insurance](https://www.olivecover.com/insurance/identity-theft-insurance)
+- [Pet Insurance](https://www.olivecover.com/insurance/pet-insurance)
+- [Equine Insurance](https://www.olivecover.com/insurance/equine-insurance)
+- [Vacant Home Insurance](https://www.olivecover.com/insurance/vacant-home-insurance)
+
+## Commercial insurance product pages
+
+- [Business Owners Policy](https://www.olivecover.com/insurance/business-owners-policy)
+- [General Liability Insurance](https://www.olivecover.com/insurance/general-liability-insurance)
+- [Professional Liability Insurance](https://www.olivecover.com/insurance/professional-liability-insurance)
+- [Workers Compensation Insurance](https://www.olivecover.com/insurance/workers-compensation-insurance)
+- [Commercial Auto Insurance](https://www.olivecover.com/insurance/commercial-auto-insurance)
+- [Commercial Property Insurance](https://www.olivecover.com/insurance/commercial-property-insurance)
+- [Cyber Liability Insurance](https://www.olivecover.com/insurance/cyber-liability-insurance)
+- [Management Liability Insurance](https://www.olivecover.com/insurance/management-liability-insurance)
+- [Liquor Liability Insurance](https://www.olivecover.com/insurance/liquor-liability-insurance)
+- [Equipment Breakdown Insurance](https://www.olivecover.com/insurance/equipment-breakdown-insurance)
+- [Builders Risk Insurance](https://www.olivecover.com/insurance/builders-risk-insurance)
+- [Inland Marine Insurance](https://www.olivecover.com/insurance/inland-marine-insurance)
+- [Habitational Insurance](https://www.olivecover.com/insurance/habitational-insurance)
+- [Short-Term Rental Insurance](https://www.olivecover.com/insurance/short-term-rental-insurance)
+- [Home Business Insurance](https://www.olivecover.com/insurance/home-business-insurance)
+- [Farm and Rural Property Insurance](https://www.olivecover.com/insurance/farm-rural-property-insurance)
+- [Nonprofit Insurance](https://www.olivecover.com/insurance/nonprofit-insurance)
+- [Commercial Crime Insurance](https://www.olivecover.com/insurance/commercial-crime-insurance)
+
+## Featured insurance education articles
+
+- [Why North Atlanta Homeowners Are Underinsured Right Now](https://www.olivecover.com/insights/north-atlanta-homeowners-underinsured)
+- [Georgia Homeowners Insurance: The Three Gaps Most Policies Have](https://www.olivecover.com/insights/georgia-homeowners-insurance-common-gaps)
+- [What Is a Declarations Page and Why Your Agent Needs It](https://www.olivecover.com/insights/what-is-a-declarations-page)
+- [Georgia Umbrella Insurance: How It Works, What It Covers, and Who Needs It](https://www.olivecover.com/insights/georgia-umbrella-insurance-guide)
+- [Georgia Auto Insurance: Why 25/50/25 Is Not Enough](https://www.olivecover.com/insights/georgia-auto-insurance-minimum-limits)
+- [Sewer Backup Coverage in Georgia: The Endorsement Most Atlanta Homeowners Do Not Have](https://www.olivecover.com/insights/georgia-sewer-backup-water-damage-coverage)
+- [Actual Cash Value vs Replacement Cost: The Single Setting That Decides Your Claim Payout](https://www.olivecover.com/insights/acv-vs-rcv-replacement-cost-coverage-explained)
+- [Atlanta Tornado and Hail Insurance: What Wind Coverage Actually Pays For](https://www.olivecover.com/insights/atlanta-tornado-hail-wind-coverage)
+- [Georgia Wind and Hail Deductibles: What Your Policy Actually Says](https://www.olivecover.com/insights/georgia-wind-hail-deductibles-explained)
+- [Georgia Cyber Insurance: What Small Businesses Need to Know](https://www.olivecover.com/insights/georgia-cyber-insurance-guide)
+- [Georgia Small Business Insurance: What You Actually Need](https://www.olivecover.com/insights/georgia-small-business-insurance-guide)
+- [Georgia Commercial Auto Insurance: When You Need It](https://www.olivecover.com/insights/georgia-commercial-auto-insurance-guide-b880e)
+- [Georgia Professional Liability Insurance: Who Needs It](https://www.olivecover.com/insights/georgia-professional-liability-insurance-guide)
+- [Georgia Renters Insurance: Why Most Tenants Skip It](https://www.olivecover.com/insights/georgia-renters-insurance-guide)
+- [Georgia Flood Insurance: NFIP vs Private](https://www.olivecover.com/insights/georgia-flood-insurance-nfip-vs-private)
+- [Georgia Workers Compensation: Who Needs It](https://www.olivecover.com/insights/georgia-workers-compensation-guide)
+- [Personal Umbrella Insurance: Who Needs It in Georgia](https://www.olivecover.com/insights/personal-umbrella-insurance-georgia)
+- [Is Your Georgia Home Underinsured? How to Check Dwelling Coverage](https://www.olivecover.com/insights/georgia-home-underinsured-dwelling-coverage)
+- [Georgia General Liability Insurance: What It Covers](https://www.olivecover.com/insights/georgia-general-liability-insurance-guide)
+- [North Atlanta Insurance Markets: Cherokee, Forsyth, Gwinnett, North Fulton](https://www.olivecover.com/insights/north-atlanta-insurance-markets-guide)
+
+## FAQ
+
+- [Insurance FAQ Hub](https://www.olivecover.com/faq): plain-language answers to common questions about coverage, claims, deductibles, and the independent agency model
+
+## Optional
+
+- [Sitemap](https://www.olivecover.com/sitemap.xml): full URL inventory in XML format
+
+## Editorial principles
+
+- All content is written in plain language at roughly an 8th-grade reading level
+- We do not use insurance jargon outside the glossary; consumer-friendly terms are preferred
+- Rating data is sourced from publicly available industry information and is provided for educational purposes only
+- Our independence from any single carrier is the core value proposition; client interests are prioritized over carrier loyalty
+- Pricing examples and coverage details are educational, not specific quotes; actual policy quotes require a Free Coverage Review consultation
