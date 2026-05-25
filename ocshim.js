@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.43
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.44
+// v1.10.44 (2026-05-24): ocinsightsnewcards trim -- shortened ACV/RCV + tornado card excerpts
+//   to ~100-120 chars so they fit the 2-line clamp on all-articles cards. Earlier 178-198 char
+//   excerpts overflowed visually on the hub.
 // v1.10.43 (2026-05-24): ocinsightsnewcards v1.0.0 -- inject 3 new article cards on /insights.
 //   1 featured (Sewer Backup, Georgia, Local Risk), 2 all-articles (ACV vs RCV national,
 //   Atlanta tornado/hail Georgia). Real CMS items at /insights/{slug}; static hub gets
@@ -774,7 +777,7 @@
       category: 'Coverage Explained',
       scope: 'national',
       title: 'Actual Cash Value vs Replacement Cost: The Single Setting That Decides Your Claim Payout',
-      excerpt: 'When a roof or appliance is destroyed, actual cash value pays the depreciated value, often half the cost to replace. Replacement cost pays the full amount. The premium difference is small.',
+      excerpt: 'Actual cash value pays the depreciated amount. Replacement cost pays the full amount. The single setting that decides your payout.',
       read: '5 min read'
     },
     {
@@ -782,7 +785,7 @@
       category: 'Local Risk',
       scope: 'georgia',
       title: 'Atlanta Tornado and Hail Insurance: What Wind Coverage Actually Pays For',
-      excerpt: 'Metro Atlanta sits in a regional tornado corridor. Most policies cover tornado damage, but wind and hail deductibles vary widely. Some are flat dollar, some are percentage-based.',
+      excerpt: 'Metro Atlanta is in a tornado corridor. Wind and hail deductibles vary widely: flat dollar vs percentage-based.',
       read: '6 min read'
     }
   ];
