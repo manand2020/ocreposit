@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.55
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.56
+// v1.10.56 (2026-05-25): ocfootergbp v1.0.1 -- Google "G" icon (was Maps pin) + GBP
+//   knowledge-panel URL (was Maps search). Goes to the actual Olive Cover Google Business
+//   Profile public view, not the Maps app.
 // v1.10.55 (2026-05-25): ocfootergbp v1.0.0 -- inject Google Business Profile / Maps icon link
 //   in the footer social-icons row. Pointing to the Olive Cover GBP at 6470 East Johns Crossing
 //   STE 160, Johns Creek GA. Reinforces local-AI signals (Gemini, AI Overviews, Maps citations)
@@ -1065,12 +1068,14 @@
   setTimeout(run, 1500);
 })();
 
-// === ocfootergbp.js (v1.0.0 — inject Google Business Profile / Maps link in footer social row) ===
-// Adds a Google Maps icon link to the footer social-icons row pointing to the Olive Cover GBP.
-// Major local-AI signal (Gemini, AI Overviews, Maps citations + reinforced NAP consistency).
+// === ocfootergbp.js (v1.0.1 — inject Google Business Profile icon in footer social row) ===
+// Adds a Google "G" icon link to the footer social-icons row pointing to the Olive Cover GBP
+// public knowledge-panel view. Reinforces local-AI signals + NAP consistency between site + GBP.
 (function(){
-  var GBP_URL = 'https://www.google.com/maps/search/?api=1&query=Olive+Cover+6470+East+Johns+Crossing+Johns+Creek+GA+30097';
-  var ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
+  // Google Search URL that surfaces the Olive Cover business knowledge panel publicly
+  var GBP_URL = 'https://www.google.com/search?q=Olive+Cover+6470+East+Johns+Crossing+Johns+Creek+GA+30097';
+  // Google "G" icon (single-color outline path)
+  var ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>';
   function run(){
     var footer = document.getElementById('oc-footer-new') || document.querySelector('footer');
     if (!footer) return;
