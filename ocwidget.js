@@ -1,4 +1,6 @@
 // ocwidget.js - Ask Olive Floating Widget v2.16.0
+// v2.17.0: Friendlier fallback ack wording — less robotic, brand-aligned.
+//          Drops 'message is saved' phrasing + /coverage-review link.
 // v2.16.0: Fallback ack bubble includes askolive@olivecover.com as a third
 //          contact option (alongside phone + Coverage Review). Reinforces the
 //          "Ask Olive" brand mark (trademark filed) and gives email-preferring
@@ -457,7 +459,7 @@
     wrap.className = 'oc-widget-msg-wrap oc-widget-msg-wrap--out';
     var bubble = document.createElement('div');
     bubble.className = 'oc-widget-bubble oc-widget-bubble--out';
-    bubble.textContent = 'Thanks, your message is saved. You can also email askolive@olivecover.com, call (678) 888-1011, or visit /coverage-review for a Free Coverage Review.';
+    bubble.textContent = 'Got it. An Olive Cover team member will follow up shortly. For anything urgent, call (678) 888-1011 or email askolive@olivecover.com.';
     var time = document.createElement('div');
     time.className = 'oc-widget-bubble-time';
     try { time.textContent = fmtTime(Date.now()); } catch (e) { time.textContent = ''; }
