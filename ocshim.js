@@ -1,4 +1,10 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.49
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.50
+// v1.10.50 (2026-05-24): claims pages -- CTA text colors against navy hero overlay.
+//   v1.10.44 added the hero bg+navy overlay to /claims + 9 /claims-* sub-pages and colored
+//   the h1/p/breadcrumb text cream, but the CTA buttons (.oc-stub-cta-primary / -secondary
+//   and .oc-claims-hero-cta) had their original colors which became invisible against the
+//   navy overlay. Now: primary CTA = gold fill + white text; secondary CTA = transparent
+//   bg + cream text with cream-border; eyebrow stays gold for contrast.
 // v1.10.49 (2026-05-24): /personal-insurance Coverage Gaps section 2x2 grid (was 4x1).
 //   .oc-pi-gaps-grid + .oc-ci-gaps-grid split out from the 4-col rule into their own 2-col
 //   rule for better readability on desktop. Mobile breakpoints unchanged (still 1-col).
@@ -2075,6 +2081,33 @@ html body .oc-stub-hero .oc-breadcrumb-sep {
 html body .oc-claims-hero .oc-breadcrumb-link span,
 html body .oc-stub-hero .oc-breadcrumb-link span {
   color: #F5EDD8 !important;
+}
+/* Stub-page CTAs (claims-* sub-pages): force visible colors against the navy overlay. */
+html body .oc-stub-hero .oc-stub-cta-primary,
+html body .oc-claims-hero .oc-claims-hero-cta {
+  background: #B8934A !important;
+  color: #FFFFFF !important;
+  border: 0 !important;
+  text-decoration: none !important;
+}
+html body .oc-stub-hero .oc-stub-cta-primary:hover,
+html body .oc-claims-hero .oc-claims-hero-cta:hover {
+  background: #C7A24B !important;
+  color: #FFFFFF !important;
+}
+html body .oc-stub-hero .oc-stub-cta-secondary {
+  background: transparent !important;
+  color: #F5EDD8 !important;
+  border: 1px solid rgba(245, 237, 216, 0.5) !important;
+  text-decoration: none !important;
+}
+html body .oc-stub-hero .oc-stub-cta-secondary:hover {
+  background: rgba(245, 237, 216, 0.1) !important;
+  color: #F5EDD8 !important;
+  border-color: rgba(245, 237, 216, 0.8) !important;
+}
+html body .oc-stub-hero .oc-stub-eyebrow {
+  color: #B8934A !important;
 }
 
 @media (max-width: 991px) {
