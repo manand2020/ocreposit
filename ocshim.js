@@ -1,7 +1,11 @@
 // ocshim.js -- Consolidated Olive Cover site shims v1.10.44
-// v1.10.44 (2026-05-24): ocinsightsnewcards trim -- shortened ACV/RCV + tornado card excerpts
-//   to ~100-120 chars so they fit the 2-line clamp on all-articles cards. Earlier 178-198 char
-//   excerpts overflowed visually on the hub.
+// v1.10.44 (2026-05-24): TWO fixes.
+//   (a) ocinsightsnewcards trim -- shortened ACV/RCV + tornado card excerpts to ~100-130 chars
+//       so they fit the 2-line clamp on all-articles cards (earlier 178-198 chars overflowed).
+//   (b) /claims hero background image + navy overlay -- .oc-claims-hero (/claims hub) and
+//       .oc-stub-hero (9 claims-* sub-pages) were rendering as flat navy with no photo.
+//       Added background-image with linear-gradient navy overlay and cream text colors so
+//       claims pages now match the Insurance / Insights hero treatment.
 // v1.10.43 (2026-05-24): ocinsightsnewcards v1.0.0 -- inject 3 new article cards on /insights.
 //   1 featured (Sewer Backup, Georgia, Local Risk), 2 all-articles (ACV vs RCV national,
 //   Atlanta tornado/hail Georgia). Real CMS items at /insights/{slug}; static hub gets
@@ -1963,6 +1967,37 @@ html body .oc-ins-all-grid > *,
 html body #oc-insights-cards-new > * {
   min-width: 0 !important;
 }
+
+/* /claims hub + /claims-* sub-pages: hero needs a background image plus navy overlay
+   to match Insurance / Insights hero treatment. Was previously a bare flat navy. */
+html body .oc-claims-hero,
+html body .oc-stub-hero {
+  background-image: linear-gradient(rgba(27, 58, 92, 0.78), rgba(27, 58, 92, 0.82)),
+                    url('https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/6a037938a22d89f9e8e6ed5c_hero-coverage-review-r2.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-color: #1B3A5C !important;
+  position: relative !important;
+}
+html body .oc-claims-hero h1,
+html body .oc-claims-hero p,
+html body .oc-claims-hero .oc-claims-hero-h1,
+html body .oc-claims-hero .oc-claims-hero-sub,
+html body .oc-claims-hero .oc-claims-hero-eyebrow,
+html body .oc-claims-hero .oc-breadcrumb-link,
+html body .oc-claims-hero .oc-breadcrumb-sep,
+html body .oc-stub-hero h1,
+html body .oc-stub-hero p,
+html body .oc-stub-hero .oc-breadcrumb-link,
+html body .oc-stub-hero .oc-breadcrumb-sep {
+  color: #F5EDD8 !important;
+}
+html body .oc-claims-hero .oc-breadcrumb-link span,
+html body .oc-stub-hero .oc-breadcrumb-link span {
+  color: #F5EDD8 !important;
+}
+
 @media (max-width: 991px) {
   html body .oc-ins-featured-grid,
   html body .oc-ins-all-grid,
