@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.54
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.55
+// v1.10.55 (2026-05-25): ocfootergbp v1.0.0 -- inject Google Business Profile / Maps icon link
+//   in the footer social-icons row. Pointing to the Olive Cover GBP at 6470 East Johns Crossing
+//   STE 160, Johns Creek GA. Reinforces local-AI signals (Gemini, AI Overviews, Maps citations)
+//   and NAP consistency between site + GBP.
 // v1.10.54 (2026-05-25): MAJOR AEO push for AI engine citation eligibility.
 //   ocschemaexpand expanded with:
 //   (1) Article schema on /insights/{slug} (Google AI Overviews + Google News + Bing Copilot)
@@ -1059,6 +1063,51 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
   setTimeout(run, 500);
   setTimeout(run, 1500);
+})();
+
+// === ocfootergbp.js (v1.0.0 — inject Google Business Profile / Maps link in footer social row) ===
+// Adds a Google Maps icon link to the footer social-icons row pointing to the Olive Cover GBP.
+// Major local-AI signal (Gemini, AI Overviews, Maps citations + reinforced NAP consistency).
+(function(){
+  var GBP_URL = 'https://www.google.com/maps/search/?api=1&query=Olive+Cover+6470+East+Johns+Crossing+Johns+Creek+GA+30097';
+  var ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
+  function run(){
+    var footer = document.getElementById('oc-footer-new') || document.querySelector('footer');
+    if (!footer) return;
+    if (footer.dataset.ocGbpApplied === '1') return;
+    // Find the social icons container by looking at the parent of the first matching target="_blank" link
+    var socialAnchors = footer.querySelectorAll('a[target="_blank"]');
+    var socialParent = null;
+    for (var i = 0; i < socialAnchors.length; i++) {
+      var href = socialAnchors[i].getAttribute('href') || '';
+      if (/facebook\.com|instagram\.com|linkedin\.com/.test(href)) {
+        socialParent = socialAnchors[i].parentElement;
+        break;
+      }
+    }
+    if (!socialParent) return;
+    // Avoid double-insertion
+    if (socialParent.querySelector('a[data-oc-gbp="1"]')) {
+      footer.dataset.ocGbpApplied = '1';
+      return;
+    }
+    var gbp = document.createElement('a');
+    gbp.setAttribute('href', GBP_URL);
+    gbp.setAttribute('target', '_blank');
+    gbp.setAttribute('rel', 'noopener');
+    gbp.setAttribute('aria-label', 'Olive Cover on Google Maps');
+    gbp.setAttribute('title', 'Find Olive Cover on Google Maps');
+    gbp.setAttribute('data-oc-gbp', '1');
+    gbp.innerHTML = ICON_SVG;
+    gbp.style.cssText = 'width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:#B8934A;margin-left:8px;text-decoration:none;';
+    socialParent.appendChild(gbp);
+    footer.dataset.ocGbpApplied = '1';
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  setTimeout(run, 400);
+  setTimeout(run, 1200);
+  setTimeout(run, 3000);
 })();
 
 // === ocfooterlogo.js (v1.0.0 — replace "Olive Cover" footer text with stacked logo) ===
