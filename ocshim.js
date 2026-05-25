@@ -1,4 +1,9 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.42
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.43
+// v1.10.43 (2026-05-24): ocinsightsnewcards v1.0.0 -- inject 3 new article cards on /insights.
+//   1 featured (Sewer Backup, Georgia, Local Risk), 2 all-articles (ACV vs RCV national,
+//   Atlanta tornado/hail Georgia). Real CMS items at /insights/{slug}; static hub gets
+//   the visible cards via DOM injection. Bridge until CMS Collection List rebuild.
+//   Sets featGrid.dataset.padded so the v1.10.36 cloning logic skips.
 // v1.10.42 (2026-05-24): HOTFIX -- featured-excerpt-hide selector was wrong.
 //   v1.10.33's rule used .oc-ins-article-card to hide featured excerpts, but featured cards
 //   are .oc-ins-fc-card. The first all-articles card uses .oc-ins-article-card so the rule
@@ -745,6 +750,84 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
   setTimeout(run, 500);
   setTimeout(run, 1500);
+})();
+
+// === ocinsightsnewcards.js (v1.0.0 — inject 3 new article cards on /insights hub) ===
+// Bridge implementation: while the /insights hub remains static HTML pending the proper
+// CMS Collection List rebuild (post-launch), this module injects 3 articles created
+// 2026-05-24: 1 featured + 2 all-articles. Real CMS items exist at /insights/{slug}.
+// Long-term plan: rebuild featured-grid + all-articles-grid as a Webflow CMS Collection
+// List bound to the Insights collection; this module is then removed.
+(function(){
+  if(!/^\/insights\/?$/.test(location.pathname)) return;
+  var FEATURED = {
+    slug: 'georgia-sewer-backup-water-damage-coverage',
+    category: 'Local Risk',
+    scope: 'georgia',
+    title: 'Sewer Backup Coverage in Georgia: The Endorsement Most Atlanta Homeowners Do Not Have',
+    excerpt: 'Heavy rain plus aging Atlanta sewer infrastructure means basement and main-floor backups are common. Standard homeowners excludes them. The fix is a $40 to $80 per year endorsement.',
+    read: '4 min read'
+  };
+  var ALL = [
+    {
+      slug: 'acv-vs-rcv-replacement-cost-coverage-explained',
+      category: 'Coverage Explained',
+      scope: 'national',
+      title: 'Actual Cash Value vs Replacement Cost: The Single Setting That Decides Your Claim Payout',
+      excerpt: 'When a roof or appliance is destroyed, actual cash value pays the depreciated value, often half the cost to replace. Replacement cost pays the full amount. The premium difference is small.',
+      read: '5 min read'
+    },
+    {
+      slug: 'atlanta-tornado-hail-wind-coverage',
+      category: 'Local Risk',
+      scope: 'georgia',
+      title: 'Atlanta Tornado and Hail Insurance: What Wind Coverage Actually Pays For',
+      excerpt: 'Metro Atlanta sits in a regional tornado corridor. Most policies cover tornado damage, but wind and hail deductibles vary widely. Some are flat dollar, some are percentage-based.',
+      read: '6 min read'
+    }
+  ];
+  function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+  function fcCard(d){
+    var el = document.createElement('a');
+    el.setAttribute('data-category', d.category);
+    el.setAttribute('href', '/insights/' + d.slug);
+    el.setAttribute('data-scope', d.scope);
+    el.setAttribute('data-state', d.scope);
+    el.className = 'oc-ins-fc-card w-inline-block oc-ins-new-card';
+    el.innerHTML = '<div class="oc-fc-bg inline-div-0"></div><div class="oc-ins-fc-overlay"></div><div class="oc-ins-fc-content"><p class="oc-ins-fc-tag">' + d.category + ' <span class="oc-fc-state">' + cap(d.scope) + '</span></p><h3 class="oc-ins-fc-title">' + d.title + '</h3><p class="oc-ins-fc-excerpt">' + d.excerpt + '</p><span class="oc-ins-fc-meta">' + d.read + '</span></div>';
+    return el;
+  }
+  function allCard(d){
+    var el = document.createElement('article');
+    el.setAttribute('data-category', d.category);
+    el.setAttribute('data-scope', d.scope);
+    el.setAttribute('data-state', d.scope);
+    el.className = 'oc-ic-1 oc-ins-new-card';
+    el.innerHTML = '<div class="oc-ic-badges"><span class="oc-badge-1">' + d.category + '</span><span class="oc-state-pill">' + cap(d.scope) + '</span></div><a href="/insights/' + d.slug + '" class="oc-ic-title-1-2">' + d.title + '</a><p class="oc-ic-ex-1">' + d.excerpt + '</p><span class="oc-ic-ft-1">' + d.read + '</span>';
+    return el;
+  }
+  function run(){
+    if(document.body.dataset.ocInsightsNewCards === '1') return;
+    var featGrid = document.querySelector('.oc-ins-featured-grid');
+    if(featGrid){
+      var hasFeat = featGrid.querySelector('a[href$="/' + FEATURED.slug + '"]');
+      if(!hasFeat && featGrid.children.length < 4){
+        featGrid.appendChild(fcCard(FEATURED));
+        featGrid.dataset.padded = '1'; // block the v1.10.36 cloning logic
+      }
+    }
+    var allGrid = document.getElementById('oc-insights-cards-new') || document.querySelector('.oc-ins-all-grid');
+    if(allGrid){
+      ALL.forEach(function(d){
+        var existing = allGrid.querySelector('a[href$="/' + d.slug + '"]');
+        if(!existing) allGrid.appendChild(allCard(d));
+      });
+    }
+    document.body.dataset.ocInsightsNewCards = '1';
+  }
+  if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', run); } else { run(); }
+  setTimeout(run, 300);
+  setTimeout(run, 1000);
 })();
 
 // === ocinsightsblankcards.js (v1.0.0 — hide legacy blank article cards on /insights) ===
