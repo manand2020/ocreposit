@@ -1,4 +1,7 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.52
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.53
+// v1.10.53 (2026-05-24): ocfooterlogo v1.0.0 -- replace "Olive Cover" footer text with
+//   the stacked olive-wordmark + "COVER" label brand asset. Uses the existing nav white
+//   logo on the Webflow CDN; "COVER" rendered as a separator-lined caption below.
 // v1.10.52 (2026-05-24): occarrierratecards v1.0.0 -- hide irrelevant Customer Satisfaction
 //   card on carrier pages by LOB. Personal-lines carriers hide Card 3 (commercial), commercial
 //   carriers hide Card 2 (personal). Slug detection for /carriers/{slug}.
@@ -791,6 +794,47 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',run);}else{run();}
   setTimeout(run, 500);
   setTimeout(run, 1500);
+})();
+
+// === ocfooterlogo.js (v1.0.0 — replace "Olive Cover" footer text with stacked logo) ===
+// Footer brand h3 "Olive Cover" replaced with the white olive wordmark on top + "COVER"
+// label below (stacked layout matching the supplied brand asset). Uses the existing nav
+// white logo asset on the Webflow CDN.
+(function(){
+  var LOGO_URL = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png';
+  function run(){
+    var footer = document.getElementById('oc-footer-new') || document.querySelector('footer');
+    if (!footer) return;
+    var h3s = footer.querySelectorAll('h3');
+    var brandH3 = null;
+    for (var i = 0; i < h3s.length; i++) {
+      if ((h3s[i].textContent || '').trim() === 'Olive Cover') {
+        brandH3 = h3s[i];
+        break;
+      }
+    }
+    if (!brandH3) return;
+    if (brandH3.dataset.ocFooterLogoApplied === '1') return;
+    var wrap = document.createElement('div');
+    wrap.className = 'oc-footer-brand-logo';
+    wrap.style.cssText = 'display:inline-block;margin:0 0 12px;line-height:1;';
+    var img = document.createElement('img');
+    img.src = LOGO_URL;
+    img.alt = 'Olive Cover';
+    img.style.cssText = 'display:block;width:140px;height:auto;max-width:100%;margin:0;padding:0;';
+    var cover = document.createElement('span');
+    cover.textContent = 'COVER';
+    cover.style.cssText = 'display:block;border-top:1px solid rgba(245,237,216,0.5);margin:6px 0 0;padding:6px 0 0;font-family:Inter,sans-serif;font-size:13px;font-weight:600;letter-spacing:0.22em;color:#F5EDD8;text-align:center;';
+    wrap.appendChild(img);
+    wrap.appendChild(cover);
+    brandH3.parentNode.insertBefore(wrap, brandH3);
+    brandH3.style.setProperty('display', 'none', 'important');
+    brandH3.dataset.ocFooterLogoApplied = '1';
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  setTimeout(run, 400);
+  setTimeout(run, 1200);
 })();
 
 // === occarrierratecards.js (v1.0.0 — hide irrelevant card per carrier LOB) ===
