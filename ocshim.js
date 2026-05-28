@@ -1,4 +1,8 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.61
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.62
+// v1.10.62 (2026-05-28): BBB profile URL added to ag.sameAs.
+//   Direct BBB profile link (olive-financial-services-0443-91847712 in Duluth GA) is a
+//   high-authority cross-reference for AI-engine agency verification. Bundled with the
+//   v1.10.61 AEO push so a single Site Settings loader bump activates both improvements.
 // v1.10.61 (2026-05-28): AEO push -- HowTo schema for 4 procedural /claims-* pages
 //   (first-24-hours, document-loss, what-to-say, filing-complaint), sameAs links on
 //   InsuranceAgency object (NAIC NPN lookup, GA DOI licensee search, FEMA NFIP),
@@ -511,7 +515,7 @@
     patchExistingSchemas();
     var p=location.pathname.replace(/\/$/,'')||'/';
     var existing=Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function(s){try{return JSON.parse(s.textContent)['@type'];}catch(e){return null;}});
-    var ag={'@type':'InsuranceAgency','name':'Olive Cover','legalName':'Olive Insurance Services, LLC','alternateName':'Olive Insurance Services','url':'https://olivecover.com','telephone':'+1-678-888-1011','sameAs':['https://nipr.com/help/look-up-your-npn','https://oci.georgia.gov/licensee-search','https://www.fema.gov/flood-insurance']};
+    var ag={'@type':'InsuranceAgency','name':'Olive Cover','legalName':'Olive Insurance Services, LLC','alternateName':'Olive Insurance Services','url':'https://olivecover.com','telephone':'+1-678-888-1011','sameAs':['https://nipr.com/help/look-up-your-npn','https://oci.georgia.gov/licensee-search','https://www.fema.gov/flood-insurance','https://www.bbb.org/us/ga/duluth/profile/insurance-agent/olive-financial-services-0443-91847712']};
     // HowTo schema map for 4 procedural /claims-* pages. Other /claims-* slugs fall through to Article.
     var HOWTO_CLAIMS={
       'claims-first-24-hours':{title:'What to do in the first 24 hours after an insurance claim',desc:'A step-by-step guide for the first 24 hours after a property or auto insurance loss. From an independent Georgia insurance agent.',totalTime:'PT24H',tools:['Smartphone','Policy declarations page','Camera (phone is fine)','Notepad or notes app']},
