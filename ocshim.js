@@ -1,5 +1,14 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.62
-// v1.10.62 (2026-05-28): BBB profile URL added to ag.sameAs.
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.62 (force-updated tag)
+// v1.10.62 (2026-05-28, rev 2): HowTo selector fallback for Webflow div-based DOM.
+//   v1.10.62 rev 1 limited the HowTo step-extraction selector to `main h2, main h3,
+//   article h2, article h3`. Webflow pages have no <main> or <article> elements
+//   (they use divs), so the selector returned empty and HowTo never fired on the
+//   4 procedural /claims-* pages. Added fallback: when the main/article selector
+//   returns <2 results, fall back to `h2, h3` with a parent-walk filter that
+//   excludes headings inside nav/header/footer tags or oc-nav/oc-footer classes.
+//   Tag v1.10.62 force-updated to point at this fixed commit so no Site Settings
+//   loader edit is required to activate the fix.
+// v1.10.62 (2026-05-28, rev 1): BBB profile URL added to ag.sameAs.
 //   Direct BBB profile link (olive-financial-services-0443-91847712 in Duluth GA) is a
 //   high-authority cross-reference for AI-engine agency verification. Bundled with the
 //   v1.10.61 AEO push so a single Site Settings loader bump activates both improvements.
@@ -658,6 +667,21 @@
         // Walk H2 + H3 headings in main to build steps. Step text comes from following <p> or <ul>/<ol>.
         var howSteps=[];
         var howHeadings=document.querySelectorAll('main h2, main h3, article h2, article h3');
+        if(howHeadings.length<2){
+          // Fallback for sites without semantic main/article (Webflow uses divs). Take all
+          // h2/h3, exclude those inside nav/header/footer or with brand-chrome class names.
+          howHeadings=Array.from(document.querySelectorAll('h2, h3')).filter(function(h){
+            var p=h.parentElement;
+            while(p&&p!==document.body){
+              var t=p.tagName;
+              if(t==='HEADER'||t==='NAV'||t==='FOOTER') return false;
+              var cls=typeof p.className==='string'?p.className.toLowerCase():'';
+              if(/(^|\s)(oc-nav|oc-footer|oc-mobile|navbar|footer|nav-|header-)/.test(cls)) return false;
+              p=p.parentElement;
+            }
+            return true;
+          });
+        }
         howHeadings.forEach(function(h,i){
           if(howSteps.length>=10) return;
           var hText=(h.textContent||'').trim();
