@@ -1,4 +1,12 @@
-// ocshim.js -- Consolidated Olive Cover site shims v1.10.60
+// ocshim.js -- Consolidated Olive Cover site shims v1.10.61
+// v1.10.61 (2026-05-28): AEO push -- HowTo schema for 4 procedural /claims-* pages
+//   (first-24-hours, document-loss, what-to-say, filing-complaint), sameAs links on
+//   InsuranceAgency object (NAIC NPN lookup, GA DOI licensee search, FEMA NFIP),
+//   speakable expansion on Service + Insights Article + FAQPage + CollectionPage schemas.
+//   Net: Olive Cover citable by Google AI Overviews + Bing Copilot + ChatGPT Search +
+//   Perplexity + Claude for procedural insurance-claims queries (HowTo) and general
+//   agency-verification queries (sameAs). Speakable opens voice-assistant + read-aloud
+//   surfaces (Alexa, Siri, Google Assistant, Perplexity voice mode).
 // v1.10.60 (2026-05-25): ocbrandtext v1.0.0 -- DOM text rewrite for brand-vs-agency.
 //   Live scan found body text on /about and /contact saying "Olive Cover is an independent
 //   property and casualty insurance agency" -- which is incorrect per Mahesh. New module
@@ -503,7 +511,14 @@
     patchExistingSchemas();
     var p=location.pathname.replace(/\/$/,'')||'/';
     var existing=Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function(s){try{return JSON.parse(s.textContent)['@type'];}catch(e){return null;}});
-    var ag={'@type':'InsuranceAgency','name':'Olive Cover','legalName':'Olive Insurance Services, LLC','alternateName':'Olive Insurance Services','url':'https://olivecover.com','telephone':'+1-678-888-1011'};
+    var ag={'@type':'InsuranceAgency','name':'Olive Cover','legalName':'Olive Insurance Services, LLC','alternateName':'Olive Insurance Services','url':'https://olivecover.com','telephone':'+1-678-888-1011','sameAs':['https://nipr.com/help/look-up-your-npn','https://oci.georgia.gov/licensee-search','https://www.fema.gov/flood-insurance']};
+    // HowTo schema map for 4 procedural /claims-* pages. Other /claims-* slugs fall through to Article.
+    var HOWTO_CLAIMS={
+      'claims-first-24-hours':{title:'What to do in the first 24 hours after an insurance claim',desc:'A step-by-step guide for the first 24 hours after a property or auto insurance loss. From an independent Georgia insurance agent.',totalTime:'PT24H',tools:['Smartphone','Policy declarations page','Camera (phone is fine)','Notepad or notes app']},
+      'claims-document-loss':{title:'How to document an insurance loss',desc:'How to capture photos, receipts, timelines, and damage evidence so your insurance claim is complete and supportable.',totalTime:'PT2H',tools:['Smartphone with camera','Receipts (digital or paper)','Inventory list','Time-stamped notes']},
+      'claims-what-to-say':{title:'How to talk to your insurance claims adjuster',desc:'What to say to the claims adjuster and what to avoid. Phrases that help your claim and phrases that hurt it.',totalTime:'PT30M',tools:['Phone','Notepad','Your policy declarations page']},
+      'claims-filing-complaint':{title:'How to file a complaint against an insurance carrier',desc:'How to file a formal complaint with the Georgia Department of Insurance against a carrier mishandling your claim.',totalTime:'P3D',tools:['Computer or smartphone','Policy + claim documentation','Timeline of events']}
+    };
     var ar={'@type':'State','name':'Georgia'};
     var siteUrl='https://www.olivecover.com';
     var s=null;
@@ -513,7 +528,7 @@
       var n=getH1()||sl.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
       var d=getDesc()||'Independent placement of '+sl.replace(/-/g,' ')+'.';
       var st=sl.replace(/-insurance$/,'').replace(/-/g,' ');
-      s={'@context':'https://schema.org','@type':'Service','name':n,'provider':ag,'description':d,'areaServed':ar,'serviceType':st,'url':siteUrl+p};
+      s={'@context':'https://schema.org','@type':'Service','name':n,'provider':ag,'description':d,'areaServed':ar,'serviceType':st,'url':siteUrl+p,'speakable':{'@type':'SpeakableSpecification','cssSelector':['h1','h2:first-of-type','main p:first-of-type','meta[name=description]']}};
     }
     // /carriers/{slug} → Review (Position C: carrier reviewed by Olive Cover, not represented)
     else if(/^\/carriers\/[^/]+$/.test(p)&&existing.indexOf('Review')<0){
@@ -524,7 +539,7 @@
     }
     // /coverage-review → Service (Free Coverage Review)
     else if(p==='/coverage-review'&&existing.indexOf('Service')<0){
-      s={'@context':'https://schema.org','@type':'Service','name':'Free Coverage Review','provider':ag,'description':getDesc()||'A 15-minute consultation to review your insurance coverage. Olive Cover shops multiple carriers to find the right policy for your needs.','areaServed':ar,'serviceType':'Insurance coverage consultation','url':siteUrl+p};
+      s={'@context':'https://schema.org','@type':'Service','name':'Free Coverage Review','provider':ag,'description':getDesc()||'A 15-minute consultation to review your insurance coverage. Olive Cover shops multiple carriers to find the right policy for your needs.','areaServed':ar,'serviceType':'Insurance coverage consultation','url':siteUrl+p,'speakable':{'@type':'SpeakableSpecification','cssSelector':['h1','.oc-crv-intro','main p:first-of-type','meta[name=description]']}};
     }
     // /personal-insurance → WebPage / CollectionPage for personal P&C products
     else if(p==='/personal-insurance'&&existing.indexOf('CollectionPage')<0){
@@ -552,7 +567,7 @@
         if(qas.length>=4) return;
       });
       if(qas.length){
-        s={'@context':'https://schema.org','@type':'FAQPage','mainEntity':qas};
+        s={'@context':'https://schema.org','@type':'FAQPage','mainEntity':qas,'speakable':{'@type':'SpeakableSpecification','cssSelector':['.oc-faq-q','.oc-fqc-q-1','.oc-faq-short','h1','main p:first-of-type']}};
       } else {
         // Fallback: lighter FAQPage with no entities (still helps Google understand page type)
         s={'@context':'https://schema.org','@type':'WebPage','name':getH1()||'Insurance FAQs','description':getDesc()||'Frequently asked questions about insurance coverage, claims, and Olive Cover services.','url':siteUrl+p};
@@ -624,31 +639,93 @@
     }
     // /claims → Service (claims handling)
     else if(p==='/claims'&&existing.indexOf('Service')<0){
-      s={'@context':'https://schema.org','@type':'Service','name':getH1()||'Insurance Claims Handling','provider':ag,'description':getDesc()||'Insurance claims guidance and advocacy for Olive Cover policyholders in Georgia.','areaServed':ar,'serviceType':'Insurance claims handling','url':siteUrl+p};
+      s={'@context':'https://schema.org','@type':'Service','name':getH1()||'Insurance Claims Handling','provider':ag,'description':getDesc()||'Insurance claims guidance and advocacy for Olive Cover policyholders in Georgia.','areaServed':ar,'serviceType':'Insurance claims handling','url':siteUrl+p,'speakable':{'@type':'SpeakableSpecification','cssSelector':['h1','main p:first-of-type','h2:first-of-type']}};
     }
-    // /claims-* sub-pages → Article (claims-first-24-hours, claims-what-to-say, claims-document-loss,
-    // claims-pitfalls, claims-acknowledgment-timeline, claims-decision-timeline, claims-bad-faith,
-    // claims-filing-complaint, claims-state-rights). All are educational guides; Article schema
-    // makes them eligible for Google AI Overviews + Bing Copilot citations.
-    else if(/^\/claims-/.test(p)&&existing.indexOf('Article')<0){
-      var claimsHeadline=getH1()||p.substring(1).replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
-      s={
-        '@context':'https://schema.org',
-        '@type':'Article',
-        'headline':claimsHeadline.substring(0,110),
-        'description':getDesc()||'Claims guidance article from Olive Cover.',
-        'image':getOgImg()||'',
-        'datePublished':new Date().toISOString().substring(0,10),
-        'dateModified':new Date().toISOString().substring(0,10),
-        'author':{'@type':'Organization','name':'The Olive Cover Team','url':siteUrl},
-        'publisher':{'@type':'Organization','name':'Olive Cover','logo':{'@type':'ImageObject','url':'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png'}},
-        'mainEntityOfPage':{'@type':'WebPage','@id':siteUrl+p},
-        'url':siteUrl+p,
-        'inLanguage':'en-US',
-        'about':{'@type':'Thing','name':'Insurance claims'},
-        'isPartOf':{'@type':'WebPage','name':'Claims Hub','url':siteUrl+'/claims'},
-        'speakable':{'@type':'SpeakableSpecification','cssSelector':['.oc-stub-h1','h1','.oc-stub-sub','main p:first-of-type']}
-      };
+    // /claims-* sub-pages → HowTo (for 4 procedural pages) or Article (for the rest).
+    // HOWTO_CLAIMS map (declared at top of run) drives the HowTo branch.
+    // 4 procedural: first-24-hours, document-loss, what-to-say, filing-complaint.
+    // 5 informational fall through to Article: pitfalls, acknowledgment-timeline,
+    // decision-timeline, bad-faith, state-rights.
+    else if(/^\/claims-/.test(p)){
+      var claimsSlug=p.substring(1);
+      // Try HowTo first for the 4 procedural pages
+      if(HOWTO_CLAIMS[claimsSlug]&&existing.indexOf('HowTo')<0&&existing.indexOf('Article')<0){
+        var howMeta=HOWTO_CLAIMS[claimsSlug];
+        // Walk H2 + H3 headings in main to build steps. Step text comes from following <p> or <ul>/<ol>.
+        var howSteps=[];
+        var howHeadings=document.querySelectorAll('main h2, main h3, article h2, article h3');
+        howHeadings.forEach(function(h,i){
+          if(howSteps.length>=10) return;
+          var hText=(h.textContent||'').trim();
+          if(!hText||hText.length>200) return;
+          var stepText='';
+          var sib=h.nextElementSibling;
+          while(sib&&!stepText){
+            if(sib.tagName==='P'){
+              stepText=(sib.textContent||'').trim().substring(0,500);
+            } else if(sib.tagName==='UL'||sib.tagName==='OL'){
+              var lis=sib.querySelectorAll('li');
+              var parts=[];
+              for(var li=0;li<Math.min(3,lis.length);li++){ parts.push((lis[li].textContent||'').trim()); }
+              stepText=parts.join(' ').substring(0,500);
+            }
+            sib=sib.nextElementSibling;
+            if(sib&&/^H[1-6]$/.test(sib.tagName||'')) break;
+          }
+          if(!stepText) stepText=hText;
+          var stepId=h.id||hText.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+          howSteps.push({
+            '@type':'HowToStep',
+            'position':i+1,
+            'name':hText.substring(0,110),
+            'text':stepText,
+            'url':siteUrl+p+(stepId?'#'+stepId:'')
+          });
+        });
+        if(howSteps.length>=2){
+          s={
+            '@context':'https://schema.org',
+            '@type':'HowTo',
+            'name':howMeta.title,
+            'description':howMeta.desc,
+            'image':getOgImg()||(siteUrl+'/og-default.jpg'),
+            'totalTime':howMeta.totalTime,
+            'tool':howMeta.tools.map(function(t){return {'@type':'HowToTool','name':t};}),
+            'step':howSteps,
+            'publisher':{'@type':'Organization','name':'Olive Cover','logo':{'@type':'ImageObject','url':'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png'}},
+            'author':{'@type':'Organization','name':'The Olive Cover Team','url':siteUrl},
+            'datePublished':new Date().toISOString().substring(0,10),
+            'dateModified':new Date().toISOString().substring(0,10),
+            'inLanguage':'en-US',
+            'mainEntityOfPage':{'@type':'WebPage','@id':siteUrl+p},
+            'url':siteUrl+p,
+            'about':{'@type':'Thing','name':'Insurance claims'},
+            'isPartOf':{'@type':'WebPage','name':'Claims Hub','url':siteUrl+'/claims'},
+            'speakable':{'@type':'SpeakableSpecification','cssSelector':['h1','h2','main p:first-of-type']}
+          };
+        }
+      }
+      // Fall through to Article if HowTo didn't emit (5 informational pages OR step extraction failed)
+      if(!s&&existing.indexOf('Article')<0){
+        var claimsHeadline=getH1()||p.substring(1).replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+        s={
+          '@context':'https://schema.org',
+          '@type':'Article',
+          'headline':claimsHeadline.substring(0,110),
+          'description':getDesc()||'Claims guidance article from Olive Cover.',
+          'image':getOgImg()||'',
+          'datePublished':new Date().toISOString().substring(0,10),
+          'dateModified':new Date().toISOString().substring(0,10),
+          'author':{'@type':'Organization','name':'The Olive Cover Team','url':siteUrl},
+          'publisher':{'@type':'Organization','name':'Olive Cover','logo':{'@type':'ImageObject','url':'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/69e2a6656e5c5ae44d546a9d_olive_logo_white.png'}},
+          'mainEntityOfPage':{'@type':'WebPage','@id':siteUrl+p},
+          'url':siteUrl+p,
+          'inLanguage':'en-US',
+          'about':{'@type':'Thing','name':'Insurance claims'},
+          'isPartOf':{'@type':'WebPage','name':'Claims Hub','url':siteUrl+'/claims'},
+          'speakable':{'@type':'SpeakableSpecification','cssSelector':['.oc-stub-h1','h1','.oc-stub-sub','main p:first-of-type','h2','h3']}
+        };
+      }
     }
     // /personal-carriers, /commercial-carriers → CollectionPage (carrier list pages)
     else if((p==='/personal-carriers'||p==='/commercial-carriers')&&existing.indexOf('CollectionPage')<0){
@@ -699,7 +776,8 @@
         'mainEntityOfPage':{'@type':'WebPage','@id':siteUrl+p},
         'url':siteUrl+p,
         'inLanguage':'en-US',
-        'about':{'@type':'Thing','name':'Insurance'}
+        'about':{'@type':'Thing','name':'Insurance'},
+        'speakable':{'@type':'SpeakableSpecification','cssSelector':['h1','main p:first-of-type','main p:nth-of-type(2)','.oc-insights-intro','.oc-ins-summary','[class*="intro"]']}
       };
     }
     // /insurance-terms/{slug} → DefinedTerm with rich AEO fields. Even though the static page
