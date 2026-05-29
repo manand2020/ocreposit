@@ -497,6 +497,19 @@
       [/\bWe are a licensed P\s*&\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek'],
       [/\bWe are a licensed P\s*&amp;\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek']
     ];
+    // Additional cross-cutting compliance rules (not strictly brand-vs-agency but same patcher infra).
+    // These cover the "no real estate / mortgage" content rule on pages where the term appears
+    // as an industry-vertical listing rather than a defined insurance term.
+    var crossRules = [
+      // /commercial-carriers carrier-appetite table cells (Travelers, Hanover) listed "real estate"
+      // alongside other industry verticals. Replace with the equivalent compliant term used in the
+      // Carriers CMS data ("commercial property").
+      [/(commercial,\s*manufacturing,\s*construction,\s*)real estate\b/gi, '$1commercial property'],
+      [/(Retail,\s*professional services,\s*)real estate(,\s*hospitality)/gi, '$1commercial property$2']
+    ];
+    // Only apply crossRules on the specific path(s) they target, so we don't accidentally rewrite
+    // legitimate uses elsewhere (e.g. an insurance article that discusses the real estate industry).
+    var applyCross = location.pathname === '/commercial-carriers';
     var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: function(n){
         // Skip text inside script/style/noscript
@@ -506,7 +519,11 @@
           if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
           p = p.parentNode;
         }
-        return n.nodeValue && n.nodeValue.indexOf('Olive Cover') >= 0 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        if (!n.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (n.nodeValue.indexOf('Olive Cover') >= 0) return NodeFilter.FILTER_ACCEPT;
+        // Also accept nodes containing "real estate" when on a path where crossRules apply
+        if (location.pathname === '/commercial-carriers' && /real estate/i.test(n.nodeValue)) return NodeFilter.FILTER_ACCEPT;
+        return NodeFilter.FILTER_REJECT;
       }
     });
     var nodes = [];
@@ -516,6 +533,7 @@
       var t = n.nodeValue;
       var orig = t;
       for (var i = 0; i < rules.length; i++) t = t.replace(rules[i][0], rules[i][1]);
+      if (applyCross) for (var j = 0; j < crossRules.length; j++) t = t.replace(crossRules[j][0], crossRules[j][1]);
       if (t !== orig) { n.nodeValue = t; changedCount++; }
     });
     if (document.body) document.body.dataset.ocBrandBodyPatched = '1';
