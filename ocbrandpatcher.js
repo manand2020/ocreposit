@@ -67,6 +67,10 @@
         }
         if (!n.nodeValue) return NodeFilter.FILTER_REJECT;
         if (n.nodeValue.indexOf('Olive Cover') >= 0) return NodeFilter.FILTER_ACCEPT;
+        // Some brand-misattribution rules don't include the literal "Olive Cover" in the
+        // matched fragment (e.g. "We are a licensed P&C agency..."). Accept those too.
+        if (/We are a licensed P\s*&[\s]*C agency/i.test(n.nodeValue)) return NodeFilter.FILTER_ACCEPT;
+        if (/We are a licensed P\s*&amp;[\s]*C agency/i.test(n.nodeValue)) return NodeFilter.FILTER_ACCEPT;
         if (applyCross && /real estate/i.test(n.nodeValue)) return NodeFilter.FILTER_ACCEPT;
         return NodeFilter.FILTER_REJECT;
       }
