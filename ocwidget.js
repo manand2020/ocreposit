@@ -54,7 +54,7 @@
   var WEBCHAT_ENDPOINT = 'https://webchat-3q26d3khpa-ue.a.run.app';
   var FORMS_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/widget-capture';
   var GATEWAY_TOKEN = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
-  var WGT_VER = '3.0.0';
+  var WGT_VER = '3.3.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -174,6 +174,10 @@
       '.oc-widget-toggle:hover{background:#163250;}',
       // Panel shell
       '.oc-widget-panel{position:absolute;bottom:calc(100% + 12px);right:0;width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(27,58,92,0.18);overflow:hidden;}',
+      // v3.3.0: start collapsed -- only the launcher (summary) shows until the
+      // visitor clicks it. The absolutely-positioned panel was rendering even
+      // when the <details> was closed, so it auto-opened on every page load.
+      '.oc-widget-root:not([open]) .oc-widget-panel{display:none !important;}',
       '.oc-widget-close{position:absolute;top:8px;right:8px;width:28px;height:28px;border:none;background:transparent;font-size:24px;line-height:1;color:#1B3A5C;cursor:pointer;padding:0;border-radius:4px;display:flex;align-items:center;justify-content:center;opacity:0.6;z-index:1;}',
       '.oc-widget-close:hover{opacity:1;background:rgba(27,58,92,0.06);}',
       '.oc-widget-panel-header{background:#1B3A5C;padding:16px 20px;}',
@@ -272,7 +276,8 @@
 
     if (OC_CHAT_ENABLED) {
       var contact = getContact();
-      var complete = contact && contact.name && contact.email && contact.phone;
+      // Phone is optional (v3.3.0) -- a contact is "complete" with name + email.
+      var complete = contact && contact.name && contact.email;
       if (complete) {
         el.innerHTML = TOGGLE_HTML + PANEL_TOP + threadBlockHTML() + PANEL_FOOTER;
       } else {
@@ -280,12 +285,20 @@
         var prefEmail = (contact && contact.email) || '';
         var prefPhone = (contact && contact.phone) || '';
         var attrVal = function (v) { return String(v).replace(/"/g, '&quot;'); };
+        // v3.3.0: visible state selector, defaulting to the cached oc_state so
+        // it matches the other forms and chat leads carry a state for CRM
+        // licensed-vs-waitlist routing.
+        var capState = '';
+        try { capState = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {}
+        var capStateOpts = '<option value="">What state are you in?</option>' +
+          STATES.map(function (s) { return '<option value="' + s[0] + '"' + (s[0] === capState ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('');
         el.innerHTML = TOGGLE_HTML + PANEL_TOP + [
           '<form id="oc-wgt-capture-form" class="oc-widget-form">',
           '<p class="oc-wgt-intro">Before we chat, how should we reach you?</p>',
+          '<select id="oc-wgt-cap-state" class="oc-widget-input oc-widget-select" aria-label="What state are you in?" required>' + capStateOpts + '</select>',
           '<input id="oc-wgt-name" class="oc-widget-input" type="text" placeholder="Your name" autocomplete="name" value="' + attrVal(prefName) + '" required/>',
           '<input id="oc-wgt-email" class="oc-widget-input" type="email" placeholder="Email" autocomplete="email" value="' + attrVal(prefEmail) + '" required/>',
-          '<input id="oc-wgt-phone" class="oc-widget-input" type="tel" placeholder="Phone" autocomplete="tel" value="' + attrVal(prefPhone) + '" required/>',
+          '<input id="oc-wgt-phone" class="oc-widget-input" type="tel" placeholder="Phone (optional)" autocomplete="tel" value="' + attrVal(prefPhone) + '"/>',
           '<button id="oc-wgt-start" class="oc-widget-btn" type="submit">Start Chat</button>',
           '</form>'
         ].join('') + PANEL_FOOTER;
@@ -647,22 +660,37 @@
     var form = document.getElementById('oc-wgt-capture-form');
     var errEl = document.getElementById('oc-wgt-error');
     if (!form) return;
+    // Write oc_state immediately on state change so the rest of the site
+    // defaults to it (the cache/default behavior shared by all forms).
+    var stEl = document.getElementById('oc-wgt-cap-state');
+    if (stEl) {
+      stEl.addEventListener('change', function () {
+        try { if (stEl.value) localStorage.setItem('oc_state', stEl.value.toUpperCase()); } catch (e) {}
+      });
+    }
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var name = (document.getElementById('oc-wgt-name').value || '').trim();
       var email = (document.getElementById('oc-wgt-email').value || '').trim();
       var phone = (document.getElementById('oc-wgt-phone').value || '').trim();
-      if (!name || !email || !phone) {
-        if (errEl) { errEl.textContent = 'Please enter your name, email, and phone.'; errEl.style.display = 'block'; }
+      var stateSel = document.getElementById('oc-wgt-cap-state');
+      var state = (stateSel && stateSel.value ? stateSel.value : '').toUpperCase().trim();
+      if (!state) { try { state = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {} }
+      // Phone is optional (v3.3.0); name + email + state required.
+      if (!name || !email) {
+        if (errEl) { errEl.textContent = 'Please enter your name and email.'; errEl.style.display = 'block'; }
         return;
       }
       if (email.indexOf('@') < 0) {
         if (errEl) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; }
         return;
       }
+      if (!state) {
+        if (errEl) { errEl.textContent = 'Please select your state.'; errEl.style.display = 'block'; }
+        return;
+      }
       if (errEl) errEl.style.display = 'none';
-      var state = '';
-      try { state = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {}
+      try { if (state) localStorage.setItem('oc_state', state); } catch (e) {}
       saveContact({ name: name, email: email, phone: phone, state: state });
       // Fire generate_lead conversion on contact capture (the actual lead moment)
       fireGenerateLead('widget-capture-form');
@@ -672,7 +700,7 @@
 
   function initChat() {
     var contact = getContact();
-    var complete = contact && contact.name && contact.email && contact.phone;
+    var complete = contact && contact.name && contact.email;
     if (!complete) {
       wireContactCapture();
     } else {
