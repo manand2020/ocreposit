@@ -1,4 +1,4 @@
-// ocwidgetchips.js v1.0.1 -- Quick-action chips for Ask Olive widget.
+// ocwidgetchips.js v1.0.2 -- Quick-action chips for Ask Olive widget.
 //
 // Injects three shortcut chips below the widget greeting bubble: "Book a call",
 // "Free coverage review", and "Browse FAQ". Visitors who arrive in the widget
@@ -22,13 +22,15 @@
     { label: 'Browse FAQ', href: '/faq', emoji: '' }
   ];
 
-  var INJECTED = false;
+  // Visitor-initiated chat. When the visitor sends a real message, we set
+  // SUPPRESS=true so chips don't re-mount even if the widget re-renders.
+  var SUPPRESS = false;
 
   function injectChips() {
-    if (INJECTED) return true;
+    if (SUPPRESS) return true;
     var greeting = document.querySelector('#oc-wgt-greeting');
     if (!greeting) return false;
-    if (document.querySelector('#oc-wgt-chips')) { INJECTED = true; return true; }
+    if (document.querySelector('#oc-wgt-chips')) return true;
     var row = document.createElement('div');
     row.id = 'oc-wgt-chips';
     row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px 0;padding:0 4px;font-family:Inter,system-ui,sans-serif';
@@ -63,7 +65,6 @@
     } else {
       greeting.parentNode.appendChild(row);
     }
-    INJECTED = true;
     bindHideOnSubmit();
     return true;
   }
@@ -99,32 +100,31 @@
   }
 
   function hideChips() {
+    SUPPRESS = true;
     var row = document.querySelector('#oc-wgt-chips');
-    if (row && row.style.display !== 'none') {
-      row.style.display = 'none';
-    }
+    if (row) row.remove();
   }
 
   // Wait for the greeting bubble via MutationObserver -- robust against late
-  // widget mount on heavy CMS pages where polling can time out. Falls back to
-  // polling as belt-and-suspenders.
+  // widget mount AND against widget re-renders that wipe our chips. We keep
+  // the observer alive for 60s so re-renders trigger a re-inject. injectChips
+  // is idempotent (no-op when chips already present or SUPPRESS is true).
   function watch() {
-    if (injectChips()) return;
+    injectChips();
     var obs = new MutationObserver(function () {
-      if (injectChips()) {
-        obs.disconnect();
-      }
+      if (SUPPRESS) { obs.disconnect(); return; }
+      // Re-inject if missing -- widget might have re-rendered the thread.
+      if (!document.querySelector('#oc-wgt-chips')) injectChips();
     });
     obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
-    // Safety: stop observing after 60s of no greeting (saves memory on rare
-    // pages where widget never mounts).
     setTimeout(function () { try { obs.disconnect(); } catch (e) {} }, 60000);
-    // Also poll for the first 7.5s as a defensive belt-and-suspenders for
-    // browsers / observers that miss the initial mount.
+    // Initial poll for the first 7.5s defends against MutationObserver edge
+    // cases where the greeting was added in a single subtree replacement
+    // (one mutation, may have already happened before the observer attached).
     var tries = 0;
     (function poll() {
-      if (INJECTED) return;
-      if (injectChips()) return;
+      if (SUPPRESS) return;
+      if (!document.querySelector('#oc-wgt-chips')) injectChips();
       if (++tries > 30) return;
       setTimeout(poll, 250);
     })();
