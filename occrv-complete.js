@@ -1,47 +1,31 @@
-// Olive Cover - Coverage Review form behavior v2.14.0
-// v2.14.0 (2026-05-23): buildPartialPayload now reads state from the actual injected
-//          dropdown element (#oc-state-select, name="state") with localStorage.oc_state
-//          fallback. Previously read from non-existent element ID "oc-crv-st" so every
-//          /coverage-review submission landed in CRM with [STATE-UNKNOWN] in description
-//          and ZIP misrouted into primary_address_state by OC Tech's backend fallback.
-//          The "oc-crv-st" ID never existed because ocstateselect.js injects the state
-//          dropdown with the canonical ID "oc-state-select". This fix mirrors the working
-//          localStorage-first pattern from ochomeleads.js v1.7.0 + ocwidget.js v2.16 +
-//          occontact-complete.js v1.7.0. State now flows correctly to Firestore auto-saves
-//          AND final submission AND GA4 generate_lead event payload.
-// v2.13.0: Fire gtag('event','generate_lead') on successful submit for Google Ads
-//          conversion-optimized bidding. Capture full UTM stack (utm_*, gclid,
-//          fbclid, msclkid, landing_referrer) into Firebase payload for CRM
-//          attribution. 30-day stickiness in localStorage.
-// v2.12.1: stopImmediatePropagation on onNext/onBack/onSubmit so the legacy @49e1b04 script
-//          loaded from coverage-review Page Settings cannot fire its handlers after this
-//          module's. Eliminates user-facing impact of the double-load (Task #3 fallback)
-//          without requiring Designer-side custom-code deletion.
-// v2.12: ZIP format validation in validateStep(2) -- requires non-empty 5-digit US ZIP.
-// v2.11: named app (oc-crv) to prevent double-init with site-wide tracker; session_id in payload.
-// 5-step intake with personal/commercial tracks, auto-save, session recovery
-// Source of truth: github.com/manand2020/ocreposit/occrv-complete.js
-// Served via jsdelivr CDN. Bump version query string when updating.
-// No inline event handlers in markup. All handlers wired via addEventListener in init().
+// Olive Cover -- Coverage Review form behavior v3.0.0
+// Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
+// Replaces v2.14.0 which wrote directly to olive-cover-prod Firestore + Storage.
+// Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.0.0 (2026-05-28): MIGRATION to canonical olivec-prod stack.
+//   * Removed all Firebase SDK calls (project decommissioned).
+//   * Final submit POSTs to https://forms-3q26d3khpa-ue.a.run.app/forms/coverage-review
+//     which writes to olivec-prod Firestore + forwards to Clip /internal/forms.
+//     Clip creates a CRM Lead, opens a Paperclip Issue, and routes to Service Triage.
+//   * Auto-save migrated from Firestore cloud-sync to localStorage-only:
+//     Same-device resume still works. Cross-device resume removed (rare in practice).
+//   * File uploads (dec page + policy file) REPLACED with email follow-up:
+//     The advisor sends a "send your dec page" reply post-submission. Avoids
+//     needing a public file-upload endpoint with anonymous Storage write rules.
+//     UI text updated to set expectation; the upload buttons hide gracefully if
+//     present in the DOM but never write to cloud storage.
+//   * All UI logic (5-step, chip groups, validation, GA4 conversion) UNCHANGED.
+//
+// v2.14.0 (2026-05-23): State dropdown read fix (oc-state-select).
+// v2.13.0: gtag generate_lead conversion + full UTM stack.
+// v2.12.1: stopImmediatePropagation on nav handlers.
+// v2.12: ZIP format validation.
+// v2.11: named app (oc-crv).
 
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-const fbConfig = {
-  apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
-  authDomain: "olive-cover-prod.firebaseapp.com",
-  projectId: "olive-cover-prod",
-  storageBucket: "olive-cover-prod.firebasestorage.app",
-  messagingSenderId: "781066018428",
-  appId: "1:781066018428:web:535d07b690283027f9f3f9"
-};
-const APP_NAME = "oc-crv";
-const app = getApps().find(a => a.name === APP_NAME) || initializeApp(fbConfig, APP_NAME);
-const db = getFirestore(app, "submissions");
-const storage = getStorage(app);
-const auth = getAuth(app);
+const ENDPOINT = "https://forms-3q26d3khpa-ue.a.run.app/forms/coverage-review";
+const BEARER = "fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=";
+const STATE_LS_KEY = "oc_crv_state_v3";
 
 // Capture UTM/click-id params with 30-day stickiness in localStorage
 function captureUTM() {
@@ -69,9 +53,7 @@ function captureUTM() {
 const _utm = captureUTM();
 const _landing_referrer = document.referrer || "";
 
-// Establish anonymous auth on module load so Firestore/Storage rules pass.
-// Fire-and-forget: by the time any user interaction triggers a write, auth will be ready.
-signInAnonymously(auth).catch((err) => console.warn("[oc-crv] anon auth failed:", err));
+// v3.0.0: anonymous auth removed -- direct fetch to olivec-prod forms function.
 
 // ---- Session management ----------------------------------------
 
@@ -229,13 +211,18 @@ function setupMultiChips(groupSelector, stateKey) {
 function onCkChange() { scheduleSave(); }
 
 // ---- File upload handlers (Step 4) ----------------------------
+// v3.0.0: cloud uploads removed (project decommissioned). Selected files are
+// captured locally so we can record the filename in the submission payload,
+// but actual bytes are not transmitted. The advisor follows up by email after
+// submission with a request for the dec page / current policy. A short hint is
+// displayed when the user picks a file so they aren't surprised by no upload.
 
-function setupFileUpload(inputId, triggerId, labelId, stateUrlKey, stateNameKey, folder, maxMB) {
+function setupFileUpload(inputId, triggerId, labelId, _stateUrlKey, stateNameKey, _folder, maxMB) {
   const input = $(inputId);
   if (!input) return;
   const trigger = $(triggerId);
   if (trigger) trigger.addEventListener("click", (e) => { e.preventDefault(); input.click(); });
-  input.addEventListener("change", async (e) => {
+  input.addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     const lbl = $(labelId);
@@ -244,21 +231,9 @@ function setupFileUpload(inputId, triggerId, labelId, stateUrlKey, stateNameKey,
       e.target.value = "";
       return;
     }
-    if (lbl) lbl.textContent = "Uploading...";
-    try {
-      const sid = getOrCreateSession();
-      const safeName = sid + "-" + Date.now() + "-" + file.name.replace(/[^A-Za-z0-9._-]/g, "_");
-      const r = ref(storage, folder + "/" + safeName);
-      await uploadBytes(r, file, { contentType: file.type });
-      STATE[stateUrlKey] = await getDownloadURL(r);
-      STATE[stateNameKey] = file.name;
-      if (lbl) lbl.textContent = file.name;
-      scheduleSave();
-    } catch (err) {
-      console.error("[oc-crv] file upload failed:", err);
-      showErr("File upload failed. Please try again.");
-      if (lbl) lbl.textContent = "Upload failed";
-    }
+    STATE[stateNameKey] = file.name;
+    if (lbl) lbl.textContent = file.name + " (we'll email you to collect this)";
+    scheduleSave();
   });
 }
 
@@ -327,12 +302,9 @@ function dismissResume(e) {
   if (banner) banner.style.display = "none";
 }
 
-async function onStartOver(e) {
+function onStartOver(e) {
   e.preventDefault();
-  try {
-    const sid = localStorage.getItem(SID_KEY);
-    if (sid) await setDoc(doc(db, "coverage-review", sid), { status: "cleared", clearedAt: serverTimestamp() }, { merge: true });
-  } catch (err) { console.warn("[oc-crv] clear session failed:", err); }
+  try { localStorage.removeItem(STATE_LS_KEY); } catch (err) {}
   clearSession();
   location.reload();
 }
@@ -407,29 +379,29 @@ function buildPartialPayload() {
     fbclid: _utm.fbclid || null,
     msclkid: _utm.msclkid || null,
     landing_referrer: _landing_referrer,
-    savedAt: serverTimestamp()
+    savedAt: Date.now()
   };
 }
 
-async function saveSession() {
+function saveSession() {
   if (STATE.saving) return;
   STATE.saving = true;
   try {
-    const sid = getOrCreateSession();
-    await setDoc(doc(db, "coverage-review", sid), buildPartialPayload(), { merge: true });
+    getOrCreateSession();
+    localStorage.setItem(STATE_LS_KEY, JSON.stringify(buildPartialPayload()));
   } catch (err) { console.warn("[oc-crv] auto-save failed:", err); }
   finally { STATE.saving = false; }
 }
 
 // ---- Session recovery on load ---------------------------------
 
-async function tryRestoreSession() {
+function tryRestoreSession() {
   const sid = localStorage.getItem(SID_KEY);
   if (!sid) return;
   try {
-    const snap = await getDoc(doc(db, "coverage-review", sid));
-    if (!snap.exists()) return;
-    const d = snap.data();
+    const raw = localStorage.getItem(STATE_LS_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
     if (!d || d.status !== "in_progress") return;
     // Restore contact fields
     const set = (id, val) => { const el = $(id); if (el && val) el.value = val; };
@@ -516,6 +488,14 @@ async function tryRestoreSession() {
   } catch (err) { console.warn("[oc-crv] session restore failed:", err); }
 }
 
+function uuidv4Submission() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 // ---- Submit (Step 5) ------------------------------------------
 
 async function onSubmit(e) {
@@ -529,17 +509,33 @@ async function onSubmit(e) {
   btn.textContent = "Sending...";
   showErr("");
   try {
-    const sid = getOrCreateSession();
-    const v = (id) => { const el = $(id); return el ? (el.value || "").trim() : ""; };
-    const checks = (sel) => Array.from(document.querySelectorAll(sel + ":checked")).map((c) => c.value);
-    const payload = Object.assign(buildPartialPayload(), {
+    getOrCreateSession();
+    const fields = Object.assign(buildPartialPayload(), {
       status: "submitted",
-      submittedAt: serverTimestamp(),
-      createdAt: serverTimestamp()
+      submittedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
     });
-    delete payload.savedAt;
-    await setDoc(doc(db, "coverage-review", sid), payload, { merge: true });
+    delete fields.savedAt;
+    const requestBody = {
+      form_type: "coverage-review",
+      submission_id: uuidv4Submission(),
+      page_url: location.href,
+      submitted_at: new Date().toISOString(),
+      fields,
+    };
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forms-Auth": BEARER,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status + " " + (await res.text().catch(() => "")));
+    try { localStorage.removeItem(STATE_LS_KEY); } catch (e) {}
     clearSession();
+    const payload = fields;
     const wrap = $("oc-crv-wrap");
     const ok = $("oc-crv-ok");
     if (wrap) wrap.style.display = "none";
@@ -559,7 +555,7 @@ async function onSubmit(e) {
     } catch (e3) { /* gtag missing */ }
   } catch (err) {
     console.error("[oc-crv] submit failed:", err);
-    showErr("Couldn't send right now. Please try again, or email mahesh@olivecover.com.");
+    showErr("Couldn't send right now. Please try again, or email askolive@olivecover.com.");
     btn.disabled = false;
     btn.textContent = origText || "Send for Review";
   }

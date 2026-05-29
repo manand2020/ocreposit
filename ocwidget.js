@@ -1,76 +1,34 @@
-// ocwidget.js - Ask Olive Floating Widget v2.16.0
-// v2.17.0: Friendlier fallback ack wording — less robotic, brand-aligned.
-//          Drops 'message is saved' phrasing + /coverage-review link.
-// v2.16.0: Fallback ack bubble includes askolive@olivecover.com as a third
-//          contact option (alongside phone + Coverage Review). Reinforces the
-//          "Ask Olive" brand mark (trademark filed) and gives email-preferring
-//          visitors a path when /chat/send fails.
-// v2.15.0: Capture full UTM stack (utm_*, gclid, fbclid, msclkid,
-//          landing_referrer) and include in /chat/send contact payload so
-//          backend can attribute leads to ad campaigns. Fire gtag generate_lead
-//          on the moment of lead capture (contact form submit / first message
-//          if contact already cached).
-// v2.14.0: Add diagnostic logging around inline ai_response render to debug
-//          why bubbles weren't appearing instantly. Logs each step:
-//          fetch start, response parse, optimisticOutbound set, renderBubble
-//          call. If renderBubble throws, surface the error.
-// v2.13.0: Rewrite framing to be AI-first. Drop 'licensed agent follows up
-//          within one business day' from panel subhead, greeting bubble, and
-//          fallback ack. Inline-render ai_response from /chat/send so AI
-//          replies are instant. Outbound dedup against poll. Immediate poll
-//          after send as safety net.
-// v2.11.0: Restore a static greeting bubble on chat-open so the panel never
-//          looks empty (independent of AI). Replace the red 'Saved...' fallback
-//          text with a soft outbound bubble. Both keep the chat UX warm even
-//          when /chat/send transiently fails.
-// v2.10.0: Fix optimistic-render dedup. Distinguish optimistic call (id starts with
-//          'local-') from server-echo (id starts with 'web-' etc). Optimistic
-//          renders instantly; server-echo dedupes against tracked optimistic body.
-// v2.9.0: Real AI is live in /chat/send. Remove hardcoded greeting + auto-ack
-//         (now redundant + conflicts with AI's first response). Fix optimistic-render
-//         bug where pre-set chatState.rendered prevented bubble from rendering.
-// v2.8.0: Re-prompt capture form when cached contact is missing required fields
-//         (name, email, phone). Pre-fills the form with what we have.
-// v2.7.0: Silently capture visitor state from oc_state localStorage at contact-save time.
-//         Passed in contact payload so CRM can apply GA vs waitlist routing.
-// v2.6.0: Olive auto-acknowledges user's first message immediately.
-//         Greeting renders reliably on chat-thread entry (any path).
-// v2.5.0: Capture form now collects BOTH email AND phone (was either).
-//         Producer gets redundant contact channels; TCPA disclosure auto-applies to phone.
-// v2.4.0: 3-tier fallback for chat send: /chat/send -> Firestore -> mailto.
-//         User's message never lost even if both backends fail.
-//         Mailto target: website-errors@olivecover.com (email-to-case in CRM).
-// v2.3.0: Firebase fallback on chat-send failure so messages are never lost.
-//         Writes to home-leads with source='widget-chat-fallback' for CRM routing.
-// v2.2.0: Close button on panel header. Local AI greeting when chat opens.
-//         Better error reporting (logs response detail).
-// v2.1.0: Phase 3 chat ACTIVATED 2026-05-16 per OC Tech go signal.
-//         Endpoints live on olive-cover-prod, CORS + IAM verified, 200 OK responses.
-//         AI replies return null until ANTHROPIC_API_KEY is set as Firebase secret;
-//         widget already handles null ai_response gracefully (shows producer-follow-up text).
-// v2.0.1: widget Phase 2 writes to "submissions" DB; adds session_id to payload.
-// Phase 3 chat (OC_CHAT_ENABLED=true) with Phase 2 lead-capture fallback.
-// No Firebase SDK when Phase 3 is active -- HTTP endpoints only.
-// Self-healing: removes stale v1.x widget automatically via data-wgt-ver guard.
+// ocwidget.js -- Ask Olive Floating Widget v3.0.0
+// Migrated to canonical olivec-prod webchat function. Replaces the legacy
+// olive-cover-prod /chat/send + /chat/thread stack that depended on a
+// decommissioned project.
+//
+// v3.0.0 (2026-05-28): MIGRATION to canonical olivec-prod stack.
+//   * Endpoint switched to olivec-prod webchat function (synchronous reply).
+//   * Polling removed -- webchat returns Olive's reply in the same response,
+//     so there is no need to fetch a thread on a timer. Simpler + less load.
+//   * Firebase SDK fallback removed (no more direct Firestore writes from
+//     the browser). Network failure falls back to mailto + the static
+//     follow-up bubble, same UX as before, minus the cloud round-trip.
+//   * Lead-capture (Phase 2) path also rewritten to POST to the canonical
+//     forms function as a homepage-style lead, so a visitor who never
+//     types a chat message but fills the capture form still lands in CRM.
+//   * Auth: X-Webchat-Auth header (Cloud Run rejects "Authorization: Bearer"
+//     against gen2 services unless it is a valid Google IAM token).
+//   * UTM + landing_referrer + state still captured per v2.15 logic.
+//
+// v2.x history compacted; refer to git for the OC Tech-era changes.
 (function () {
   'use strict';
 
-  var OC_CHAT_ENABLED = true; // Phase 3 chat ACTIVE per OC Tech 2026-05-16
-  var CHAT_SEND = 'https://olive-cover-prod.web.app/chat/send';
-  var CHAT_THREAD = 'https://olive-cover-prod.web.app/chat/thread';
-  var WGT_VER = '2.16.0';
+  var OC_CHAT_ENABLED = true;
+  var WEBCHAT_ENDPOINT = 'https://webchat-3q26d3khpa-ue.a.run.app';
+  var FORMS_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/widget-capture';
+  var GATEWAY_TOKEN = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
+  var WGT_VER = '3.0.0';
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
-
-  var FB_CONFIG = {
-    apiKey: 'AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM',
-    authDomain: 'olive-cover-prod.firebaseapp.com',
-    projectId: 'olive-cover-prod',
-    storageBucket: 'olive-cover-prod.firebasestorage.app',
-    messagingSenderId: '781066018428',
-    appId: '1:781066018428:web:535d07b690283027f9f3f9'
-  };
 
   var STATES = [
     ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
@@ -335,23 +293,28 @@
       submitBtn.textContent = 'Sending...';
       submitBtn.disabled = true;
 
-      Promise.all([
-        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
-        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'),
-        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')
-      ]).then(function (mods) {
-        var initializeApp = mods[0].initializeApp, getApps = mods[0].getApps;
-        var getFirestore = mods[1].getFirestore, coll = mods[1].collection, addDoc = mods[1].addDoc, serverTimestamp = mods[1].serverTimestamp;
-        var getAuth = mods[2].getAuth, signInAnonymously = mods[2].signInAnonymously;
-        var APP_NAME = 'oc-home-leads';
-        var app = getApps().find(function (a) { return a.name === APP_NAME; }) || initializeApp(FB_CONFIG, APP_NAME);
-        var db = getFirestore(app, 'submissions');
-        return signInAnonymously(getAuth(app)).then(function () {
-          var payload = { name: name, contact: contact, intent: intent || 'not-specified', source: 'widget', session_id: (window.OC_SESSION && window.OC_SESSION.uid ? window.OC_SESSION.uid() : null), ts: serverTimestamp() };
-          if (state) payload.state = state;
-          return addDoc(coll(db, 'home-leads'), payload);
-        });
-      }).then(function () {
+      var subId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('wgt-' + Date.now());
+      var sessionId = window.OC_SESSION && window.OC_SESSION.uid ? window.OC_SESSION.uid() : null;
+      fetch(FORMS_ENDPOINT, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json', 'X-Forms-Auth': GATEWAY_TOKEN },
+        body: JSON.stringify({
+          form_type: 'widget-capture',
+          submission_id: subId,
+          page_url: location.href,
+          submitted_at: new Date().toISOString(),
+          fields: {
+            name: name,
+            contact: contact,
+            intent: intent || 'not-specified',
+            state: state || '',
+            source: 'widget',
+            session_id: sessionId
+          }
+        })
+      }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
         form.style.display = 'none';
         if (successEl) successEl.style.display = 'block';
       }).catch(function (err) {
@@ -414,23 +377,10 @@
     chatState.typingTimer = setTimeout(clearTyping, 30000);
   }
 
-  function pollThread() {
-    var sessionId = getSession();
-    return fetch(CHAT_THREAD + '?session=' + encodeURIComponent(sessionId))
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!Array.isArray(data.messages)) return;
-        var hadNewOutbound = false;
-        data.messages.forEach(function (msg) {
-          if (!chatState.rendered[msg.id]) {
-            if (msg.direction === 'outbound') hadNewOutbound = true;
-            renderBubble(msg);
-          }
-        });
-        if (hadNewOutbound) clearTyping();
-      })
-      .catch(function (err) { console.error('[oc-widget] poll error', err); });
-  }
+  // v3.0.0: pollThread removed. The webchat endpoint is synchronous --
+  // Olive's reply lands in the same HTTP response, so there is no thread to
+  // poll. Producer takeovers happen out-of-band on the CRM; visitors who
+  // come back to the widget start a fresh session.
 
   function renderGreeting() {
     var thread = document.getElementById('oc-wgt-thread');
@@ -471,43 +421,13 @@
 
   function startPolling() {
     renderGreeting();
-    pollThread();
-    if (!chatState.pollTimer) chatState.pollTimer = setInterval(pollThread, 10000);
   }
 
-  function stopPolling() {
-    if (chatState.pollTimer) { clearInterval(chatState.pollTimer); chatState.pollTimer = null; }
-  }
+  function stopPolling() { /* v3.0.0: no-op (no timer) */ }
 
-  function fallbackCaptureMessage(body, sessionId, contact) {
-    return Promise.all([
-      import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
-      import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'),
-      import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')
-    ]).then(function (mods) {
-      var initializeApp = mods[0].initializeApp, getApps = mods[0].getApps;
-      var getFirestore = mods[1].getFirestore, coll = mods[1].collection, addDoc = mods[1].addDoc, serverTimestamp = mods[1].serverTimestamp;
-      var getAuth = mods[2].getAuth, signInAnonymously = mods[2].signInAnonymously;
-      var APP_NAME = 'oc-home-leads';
-      var app = getApps().find(function (a) { return a.name === APP_NAME; }) || initializeApp(FB_CONFIG, APP_NAME);
-      var db = getFirestore(app, 'submissions');
-      return signInAnonymously(getAuth(app)).then(function () {
-        var contactVal = contact && (contact.email || contact.phone) ? (contact.email || contact.phone) : 'unknown';
-        var payload = {
-          name: contact && contact.name ? contact.name : 'Anonymous chat visitor',
-          contact: contactVal,
-          intent: body,
-          chat_body: body,
-          source: 'widget-chat-fallback',
-          session_id: sessionId,
-          page_url: location.href,
-          state: (contact && contact.state) || '',
-          ts: serverTimestamp()
-        };
-        return addDoc(coll(db, 'home-leads'), payload);
-      });
-    });
-  }
+  // v3.0.0: fallbackCaptureMessage removed. When the webchat call fails the
+  // user gets a mailto fallback inline (see sendMessage catch handler) --
+  // no more direct Firestore writes from the browser.
 
   function sendMessage(body) {
     var sessionId = getSession();
@@ -515,81 +435,91 @@
     var sendBtn = document.getElementById('oc-wgt-send');
     var errEl = document.getElementById('oc-wgt-error');
 
-    // Fire generate_lead the FIRST time a visitor sends a message in this session
-    // (sufficient signal for a Lead in CRM, attributed to the ad). One per session.
+    // Fire generate_lead once per session.
     try {
       var firedKey = 'oc_chat_lead_fired_' + sessionId;
       if (!sessionStorage.getItem(firedKey)) {
         fireGenerateLead('widget-chat');
         sessionStorage.setItem(firedKey, '1');
       }
-    } catch (e) { /* sessionStorage missing */ }
+    } catch (e) {}
 
-    // Optimistic render — renderBubble will set chatState.rendered[localId] itself
+    // Optimistic render of the user's own bubble
     var localId = 'local-' + Date.now();
     chatState.optimistic[body] = localId;
     renderBubble({ id: localId, direction: 'inbound', body: body, created_at: Date.now() });
     showTyping();
     if (sendBtn) { sendBtn.textContent = '...'; sendBtn.disabled = true; }
 
-    fetch(CHAT_SEND, {
+    var requestBody = {
+      session_id: sessionId,
+      message: body,
+      page_url: location.href,
+      visitor: {
+        name: contact && contact.name ? contact.name : null,
+        email: contact && contact.email ? contact.email : null,
+        phone: contact && contact.phone ? contact.phone : null,
+        state: contact && contact.state ? contact.state : null,
+        utm_source: contact && contact.utm_source ? contact.utm_source : null,
+        utm_medium: contact && contact.utm_medium ? contact.utm_medium : null,
+        utm_campaign: contact && contact.utm_campaign ? contact.utm_campaign : null,
+        utm_content: contact && contact.utm_content ? contact.utm_content : null,
+        utm_term: contact && contact.utm_term ? contact.utm_term : null,
+        gclid: contact && contact.gclid ? contact.gclid : null,
+        fbclid: contact && contact.fbclid ? contact.fbclid : null,
+        msclkid: contact && contact.msclkid ? contact.msclkid : null,
+        landing_referrer: contact && contact.landing_referrer ? contact.landing_referrer : null
+      }
+    };
+
+    fetch(WEBCHAT_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, body: body, direction: 'inbound', contact: contact })
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webchat-Auth': GATEWAY_TOKEN
+      },
+      body: JSON.stringify(requestBody)
     }).then(function (r) {
       return r.text().then(function (txt) {
         if (!r.ok) {
-          console.error('[oc-widget] chat/send non-OK', r.status, txt);
+          console.error('[oc-widget] webchat non-OK', r.status, txt);
           throw new Error('HTTP ' + r.status + ': ' + txt.substring(0, 120));
         }
-        console.log('[oc-widget] chat/send ok', txt.substring(0, 120));
         clearTyping();
-        var inlineRendered = false;
         try {
           var data = JSON.parse(txt);
-          console.log('[oc-widget] inline parse ok; ai_response=' + (data && data.ai_response ? 'yes len=' + data.ai_response.length : 'no'));
-          if (data && data.ai_response) {
-            chatState.optimisticOutbound = chatState.optimisticOutbound || {};
-            chatState.optimisticOutbound[data.ai_response] = true;
+          if (data && data.reply) {
             var localOutId = 'local-out-' + Date.now();
-            try {
-              renderBubble({ id: localOutId, direction: 'outbound', body: data.ai_response, created_at: Date.now() });
-              inlineRendered = true;
-              console.log('[oc-widget] inline render OK localId=' + localOutId);
-            } catch (rbErr) {
-              console.error('[oc-widget] renderBubble THREW:', rbErr && rbErr.message ? rbErr.message : rbErr, rbErr && rbErr.stack ? rbErr.stack.substring(0, 200) : '');
-            }
+            renderBubble({ id: localOutId, direction: 'outbound', body: data.reply, created_at: Date.now() });
+          }
+          if (data && data.session_id && data.session_id !== sessionId) {
+            // Server canonicalized the session id -- store it for follow-ups
+            try { localStorage.setItem('oc_chat_session', data.session_id); } catch (e) {}
           }
         } catch (e) {
-          console.error('[oc-widget] inline render outer catch:', e && e.message ? e.message : e);
+          console.error('[oc-widget] reply parse error:', e && e.message ? e.message : e);
         }
-        if (!inlineRendered) console.log('[oc-widget] inline render did NOT happen, will rely on poll');
-        setTimeout(pollThread, 800);
       });
     }).catch(function (err) {
       console.error('[oc-widget] send error', err && err.message ? err.message : err);
       clearTyping();
-      if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
-      fallbackCaptureMessage(body, sessionId, contact).then(function () {
-        console.log('[oc-widget] fallback capture ok');
-        if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
-        renderFallbackAck();
-      }).catch(function (fbErr) {
-        console.error('[oc-widget] fallback also failed; offering mailto', fbErr && fbErr.message ? fbErr.message : fbErr);
-        if (errEl) {
-          var subj = encodeURIComponent('Ask Olive chat: ' + body.substring(0, 60));
-          var emailBody = encodeURIComponent(
-            'Message from Ask Olive widget (network recovery):\n\n' + body +
-            '\n\n---\nName: ' + ((contact && contact.name) || 'Anonymous') +
-            '\nContact: ' + ((contact && (contact.email || contact.phone)) || 'Not provided') +
-            '\nSession: ' + sessionId +
-            '\nPage: ' + location.href +
-            '\nSubmitted: ' + new Date().toISOString()
-          );
-          var mail = 'mailto:website-errors@olivecover.com?subject=' + subj + '&body=' + emailBody;
-          errEl.innerHTML = 'Could not connect. <a href="' + mail + '" style="color:#B8934A;font-weight:600;text-decoration:underline;">Send via email instead</a> or call (678) 888-1011.';
-        }
-      });
+      if (errEl) {
+        var subj = encodeURIComponent('Ask Olive chat: ' + body.substring(0, 60));
+        var emailBody = encodeURIComponent(
+          'Message from Ask Olive widget (network recovery):\n\n' + body +
+          '\n\n---\nName: ' + ((contact && contact.name) || 'Anonymous') +
+          '\nEmail: ' + ((contact && contact.email) || 'Not provided') +
+          '\nPhone: ' + ((contact && contact.phone) || 'Not provided') +
+          '\nSession: ' + sessionId +
+          '\nPage: ' + location.href +
+          '\nSubmitted: ' + new Date().toISOString()
+        );
+        var mail = 'mailto:askolive@olivecover.com?subject=' + subj + '&body=' + emailBody;
+        errEl.innerHTML = 'Could not connect. <a href="' + mail + '" style="color:#B8934A;font-weight:600;text-decoration:underline;">Send via email instead</a> or call (678) 888-1011.';
+        errEl.style.display = 'block';
+      }
+      renderFallbackAck();
     }).finally(function () {
       if (sendBtn) { sendBtn.textContent = 'Send'; sendBtn.disabled = false; }
     });

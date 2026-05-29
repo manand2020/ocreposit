@@ -1,77 +1,29 @@
-// Olive Cover - Contact form handler v1.8.0
-// v1.8.0 (2026-05-24): Frontend workaround for CRM Lead Description field-completeness gap.
-//       The backend Cloud Function template that converts contact-submissions Firestore docs
-//       to SuiteCRM Lead Description blobs currently OMITS State, session_id, page, referrer,
-//       userAgent (it preserves them in the Firestore doc but doesn't echo them in the
-//       operator-visible Description blob — see _oc-tech-deliverables/contact-crm-description-
-//       field-completeness-2026-05-24.md for the proper P0 backend fix request). Until OC Tech
-//       ships the backend template enhancement, this version appends a "--- Submission
-//       diagnostics ---" suffix to the message field so producers see all relevant context
-//       in the CRM Lead Description. Revert the diagnostic-suffix block in onSubmit() after
-//       OC Tech ships the backend Description-template fix.
-// v1.7.0 (2026-05-23): Capture visitor state from oc_state localStorage and include in
-//       payload. Previously the contact form never read state even though ocstateselect
-//       v1.0.14 injects a <select name="state"> into every form. Result: every contact
-//       Lead in CRM landed with [STATE-UNKNOWN] in Description and empty primary_address_state
-//       (or with the ZIP misrouted there by OC Tech's backend fallback). Fix mirrors the
-//       working ochomeleads.js + ocwidget.js localStorage-based pattern. ocstateselect writes
-//       to localStorage on change, so localStorage is authoritative for the user's selection.
-// v1.6.0 (2026-05-23): Two defensive fixes paralleling ochomeleads v1.7.0 pattern.
-//   (1) e.stopImmediatePropagation() inside onSubmit blocks Webflow's native
-//       forms.js submit listener from firing in parallel. preventDefault alone
-//       stops the browser's default form action but not other JS listeners.
-//       Without this, every contact submission risks a Webflow no-reply
-//       notification email (containing only the phone field) sent to the site
-//       owner, mirroring the homepage form noise pattern observed 2026-05-23.
-//   (2) Sentinel guard via window.__occontact_v16_init prevents double-init if
-//       the script ever gets loaded via multiple paths in the future. ES module
-//       dedup works only for identical URLs; if dual loaders pin to different
-//       commits the dedup fails and the submit handler binds twice. Defense
-//       in depth.
-// v1.5.0: Capture full UTM stack (utm_*, gclid, fbclid, msclkid, landing_referrer)
-//         into payload. Fire gtag('event','generate_lead') on successful submit
-//         for Google Ads conversion-optimized bidding.
-// v1.4.0: session_id added to payload (links submission to web_sessions doc).
-// Source of truth: github.com/manand2020/ocreposit/occontact-complete.js
-// Served via jsdelivr CDN. Bump version query string when updating.
-// Writes submissions to Firestore (olive-cover-prod project, submissions DB, contact-submissions collection)
-// v1.1.0: fixed getFirestore to use named "submissions" database; added signInAnonymously for auth.
-// v1.2.0: await _authReady in onSubmit to eliminate auth/write race condition.
-// v1.3.0: _authReady now resolves via onAuthStateChanged (fires after Firestore SDK receives token via
-//         onIdTokenChanged) rather than raw signInAnonymously promise (resolves before SDK is notified).
+// Olive Cover -- Contact form handler v2.0.0
+// Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
+// Replaces v1.8.0 which wrote directly to olive-cover-prod Firestore.
+// Source: github.com/manand2020/ocreposit/occontact-complete.js
+//
+// v2.0.0 (2026-05-28): MIGRATION to canonical olivec-prod stack.
+//   Removed direct Firestore write to olive-cover-prod (decommissioned).
+//   Submission now POSTs to https://forms-3q26d3khpa-ue.a.run.app/forms/contact
+//   Clip /internal/forms creates a CRM Lead and assigns Issue to Lead Triage / Olive.
+//   The v1.8.0 "Submission diagnostics" suffix workaround on the message field
+//   is REMOVED -- Clip surfaces state, session_id, page, referrer, userAgent
+//   natively in the CRM Note from raw_payload, so producers see complete context
+//   without the suffix hack.
+//   Behavior preserved: name+email+topic+message validation, UTM stack, GA4
+//   generate_lead conversion, sentinel double-init guard, stopImmediatePropagation
+//   against Webflow forms.js noise.
 
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+const ENDPOINT = "https://forms-3q26d3khpa-ue.a.run.app/forms/contact";
+const BEARER = "fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=";
 
-const fbConfig = {
-  apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
-  authDomain: "olive-cover-prod.firebaseapp.com",
-  projectId: "olive-cover-prod",
-  storageBucket: "olive-cover-prod.firebasestorage.app",
-  messagingSenderId: "781066018428",
-  appId: "1:781066018428:web:535d07b690283027f9f3f9"
-};
-const APP_NAME = "oc-contact";
-const app = getApps().find(a => a.name === APP_NAME) || initializeApp(fbConfig, APP_NAME);
-const db = getFirestore(app, "submissions");
-const auth = getAuth(app);
-
-// onAuthStateChanged fires after onIdTokenChanged, ensuring Firestore SDK has received the token.
-const _authReady = new Promise((resolve) => {
-  const unsub = onAuthStateChanged(auth, (user) => {
-    if (user) { unsub(); resolve(user); }
-  });
-  signInAnonymously(auth).catch(e => console.warn("[oc-contact] anon auth:", e.code));
-});
-
-// Capture UTM/click-id params with 30-day stickiness in localStorage
 function captureUTM() {
   const fields = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid"];
   const params = new URLSearchParams(location.search);
-  let captured = {};
+  const captured = {};
   let hasAny = false;
-  fields.forEach(function(f) {
+  fields.forEach(function (f) {
     const v = params.get(f);
     if (v) { captured[f] = v; hasAny = true; }
   });
@@ -89,6 +41,14 @@ function captureUTM() {
   return {};
 }
 const _utm = captureUTM();
+
+function uuidv4() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
 
 function ready(fn) {
   if (document.readyState !== "loading") fn();
@@ -143,50 +103,24 @@ async function onSubmit(e) {
   showInlineError(form, "");
 
   const data = new FormData(form);
-  // State is injected by ocstateselect.js as a <select name="state"> dropdown. Prefer
-  // FormData read since it reflects whatever the user has selected at submit time. Fall
-  // back to localStorage (where ocstateselect writes on change) in case FormData misses it
-  // for any reason (e.g., dropdown injected outside the form element).
   let stateVal = "";
   try {
     stateVal = ((data.get("state") || "") + "").toUpperCase().trim();
     if (!stateVal) stateVal = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
   } catch (e) {}
 
-  // v1.8.0 workaround: backend Cloud Function template (contact-submissions -> Lead) does NOT
-  // currently surface State, session_id, page, referrer, userAgent in the CRM Description blob.
-  // Until OC Tech ships the backend template fix (deliverable: contact-crm-description-field-completeness-2026-05-24),
-  // we append a Submission diagnostics suffix to the message field so producers see complete
-  // context in the CRM Lead Description's "Message:" section. Revert this block after backend ships.
-  const _userMessage = ((data.get("message") || "") + "").trim();
-  const _pageVal = location.pathname;
-  const _referrerVal = document.referrer || "";
-  const _uaVal = (navigator.userAgent || "").slice(0, 300);
-  const _sessionVal = window.OC_SESSION?.uid() ?? null;
-  const _diagLines = [
-    stateVal ? "State: " + stateVal : null,
-    _sessionVal ? "Session: " + _sessionVal : null,
-    _pageVal ? "Page: " + _pageVal : null,
-    _referrerVal ? "Referrer: " + _referrerVal : null,
-    _uaVal ? "User-Agent: " + _uaVal : null
-  ].filter(Boolean);
-  const _enrichedMessage = _userMessage + (_diagLines.length ? "\n\n--- Submission diagnostics ---\n" + _diagLines.join("\n") : "");
-
-  const payload = {
+  const fields = {
     name: ((data.get("name") || "") + "").trim(),
     email: ((data.get("email") || "") + "").trim(),
     topic: ((data.get("topic") || "") + "").trim(),
-    message: _enrichedMessage,
+    message: ((data.get("message") || "") + "").trim(),
     state: stateVal,
     source: "contact-page",
-    page: _pageVal,
-    referrer: _referrerVal,
+    page: location.pathname,
+    referrer: document.referrer || "",
     landing_referrer: document.referrer || "",
-    userAgent: _uaVal,
-    submittedAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
-    status: "new",
-    session_id: _sessionVal,
+    userAgent: (navigator.userAgent || "").slice(0, 300),
+    session_id: window.OC_SESSION?.uid() ?? null,
     utm_source: _utm.utm_source || null,
     utm_medium: _utm.utm_medium || null,
     utm_campaign: _utm.utm_campaign || null,
@@ -194,48 +128,62 @@ async function onSubmit(e) {
     utm_term: _utm.utm_term || null,
     gclid: _utm.gclid || null,
     fbclid: _utm.fbclid || null,
-    msclkid: _utm.msclkid || null
+    msclkid: _utm.msclkid || null,
   };
 
-  if (!payload.name) { showInlineError(form, "Please enter your name."); return; }
-  if (!/^\S+@\S+\.\S+$/.test(payload.email)) { showInlineError(form, "Please enter a valid email address."); return; }
-  if (!payload.topic) { showInlineError(form, "Please choose what you need help with."); return; }
+  if (!fields.name) { showInlineError(form, "Please enter your name."); return; }
+  if (!/^\S+@\S+\.\S+$/.test(fields.email)) { showInlineError(form, "Please enter a valid email address."); return; }
+  if (!fields.topic) { showInlineError(form, "Please choose what you need help with."); return; }
 
   const btn = form.querySelector('input[type="submit"]');
   const origVal = btn ? btn.value : "";
   const waitText = btn && btn.dataset.wait ? btn.dataset.wait : "Sending...";
   if (btn) { btn.disabled = true; btn.value = waitText; }
 
+  const submissionId = uuidv4();
+  const payload = {
+    form_type: "contact",
+    submission_id: submissionId,
+    page_url: location.href,
+    submitted_at: new Date().toISOString(),
+    fields,
+  };
+
   try {
-    await _authReady;
-    await addDoc(collection(db, "contact-submissions"), payload);
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forms-Auth": BEARER,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status + " " + (await res.text().catch(() => "")));
+    }
     showDone(form);
-    // GA4 conversion event for Google Ads bidding optimization
     try {
       if (window.gtag) {
         window.gtag("event", "generate_lead", {
           form_id: "oc-contact-form-el",
           form_location: "contact",
-          topic: payload.topic || "unknown",
-          value: 1
+          topic: fields.topic || "unknown",
+          value: 1,
         });
       }
-    } catch (e3) { /* gtag missing */ }
+    } catch (e3) {}
   } catch (err) {
     console.error("[oc-contact] submit failed:", err);
     showFail(form);
-    showInlineError(form, "Couldn't send right now. Please try again, or email hello@olivecover.com.");
+    showInlineError(form, "Couldn't send right now. Please try again, or email askolive@olivecover.com.");
     if (btn) { btn.disabled = false; btn.value = origVal; }
   }
 }
 
-// Sentinel guard: defend against future dual-loader regressions. If the script is loaded
-// twice via different fetch paths (page-level inline-site-script + some other loader), the
-// second load's init() is a no-op so we never bind the submit handler twice.
-if (window.__occontact_v16_init) {
+if (window.__occontact_v2_init) {
   console.log("[oc-contact] init already registered (sentinel triggered, second load skipped)");
 } else {
-  window.__occontact_v16_init = true;
+  window.__occontact_v2_init = true;
   ready(init);
 }
-
