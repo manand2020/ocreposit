@@ -290,24 +290,7 @@
 
 })();
 
-// Ask Olive Widget loader (v4.9.9+) -- loads v2.0.0 widget; heals stale-cached old versions
-(function(){
-  var SHA = '5d0c436f1bdecf16df532d42d455f1b34ffa2294';
-  var done = false;
-  function ensureState() {
-    if (done) return; done = true;
-    var r2 = document.getElementById('oc-widget-root');
-    if (r2 && r2.getAttribute('data-wgt-ver') === '2.0.0') return;
-    var r = document.getElementById('oc-widget-root');
-    if (r) r.parentNode.removeChild(r);
-    var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=3.2.0&r=' + Date.now();
-    s.async = true;
-    document.head.appendChild(s);
-  }
-  document.addEventListener('DOMContentLoaded', function(){ setTimeout(ensureState, 500); });
-  setTimeout(ensureState, 3000);
-})();
+// Ask Olive widget loader was moved to askolive-complete.js (2026-05-29). Loader is now registered as Webflow inline-site-script `askolive` and applied site-wide via Data API. Do NOT add the widget loader back here -- nav script is for navigation, not chat.
 
 // Homepage ochomeleads module loader (v4.14.0) -- bumped to ochomeleads v1.7.0 (sentinel + stopImmediatePropagation, fixes duplicate Lead bug)
 // Runs before the malformed @footer occontact-complete.js tag that hides all subsequent Site Settings scripts.
