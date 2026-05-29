@@ -1,4 +1,4 @@
-// ocbookpromo.js v1.0.0 -- Book a call discoverability + GA4 conversion tracking.
+// ocbookpromo.js v1.0.2 -- Book a call discoverability + GA4 conversion tracking.
 //
 // Three concerns in one file:
 //   1. Inject a "Book a call" link into the OC Footer link list (site-wide).
@@ -18,35 +18,31 @@
   var ON_BOOK = (location.pathname === '/book' || location.pathname === '/book/');
 
   // ---------- Footer injection ----------
+  // OC Footer is a DIV-grid structure (not ul/li). The "FAQ" link in the footer
+  // is the most reliable anchor for finding the footer link column: its
+  // grand-parent DIV is the column container with ~5-8 sibling links. We
+  // append a new link DIV that mirrors the FAQ link's parent DIV class.
   function injectFooter() {
     if (document.querySelector('[data-oc-book-footer="1"]')) return;
-    // Find footer link lists. OC Footer uses w-list-unstyled inside columns.
-    // Pick the first ul.w-list-unstyled or any footer ul as fallback.
-    var footer = document.querySelector('footer') || document.querySelector('[class*="oc-footer"]') || document.querySelector('.w-footer');
-    if (!footer) return false;
-    var lists = footer.querySelectorAll('ul');
-    if (!lists.length) return false;
-    // Prefer a list whose links go to internal /pages — that's the nav-style column.
-    var targetList = null;
-    for (var i = 0; i < lists.length; i++) {
-      var anchors = lists[i].querySelectorAll('a[href^="/"]');
-      if (anchors.length >= 2) { targetList = lists[i]; break; }
-    }
-    if (!targetList) return false;
-    // Use the existing anchor styling so the new link matches the column visually.
-    var template = targetList.querySelector('a');
-    if (!template) return false;
-    var li = document.createElement('li');
-    li.setAttribute('data-oc-book-footer', '1');
-    // Match the surrounding li class if present.
-    var parentLi = template.closest('li');
-    if (parentLi && parentLi.className) li.className = parentLi.className;
+    var faqLinks = document.querySelectorAll('a[href="/faq"], a[href$="/faq"]');
+    if (!faqLinks.length) return false;
+    // Pick the LAST faq link on the page — that's the footer one (header/nav
+    // FAQ links appear earlier in source order).
+    var footerFaq = faqLinks[faqLinks.length - 1];
+    // The link's parent is a wrapper DIV in the footer column; the grand-parent
+    // is the column itself. We append a sibling wrapper that matches.
+    var linkWrap = footerFaq.parentElement;
+    var column = linkWrap && linkWrap.parentElement;
+    if (!column) return false;
+    var newWrap = document.createElement(linkWrap.tagName);
+    newWrap.setAttribute('data-oc-book-footer', '1');
+    if (linkWrap.className) newWrap.className = linkWrap.className;
     var a = document.createElement('a');
     a.href = BOOK_URL;
     a.textContent = BOOK_LABEL;
-    a.className = template.className || '';
-    li.appendChild(a);
-    targetList.appendChild(li);
+    a.className = footerFaq.className || '';
+    newWrap.appendChild(a);
+    column.appendChild(newWrap);
     return true;
   }
 
