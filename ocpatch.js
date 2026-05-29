@@ -1,4 +1,4 @@
-// ocpatch.js v1.1.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.2.0 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -366,11 +366,10 @@
   }
 
   function bindHideOnSubmit() {
-    var form = document.querySelector('#oc-wgt-form');
-    if (form && !form.dataset.ocChipsBound) {
-      form.dataset.ocChipsBound = '1';
-      form.addEventListener('submit', function () { hideChips(); });
-    }
+    // NOTE: do NOT hide chips on form submit -- the capture form's "Start Chat"
+    // is a form submit and must NOT suppress the chips (that was the bug where
+    // chips vanished after Start Chat). Chips are hidden only when an actual
+    // inbound chat message appears (handled by the thread observer below).
     var thread = document.querySelector('#oc-wgt-thread');
     if (thread && !thread.dataset.ocChipsObserved) {
       thread.dataset.ocChipsObserved = '1';
@@ -404,7 +403,36 @@
   }
 
   // ====================================================================
-  // 7. Boot -- one shared, debounced observer drives all idempotent tasks
+  // 7. Homepage Ask Olive lead-form button -- brand the generic "Submit".
+  // ====================================================================
+
+  function fixHomeButton() {
+    if (location.pathname !== '/' && location.pathname !== '') return;
+    var form = document.querySelector('#oc-lead-form-el');
+    if (!form) return;
+    var btn = form.querySelector('input[type="submit"]');
+    if (btn && btn.value !== 'Ask Olive') {
+      btn.value = 'Ask Olive';
+      // keep the "please wait" state on-brand too
+      try { btn.setAttribute('data-wait', 'Sending...'); } catch (e) {}
+    }
+  }
+
+  // ====================================================================
+  // 8. /contact topic select -- add an aria-label (a11y; selects can't use
+  //    placeholder, and this one had no associated label).
+  // ====================================================================
+
+  function fixContactSelect() {
+    if (location.pathname.indexOf('/contact') !== 0) return;
+    var sel = document.querySelector('select[name="topic"]');
+    if (sel && !sel.getAttribute('aria-label') && !sel.getAttribute('aria-labelledby')) {
+      sel.setAttribute('aria-label', 'What is your inquiry about?');
+    }
+  }
+
+  // ====================================================================
+  // 9. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
   function runOnce() {
@@ -416,6 +444,8 @@
     try { trackBookings(); } catch (e) {}
     try { injectSchema(); } catch (e) {}
     try { fixCTAColor(); } catch (e) {}
+    try { fixHomeButton(); } catch (e) {}
+    try { fixContactSelect(); } catch (e) {}
   }
 
   var debounceTimer = null;
