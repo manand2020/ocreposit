@@ -470,6 +470,58 @@
   // brand-vs-legal-entity rule. Olive Cover is NOT an agency; Olive Insurance Services
   // LLC is. Adds legalName + alternateName to any InsuranceAgency missing them, and
   // rewrites descriptions that incorrectly call Olive Cover "an agency".
+  // Body-text brand attribution patcher (added v1.10.65 2026-05-29):
+  // Walks visible text nodes and rewrites the same brand-vs-agency patterns that
+  // patchExistingSchemas handles in JSON-LD. Targets static HTML on /about, /claims,
+  // /where-we-do-business, /ask-olive-disclaimer, /licensing, etc. CMS-bound content
+  // is fixed at the source via Data API; this catches the static page bodies.
+  function patchBrandAttributionInBody(){
+    if (document.body && document.body.dataset.ocBrandBodyPatched === '1') return;
+    var rules = [
+      [/\bOlive Cover is a licensed independent property and casualty insurance agency\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed independent property and casualty insurance agency'],
+      [/\bOlive Cover is a licensed Georgia property and casualty insurance agency\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed Georgia property and casualty insurance agency'],
+      [/\bOlive Cover is currently licensed\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is currently licensed'],
+      [/\bOlive Cover is licensed for\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is licensed for'],
+      [/\bOlive Cover is licensed in\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is licensed in'],
+      [/\bOlive Cover holds active P\s*&\s*C licenses\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) holds active P&C licenses'],
+      [/\bOlive Cover holds active P\s*&amp;\s*C licenses\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) holds active P&C licenses'],
+      [/\bOlive Cover \(Olive Insurance Services, LLC\) is a licensed property and casualty insurance agency\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed property and casualty insurance agency'],
+      [/\bwhere Olive Cover is currently licensed\b/g, 'where Olive Insurance Services, LLC (dba Olive Cover) is currently licensed'],
+      [/\bOlive Cover operates as Olive Insurance Services, LLC\b/g, 'Olive Insurance Services, LLC operates as Olive Cover'],
+      [/\bOlive Cover is owned and operated by\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is owned and operated by'],
+      [/\bOlive Cover's insurance license number\b/g, "Olive Insurance Services, LLC's insurance license number (dba Olive Cover)"],
+      [/\bWhat lines of insurance is Olive Cover licensed to sell\?/g, 'What lines of insurance is Olive Insurance Services, LLC licensed to sell?'],
+      [/\bWhat states is Olive Cover currently licensed in\?/g, 'What states is Olive Insurance Services, LLC currently licensed in?'],
+      [/\bWhat is Olive Cover's insurance license number\b/g, "What is Olive Insurance Services, LLC's insurance license number"],
+      [/\bIs Olive Cover a licensed insurance agency\?/g, 'Who holds the insurance license behind Olive Cover?'],
+      [/\bWe are a licensed P\s*&\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek'],
+      [/\bWe are a licensed P\s*&amp;\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek']
+    ];
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(n){
+        // Skip text inside script/style/noscript
+        var p = n.parentNode;
+        while (p) {
+          var tag = p.nodeName;
+          if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
+          p = p.parentNode;
+        }
+        return n.nodeValue && n.nodeValue.indexOf('Olive Cover') >= 0 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    var changedCount = 0;
+    nodes.forEach(function(n){
+      var t = n.nodeValue;
+      var orig = t;
+      for (var i = 0; i < rules.length; i++) t = t.replace(rules[i][0], rules[i][1]);
+      if (t !== orig) { n.nodeValue = t; changedCount++; }
+    });
+    if (document.body) document.body.dataset.ocBrandBodyPatched = '1';
+    if (changedCount > 0) try { console.log('[oc-brand] body-text patches:', changedCount); } catch (e) {}
+  }
+
   function patchExistingSchemas(){
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
     for (var i = 0; i < scripts.length; i++) {
@@ -501,7 +553,14 @@
               .replace(/Olive Cover, an independent P&C insurance agency/gi, 'Olive Cover (the consumer brand of Olive Insurance Services, LLC, an independent P&C agency)')
               .replace(/Olive Cover is an independent insurance agency/gi, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent insurance agency')
               .replace(/Olive Cover is an independent property and casualty agency/gi, 'Olive Cover is the consumer brand of Olive Insurance Services, LLC, an independent property and casualty agency')
-              .replace(/Olive Cover is a licensed Georgia property and casualty insurance agency/gi, 'Olive Insurance Services, LLC (operating under the Olive Cover brand) is a licensed Georgia property and casualty agency');
+              .replace(/Olive Cover is a licensed Georgia property and casualty insurance agency/gi, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed Georgia property and casualty insurance agency')
+              .replace(/Olive Cover is a licensed independent property and casualty insurance agency/gi, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed independent property and casualty insurance agency')
+              .replace(/Olive Cover is currently licensed/gi, 'Olive Insurance Services, LLC (dba Olive Cover) is currently licensed')
+              .replace(/Olive Cover is licensed for/gi, 'Olive Insurance Services, LLC (dba Olive Cover) is licensed for')
+              .replace(/Olive Cover holds active P&C licenses/gi, 'Olive Insurance Services, LLC (dba Olive Cover) holds active P&C licenses')
+              .replace(/Olive Cover is owned and operated by/gi, 'Olive Insurance Services, LLC (dba Olive Cover) is owned and operated by')
+              .replace(/Olive Cover operates as Olive Insurance Services, LLC/gi, 'Olive Insurance Services, LLC operates as Olive Cover')
+              .replace(/from Olive Cover, an independent insurance agency/gi, 'from Olive Cover (the consumer brand of Olive Insurance Services, LLC, an independent insurance agency)');
             if (fixed !== orig) { obj[k] = fixed; changed = true; }
           } else if (typeof obj[k] === 'object') {
             patchNode(obj[k]);
@@ -522,6 +581,8 @@
     // First: patch existing JSON-LD scripts that misrepresent the brand-vs-agency relationship.
     // Runs BEFORE the existence checks below so the patched versions are reflected in 'existing'.
     patchExistingSchemas();
+    // Also patch static body text that misrepresents Olive Cover as the licensed agency.
+    try { patchBrandAttributionInBody(); } catch (e) {}
     var p=location.pathname.replace(/\/$/,'')||'/';
     var existing=Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function(s){try{return JSON.parse(s.textContent)['@type'];}catch(e){return null;}});
     var ag={'@type':'InsuranceAgency','name':'Olive Cover','legalName':'Olive Insurance Services, LLC','alternateName':'Olive Insurance Services','url':'https://olivecover.com','telephone':'+1-678-888-1011','sameAs':['https://nipr.com/help/look-up-your-npn','https://oci.georgia.gov/licensee-search','https://www.fema.gov/flood-insurance','https://www.bbb.org/us/ga/duluth/profile/insurance-agent/olive-financial-services-0443-91847712']};
