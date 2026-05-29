@@ -1,4 +1,4 @@
-// ocwidgetchips.js v1.0.0 -- Quick-action chips for Ask Olive widget.
+// ocwidgetchips.js v1.0.1 -- Quick-action chips for Ask Olive widget.
 //
 // Injects three shortcut chips below the widget greeting bubble: "Book a call",
 // "Free coverage review", and "Browse FAQ". Visitors who arrive in the widget
@@ -105,18 +105,34 @@
     }
   }
 
-  // Poll for the greeting bubble until it appears (ocwidget mounts after a
-  // short delay). 30 tries x 250ms = 7.5s ceiling.
-  var tries = 0;
-  function poll() {
+  // Wait for the greeting bubble via MutationObserver -- robust against late
+  // widget mount on heavy CMS pages where polling can time out. Falls back to
+  // polling as belt-and-suspenders.
+  function watch() {
     if (injectChips()) return;
-    if (++tries > 30) return;
-    setTimeout(poll, 250);
+    var obs = new MutationObserver(function () {
+      if (injectChips()) {
+        obs.disconnect();
+      }
+    });
+    obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    // Safety: stop observing after 60s of no greeting (saves memory on rare
+    // pages where widget never mounts).
+    setTimeout(function () { try { obs.disconnect(); } catch (e) {} }, 60000);
+    // Also poll for the first 7.5s as a defensive belt-and-suspenders for
+    // browsers / observers that miss the initial mount.
+    var tries = 0;
+    (function poll() {
+      if (INJECTED) return;
+      if (injectChips()) return;
+      if (++tries > 30) return;
+      setTimeout(poll, 250);
+    })();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', poll);
+    document.addEventListener('DOMContentLoaded', watch);
   } else {
-    poll();
+    watch();
   }
 })();
