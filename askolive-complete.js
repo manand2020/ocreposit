@@ -15,28 +15,36 @@
 (function () {
   // ------------------------------------------------------------------
   // STALE-HEALER NEUTRALIZER (2026-05-29).
-  // Site Settings still pins ocshim to @v1.10.63, which carries the old
-  // `ocwgthealer` module. That healer force-loads ocwidget v2.17.0
-  // (commit 8589056f) on a timer and REMOVES any widget that isn't its
-  // pinned SHA -- so it kills this loader's v3.2.0 and reverts the site to
-  // the old widget. ocshim @main/@v1.10.81 already removed the healer, but
-  // the Site Settings loader bump is blocked by the CodeMirror save desync.
+  // Two legacy `ocwgthealer` variants still run on the live site and fight
+  // this loader:
+  //   * ocshim @v1.10.63 (Site Settings pin) -> pins ocwidget v2.17.0,
+  //     commit 8589056ffb28b0e51c6b89b17161bd6fcd6ab976.
+  //   * a stale-cached old ocnav/ocshim (jsDelivr/browser cache, ?v= never
+  //     bumped after removal; not in current @main) -> pins ocwidget v2.1.0,
+  //     commit ecf00af9b675b6ef618f474f43c793e20b486e5d.
+  // Each healer's heal() runs on a timer and, if it does NOT find a <script>
+  // whose src contains ITS GOOD_SHA + "ocwidget.js", removes every widget
+  // that isn't its SHA and injects its old version -- killing our v3.2.0.
   //
-  // The healer's heal() returns early if it finds ANY <script> whose src
-  // contains its GOOD_SHA (8589056f) + "ocwidget.js". We plant an inert
-  // decoy (type="text/plain" => never fetched or executed) carrying that
-  // SHA, so the healer believes its version is already present and stands
-  // down -- it never removes our real v3.2.0 and never injects v2.17.0.
-  // Runs on EVERY page (before the path skip) so the healer also can't
-  // inject an unwanted widget on pages like / that intentionally have none.
-  // Harmless once ocshim is bumped to v1.10.81 (no healer); remove then.
-  var STALE_HEALER_SHA = '8589056ffb28b0e51c6b89b17161bd6fcd6ab976';
+  // We plant ONE inert decoy (type="text/plain" => never fetched/executed)
+  // whose src contains BOTH stale SHAs. Each healer finds its SHA, believes
+  // its version is already present, and stands down -- it never removes our
+  // v3.2.0 and never injects an old widget. Runs on EVERY page (before the
+  // path skip) so the healers also can't inject an unwanted widget on pages
+  // like / that intentionally have none. The base @ ref is a non-widget
+  // placeholder so this never matches our own WGT_SHA early-return check.
+  // Harmless once the Site Settings ocshim pin is bumped to v1.10.81 and the
+  // ocnav cache-bust is refreshed (no healers); remove the block then.
+  var STALE_HEALER_SHAS = [
+    '8589056ffb28b0e51c6b89b17161bd6fcd6ab976',
+    'ecf00af9b675b6ef618f474f43c793e20b486e5d'
+  ];
   try {
     if (!document.querySelector('script[data-oc-wgt-decoy]')) {
       var d = document.createElement('script');
       d.type = 'text/plain';
       d.setAttribute('data-oc-wgt-decoy', '1');
-      d.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + STALE_HEALER_SHA + '/ocwidget.js?neutralized=1';
+      d.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@stale-healer-decoy/ocwidget.js?neutralize=' + STALE_HEALER_SHAS.join('+');
       (document.head || document.documentElement).appendChild(d);
     }
   } catch (e) {}
