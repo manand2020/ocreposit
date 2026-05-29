@@ -42,7 +42,13 @@
     [/\bWhat is Olive Cover's insurance license number\b/g, "What is Olive Insurance Services, LLC's insurance license number"],
     [/\bIs Olive Cover a licensed insurance agency\?/g, 'Who holds the insurance license behind Olive Cover?'],
     [/\bWe are a licensed P\s*&\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek'],
-    [/\bWe are a licensed P\s*&amp;\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek']
+    [/\bWe are a licensed P\s*&amp;\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek'],
+    // Fragment-level rule for sentences split across inline markup. The /about hero
+    // breaks "We are a licensed P&C agency based in Johns Creek, Georgia." into multiple
+    // text nodes (probably <p>We are a licensed P<strong>&</strong>C agency based in <a>Johns Creek</a>...).
+    // Rewriting just the leading fragment lets the rest of the sentence read correctly.
+    [/^We are a licensed P$/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P'],
+    [/^We are a licensed P\s*$/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P ']
   ];
 
   // /commercial-carriers carrier-appetite table cells (Travelers, Hanover) listed
