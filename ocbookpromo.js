@@ -1,4 +1,4 @@
-// ocbookpromo.js v1.0.2 -- Book a call discoverability + GA4 conversion tracking.
+// ocbookpromo.js v1.0.3 -- Book a call discoverability + GA4 + CRM Lead bridge + AEO schema.
 //
 // Three concerns in one file:
 //   1. Inject a "Book a call" link into the OC Footer link list (site-wide).
@@ -16,6 +16,9 @@
   var BOOK_URL = '/book';
   var BOOK_LABEL = 'Book a call';
   var ON_BOOK = (location.pathname === '/book' || location.pathname === '/book/');
+  var ON_GAPCALC = (location.pathname === '/coverage-gap-calculator' || location.pathname === '/coverage-gap-calculator/');
+  var FORMS_BASE = 'https://forms-3q26d3khpa-ue.a.run.app/forms';
+  var FORMS_AUTH = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
 
   // ---------- Footer injection ----------
   // OC Footer is a DIV-grid structure (not ul/li). The "FAQ" link in the footer
@@ -113,8 +116,44 @@
         } catch (e) {}
         // Surface a confirmation toast above the iframe so the visitor knows.
         showConfirmation();
+        // CRM Lead bridge: POST to /forms/booking. Clip routes unknown form_types
+        // to Lead Triage by default (per CLAUDE.md current-state notes), so this
+        // creates a Lead even though no bespoke /forms/booking handler exists yet.
+        sendBookingToCRM(payload);
       } catch (e) {}
     }, false);
+  }
+
+  function sendBookingToCRM(payload) {
+    // Dedupe by booking uid in sessionStorage so a duplicate postMessage
+    // (cal.diy occasionally fires twice on the same booking) doesn't create
+    // two Leads.
+    try {
+      var uid = (payload && (payload.uid || payload.bookingUid)) || ('anon-' + Date.now());
+      var key = 'oc_booking_sent_' + uid;
+      if (sessionStorage.getItem(key) === '1') return;
+      sessionStorage.setItem(key, '1');
+      var attendee = (payload && payload.attendees && payload.attendees[0]) || {};
+      var body = {
+        form_type: 'booking',
+        source: 'cal_diy_advisor_call',
+        booking_uid: uid,
+        event_type: payload && payload.eventType && payload.eventType.slug ? payload.eventType.slug : 'advisorcall',
+        start_time: payload && (payload.startTime || (payload.booking && payload.booking.startTime)) || null,
+        name: attendee.name || '',
+        email: attendee.email || '',
+        phone: attendee.phone || '',
+        page_url: location.href,
+        notes: 'Booked via cal.diy on book.olivecover.com. See cal.diy booking ' + uid + ' for full details.'
+      };
+      fetch(FORMS_BASE + '/booking', {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json', 'X-Forms-Auth': FORMS_AUTH },
+        body: JSON.stringify(body),
+        keepalive: true
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   function showConfirmation() {
@@ -132,11 +171,78 @@
     }
   }
 
+  // ---------- AEO JSON-LD ----------
+  // /book gets Service schema (the service is "Insurance advisor consultation").
+  // /coverage-gap-calculator gets WebApplication + HowTo schema for richer
+  // surfacing in AI search and Google rich results.
+  function injectSchema() {
+    if (!ON_BOOK && !ON_GAPCALC) return;
+    if (document.querySelector('script[data-oc-bookpromo-schema="1"]')) return;
+    var schema;
+    if (ON_BOOK) {
+      schema = {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "name": "Insurance advisor consultation",
+        "alternateName": "Book a call with Olive Cover",
+        "description": "Schedule a free call with a licensed insurance advisor at Olive Insurance Services, LLC (dba Olive Cover). Review your current coverage, find gaps, and get quotes across multiple A-rated carriers.",
+        "provider": {
+          "@type": "InsuranceAgency",
+          "name": "Olive Cover",
+          "legalName": "Olive Insurance Services, LLC",
+          "url": "https://olivecover.com",
+          "telephone": "+1-678-888-1011",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "6470 East Johns Crossing Suite 160",
+            "addressLocality": "Johns Creek",
+            "addressRegion": "GA",
+            "postalCode": "30097",
+            "addressCountry": "US"
+          }
+        },
+        "areaServed": { "@type": "State", "name": "Georgia" },
+        "audience": { "@type": "Audience", "audienceType": "Personal and small business insurance buyers" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
+        "url": "https://olivecover.com/book"
+      };
+    } else {
+      schema = {
+        "@context": "https://schema.org",
+        "@type": ["WebApplication", "HowTo"],
+        "name": "Coverage Gap Calculator",
+        "description": "Free interactive tool to estimate four common insurance coverage gaps: dwelling underinsurance, liability vs. net worth, wind and hail deductible exposure, and flood exclusion.",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "browserRequirements": "Requires JavaScript",
+        "url": "https://olivecover.com/coverage-gap-calculator",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "provider": {
+          "@type": "InsuranceAgency",
+          "name": "Olive Cover",
+          "legalName": "Olive Insurance Services, LLC",
+          "url": "https://olivecover.com"
+        },
+        "step": [
+          { "@type": "HowToStep", "name": "Enter home and net worth basics", "text": "Provide your home replacement cost, current dwelling limit, liability limit, and net worth." },
+          { "@type": "HowToStep", "name": "Choose your hazard exposures", "text": "Indicate proximity to coast, hail-prone metro, or flood zone." },
+          { "@type": "HowToStep", "name": "Review your gap signals", "text": "See four scored gap signals with plain-language guidance on how to close each one." }
+        ]
+      };
+    }
+    var s = document.createElement('script');
+    s.type = 'application/ld+json';
+    s.setAttribute('data-oc-bookpromo-schema', '1');
+    s.textContent = JSON.stringify(schema);
+    document.head.appendChild(s);
+  }
+
   // ---------- Boot ----------
   function run() {
     try { injectFooter(); } catch (e) {}
     try { injectNav(); } catch (e) {}
     try { trackBookings(); } catch (e) {}
+    try { injectSchema(); } catch (e) {}
   }
 
   if (document.readyState === 'loading') {
