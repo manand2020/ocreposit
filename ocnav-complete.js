@@ -292,7 +292,7 @@
 
 // Ask Olive Widget loader (v4.9.9+) -- loads v2.0.0 widget; heals stale-cached old versions
 (function(){
-  var SHA = 'ecf00af9b675b6ef618f474f43c793e20b486e5d';
+  var SHA = '01ffa9568ae3dcf6fe4a3ea710af4917ab009e5a';
   var done = false;
   function ensureState() {
     if (done) return; done = true;
@@ -301,7 +301,7 @@
     var r = document.getElementById('oc-widget-root');
     if (r) r.parentNode.removeChild(r);
     var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=2.1.0&r=' + Date.now();
+    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=3.0.0&r=' + Date.now();
     s.async = true;
     document.head.appendChild(s);
   }
@@ -313,10 +313,10 @@
 // Runs before the malformed @footer occontact-complete.js tag that hides all subsequent Site Settings scripts.
 (function(){
   if (window.location.pathname !== '/') return;
-  var OCHL_SHA = '0e386d5aeaa172fe555b76bbec9963258944f092';
+  var OCHL_SHA = '01ffa9568ae3dcf6fe4a3ea710af4917ab009e5a';
   var s = document.createElement('script');
   s.type = 'module';
-  s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + OCHL_SHA + '/ochomeleads.js?v=1.7.0';
+  s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + OCHL_SHA + '/ochomeleads.js?v=2.0.0';
   document.head.appendChild(s);
 })();
 
