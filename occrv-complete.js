@@ -1,20 +1,21 @@
-// Olive Cover -- Coverage Review form behavior v3.0.0
+// Olive Cover -- Coverage Review form behavior v3.1.0
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
-// Replaces v2.14.0 which wrote directly to olive-cover-prod Firestore + Storage.
+// Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
+// retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
 //
+// v3.1.0 (2026-05-29): RESTORE file uploads. Form POST still targets olivec-prod
+//   forms function, but dec page and current policy bytes are uploaded to the
+//   legacy olive-cover-prod Storage bucket so advisors see download URLs in the
+//   CRM Lead. Anonymous Firebase auth used solely for Storage writes.
+//   v3.0.0 dropped this; restored to remove the regression Mahesh flagged.
+//
 // v3.0.0 (2026-05-28): MIGRATION to canonical olivec-prod stack.
-//   * Removed all Firebase SDK calls (project decommissioned).
 //   * Final submit POSTs to https://forms-3q26d3khpa-ue.a.run.app/forms/coverage-review
 //     which writes to olivec-prod Firestore + forwards to Clip /internal/forms.
 //     Clip creates a CRM Lead, opens a Paperclip Issue, and routes to Service Triage.
 //   * Auto-save migrated from Firestore cloud-sync to localStorage-only:
 //     Same-device resume still works. Cross-device resume removed (rare in practice).
-//   * File uploads (dec page + policy file) REPLACED with email follow-up:
-//     The advisor sends a "send your dec page" reply post-submission. Avoids
-//     needing a public file-upload endpoint with anonymous Storage write rules.
-//     UI text updated to set expectation; the upload buttons hide gracefully if
-//     present in the DOM but never write to cloud storage.
 //   * All UI logic (5-step, chip groups, validation, GA4 conversion) UNCHANGED.
 //
 // v2.14.0 (2026-05-23): State dropdown read fix (oc-state-select).
@@ -23,9 +24,42 @@
 // v2.12: ZIP format validation.
 // v2.11: named app (oc-crv).
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 const ENDPOINT = "https://forms-3q26d3khpa-ue.a.run.app/forms/coverage-review";
 const BEARER = "fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=";
 const STATE_LS_KEY = "oc_crv_state_v3";
+
+// Firebase init -- Storage only, on the legacy olive-cover-prod bucket. Named app
+// "oc-crv-storage" so this never collides with other named-app instances on the page.
+const _fbConfig = {
+  apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
+  authDomain: "olive-cover-prod.firebaseapp.com",
+  projectId: "olive-cover-prod",
+  storageBucket: "olive-cover-prod.firebasestorage.app",
+  messagingSenderId: "781066018428",
+  appId: "1:781066018428:web:535d07b690283027f9f3f9"
+};
+const _fbApp = initializeApp(_fbConfig, "oc-crv-storage");
+const _fbStorage = getStorage(_fbApp);
+const _fbAuth = getAuth(_fbApp);
+let _fbAuthReady = false;
+signInAnonymously(_fbAuth).catch(function (err) { console.warn("[oc-crv] anon auth failed:", err); });
+onAuthStateChanged(_fbAuth, function (u) { if (u) _fbAuthReady = true; });
+function waitForAuth(maxMs) {
+  return new Promise(function (resolve) {
+    if (_fbAuthReady) return resolve(true);
+    const start = Date.now();
+    const t = setInterval(function () {
+      if (_fbAuthReady || Date.now() - start > (maxMs || 4000)) {
+        clearInterval(t);
+        resolve(_fbAuthReady);
+      }
+    }, 100);
+  });
+}
 
 // Capture UTM/click-id params with 30-day stickiness in localStorage
 function captureUTM() {
@@ -211,18 +245,18 @@ function setupMultiChips(groupSelector, stateKey) {
 function onCkChange() { scheduleSave(); }
 
 // ---- File upload handlers (Step 4) ----------------------------
-// v3.0.0: cloud uploads removed (project decommissioned). Selected files are
-// captured locally so we can record the filename in the submission payload,
-// but actual bytes are not transmitted. The advisor follows up by email after
-// submission with a request for the dec page / current policy. A short hint is
-// displayed when the user picks a file so they aren't surprised by no upload.
+// v3.1.0: cloud uploads RESTORED. Files write to the legacy olive-cover-prod
+// Storage bucket under the original coverage-review/dec-pages and
+// coverage-review/policies prefixes. Download URL is embedded in the submission
+// payload so the advisor sees a link in the CRM Lead. The form POST itself
+// still goes to the olivec-prod canonical forms function.
 
-function setupFileUpload(inputId, triggerId, labelId, _stateUrlKey, stateNameKey, _folder, maxMB) {
+function setupFileUpload(inputId, triggerId, labelId, stateUrlKey, stateNameKey, folder, maxMB) {
   const input = $(inputId);
   if (!input) return;
   const trigger = $(triggerId);
   if (trigger) trigger.addEventListener("click", (e) => { e.preventDefault(); input.click(); });
-  input.addEventListener("change", (e) => {
+  input.addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     const lbl = $(labelId);
@@ -231,9 +265,22 @@ function setupFileUpload(inputId, triggerId, labelId, _stateUrlKey, stateNameKey
       e.target.value = "";
       return;
     }
-    STATE[stateNameKey] = file.name;
-    if (lbl) lbl.textContent = file.name + " (we'll email you to collect this)";
-    scheduleSave();
+    if (lbl) lbl.textContent = "Uploading...";
+    try {
+      await waitForAuth(4000);
+      const sid = getOrCreateSession();
+      const safeName = sid + "-" + Date.now() + "-" + file.name.replace(/[^A-Za-z0-9._-]/g, "_");
+      const r = ref(_fbStorage, folder + "/" + safeName);
+      await uploadBytes(r, file, { contentType: file.type });
+      STATE[stateUrlKey] = await getDownloadURL(r);
+      STATE[stateNameKey] = file.name;
+      if (lbl) lbl.textContent = file.name;
+      scheduleSave();
+    } catch (err) {
+      console.error("[oc-crv] file upload failed:", err);
+      showErr("File upload failed. Please try again or email it to askolive@olivecover.com.");
+      if (lbl) lbl.textContent = "Upload failed";
+    }
   });
 }
 
