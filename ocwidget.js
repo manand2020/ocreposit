@@ -1,4 +1,17 @@
-// ocwidget.js -- Ask Olive Floating Widget v3.1.0
+// ocwidget.js -- Ask Olive Floating Widget v3.2.0
+//
+// v3.2.0 (2026-05-29): SERVER-AUTHORITATIVE session_id.
+//   * Removed the upfront client-UUID generation in getSession(). Turn 1 now
+//     ships with empty session_id; the webchat function issues the canonical
+//     UUID and the widget stores + reuses it for every subsequent send.
+//   * generate_lead GA4 conversion moved to fire AFTER the server returns a
+//     session_id, keyed off that authoritative ID. Eliminates the prior
+//     "Turn-1-phantom-UUID" mismatch where GA4/octracker/CRM analytics
+//     referenced a UUID the backend never tracked.
+//   * Stale or unknown stored session_ids are gracefully replaced -- backend
+//     issues a fresh one on the next send and the widget swaps to it.
+//
+
 // Migrated to canonical olivec-prod webchat function. Replaces the legacy
 // olive-cover-prod /chat/send + /chat/thread stack that depended on a
 // decommissioned project.
@@ -79,10 +92,20 @@
     return mo + ' ' + d.getDate() + ', ' + hr + ':' + mi + ' ' + ap;
   }
 
+  // Server-issued session ID is authoritative. On Turn 1 we send an empty session_id;
+  // the webchat function issues a UUID and returns it. We store it and use it from
+  // Turn 2 onward. Stale/unknown stored IDs are gracefully replaced -- the backend
+  // issues a fresh one and the widget swaps to it.
+  // v3.2.0: removed the upfront client-UUID generation that v2.x and v3.0/3.1 carried
+  // forward from the legacy olive-cover-prod stack. Eliminates the Turn-1-phantom-UUID
+  // mismatch where GA4/octracker/CRM analytics keyed off a UUID the backend never used.
   function getSession() {
-    var id = localStorage.getItem('oc_chat_session');
-    if (!id) { id = genUUID(); localStorage.setItem('oc_chat_session', id); }
-    return id;
+    return localStorage.getItem('oc_chat_session') || '';
+  }
+  function storeServerSession(sid) {
+    if (sid && typeof sid === 'string') {
+      try { localStorage.setItem('oc_chat_session', sid); } catch (e) {}
+    }
   }
 
   function getContact() {
@@ -478,13 +501,10 @@
     var errEl = document.getElementById('oc-wgt-error');
 
     // Fire generate_lead once per session.
-    try {
-      var firedKey = 'oc_chat_lead_fired_' + sessionId;
-      if (!sessionStorage.getItem(firedKey)) {
-        fireGenerateLead('widget-chat');
-        sessionStorage.setItem(firedKey, '1');
-      }
-    } catch (e) {}
+    // generate_lead conversion fires after the server returns a session_id so it
+    // is keyed off the authoritative ID (not a phantom client UUID). See the
+    // .then() block below for the fire site. The guard against double-fire moves
+    // there as well.
 
     // Optimistic render of the user's own bubble
     var localId = 'local-' + Date.now();
@@ -550,9 +570,18 @@
             // the backend update lands).
             chatState.thread.push({ role: 'olive', text: data.reply });
           }
-          if (data && data.session_id && data.session_id !== sessionId) {
-            // Server canonicalized the session id -- store it for follow-ups
-            try { localStorage.setItem('oc_chat_session', data.session_id); } catch (e) {}
+          if (data && data.session_id) {
+            // Server is authoritative for session_id. Store whatever it returns so
+            // every subsequent send uses the same canonical ID (Turn 2..N).
+            storeServerSession(data.session_id);
+            // Fire generate_lead once per session, keyed off the SERVER session_id.
+            try {
+              var firedKey = 'oc_chat_lead_fired_' + data.session_id;
+              if (!sessionStorage.getItem(firedKey)) {
+                fireGenerateLead('widget-chat');
+                sessionStorage.setItem(firedKey, '1');
+              }
+            } catch (e) {}
           }
         } catch (e) {
           console.error('[oc-widget] reply parse error:', e && e.message ? e.message : e);
