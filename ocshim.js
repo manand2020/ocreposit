@@ -495,7 +495,29 @@
       [/\bWhat is Olive Cover's insurance license number\b/g, "What is Olive Insurance Services, LLC's insurance license number"],
       [/\bIs Olive Cover a licensed insurance agency\?/g, 'Who holds the insurance license behind Olive Cover?'],
       [/\bWe are a licensed P\s*&\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek'],
-      [/\bWe are a licensed P\s*&amp;\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek']
+      [/\bWe are a licensed P\s*&amp;\s*C agency based in Johns Creek\b/g, 'Olive Insurance Services, LLC (dba Olive Cover) is a licensed P&C agency based in Johns Creek'],
+      // Agent -> advisor terminology swap (site-wide, person/role only -- "agency" the legal-entity
+      // term is preserved). Carve-outs: "agent of record" and "agent-client relationship" are
+      // industry/legal terms that stay agent; we match more specific phrases before the generic
+      // fallbacks so they aren't accidentally rewritten.
+      [/\blicensed insurance agent, broker, or counselor\b/g, 'licensed insurance advisor, broker, or counselor'],
+      [/\blicensed insurance agent\b/g, 'licensed insurance advisor'],
+      [/\blicensed agent\b/g, 'licensed advisor'],
+      [/\binsurance agent's license\b/g, "insurance advisor's license"],
+      [/\binsurance agent\b/g, 'insurance advisor'],
+      [/\bindependent agent\b/g, 'independent advisor'],
+      [/\bIndependent Agent\b/g, 'Independent Advisor'],
+      [/\bcaptive agent\b/g, 'captive advisor'],
+      [/\bYour Agent Needs It\b/g, 'Your Advisor Needs It'],
+      [/\byour agent\b/g, 'your advisor'],
+      [/\bYour agent\b/g, 'Your advisor'],
+      [/\bour agent\b/g, 'our advisor'],
+      [/\bthe agent is who you buy from\b/g, 'the advisor is who you buy from'],
+      [/\bThe agent is who you buy from\b/g, 'The advisor is who you buy from'],
+      [/\bbased on what the agent said\b/g, 'based on what the advisor said'],
+      [/\bagent will follow up\b/g, 'advisor will follow up'],
+      [/\bChoosing an agent based on price\b/g, 'Choosing an advisor based on price'],
+      [/\bfrom an agent's perspective\b/g, "from an advisor's perspective"]
     ];
     // Additional cross-cutting compliance rules (not strictly brand-vs-agency but same patcher infra).
     // These cover the "no real estate / mortgage" content rule on pages where the term appears
@@ -521,6 +543,9 @@
         }
         if (!n.nodeValue) return NodeFilter.FILTER_REJECT;
         if (n.nodeValue.indexOf('Olive Cover') >= 0) return NodeFilter.FILTER_ACCEPT;
+        // Agent -> advisor swap: accept any text node containing "agent" or "Agent" so the
+        // person/role terminology rules can run on every page.
+        if (/\bagent\b/i.test(n.nodeValue)) return NodeFilter.FILTER_ACCEPT;
         // Also accept nodes containing "real estate" when on a path where crossRules apply
         if (location.pathname === '/commercial-carriers' && /real estate/i.test(n.nodeValue)) return NodeFilter.FILTER_ACCEPT;
         return NodeFilter.FILTER_REJECT;
