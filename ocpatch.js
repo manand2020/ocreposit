@@ -1,4 +1,4 @@
-// ocpatch.js v1.2.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.3.0 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -432,7 +432,82 @@
   }
 
   // ====================================================================
-  // 9. Boot -- one shared, debounced observer drives all idempotent tasks
+  // 9. Suggest-a-correction widget -- add a state select + carry state in the
+  //    feedback create-case payload (the ocfeedback widget in ocshim had no
+  //    state field). Done here (owned, low-risk) rather than editing ocshim.
+  // ====================================================================
+
+  var OC_STATES = [
+    ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+    ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],
+    ['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],
+    ['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],
+    ['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],
+    ['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],
+    ['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],
+    ['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],
+    ['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],
+    ['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],
+    ['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming']
+  ];
+
+  function fixFeedbackState() {
+    var modal = document.getElementById('oc-fb-modal');
+    if (!modal) return;
+    if (modal.querySelector('#oc-fb-state')) return;
+    var emailLabel = modal.querySelector('label[for="oc-fb-email"]');
+    if (!emailLabel) return;
+    var cur = '';
+    try { cur = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {}
+    var lbl = document.createElement('label');
+    lbl.setAttribute('for', 'oc-fb-state');
+    lbl.textContent = 'Which state does this relate to? (optional)';
+    var sel = document.createElement('select');
+    sel.id = 'oc-fb-state';
+    sel.setAttribute('aria-label', 'Which state does this relate to?');
+    sel.style.cssText = 'width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:4px;font:14px Inter,sans-serif;box-sizing:border-box;background:#fff;color:#1B3A5C';
+    var o0 = document.createElement('option');
+    o0.value = ''; o0.textContent = 'Select a state (optional)';
+    sel.appendChild(o0);
+    OC_STATES.forEach(function (s) {
+      var o = document.createElement('option');
+      o.value = s[0]; o.textContent = s[1];
+      if (s[0] === cur) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', function () {
+      try { if (sel.value) localStorage.setItem('oc_state', sel.value); } catch (e) {}
+    });
+    emailLabel.parentNode.insertBefore(lbl, emailLabel);
+    emailLabel.parentNode.insertBefore(sel, emailLabel);
+  }
+
+  // Wrap fetch once so the feedback create-case POST carries the state value
+  // (from the injected select, falling back to cached oc_state).
+  function wrapFeedbackFetch() {
+    if (window.__ocFbFetchWrapped) return;
+    window.__ocFbFetchWrapped = true;
+    var of = window.fetch;
+    if (typeof of !== 'function') return;
+    window.fetch = function (u, o) {
+      try {
+        var url = (typeof u === 'string') ? u : (u && u.url);
+        if (url && /\/feedback\/create-case/.test(url) && o && typeof o.body === 'string') {
+          var selEl = document.getElementById('oc-fb-state');
+          var stv = (selEl && selEl.value) ? selEl.value : '';
+          if (!stv) { try { stv = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {} }
+          if (stv) {
+            var d = JSON.parse(o.body);
+            if (d && typeof d === 'object' && !d.state) { d.state = stv; o.body = JSON.stringify(d); }
+          }
+        }
+      } catch (e) {}
+      return of.apply(this, arguments);
+    };
+  }
+
+  // ====================================================================
+  // 10. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
   function runOnce() {
@@ -446,6 +521,7 @@
     try { fixCTAColor(); } catch (e) {}
     try { fixHomeButton(); } catch (e) {}
     try { fixContactSelect(); } catch (e) {}
+    try { fixFeedbackState(); } catch (e) {}
   }
 
   var debounceTimer = null;
@@ -455,6 +531,7 @@
   }
 
   function boot() {
+    try { wrapFeedbackFetch(); } catch (e) {}
     runOnce();
     // Shared observer: catches late-mounted CMS content, widget mount, and
     // widget re-renders (which wipe chips). Debounced to avoid thrashing.
