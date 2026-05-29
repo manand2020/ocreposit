@@ -1,62 +1,26 @@
-// Olive Cover - Homepage Lead Capture v1.7.0
-// Quick intake form: name + email + phone + intent -> Firestore home-leads collection (submissions DB)
+// Olive Cover -- Homepage Lead Capture v2.0.0
+// Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
+// Replaces v1.7.0 which wrote directly to olive-cover-prod Firestore.
 // Source: github.com/manand2020/ocreposit/ochomeleads.js
-// Loaded as ES module via IIFE registered script on homepage footer.
-// v1.7.0 (2026-05-23): Two-fix release for production reliability.
-//   (1) Sentinel guard via window.__ochomeleads_v17_init prevents double-init when the script is
-//       loaded via multiple paths (page-level inline-site-script slot AND the ocnav-complete.js
-//       loader IIFE). Symptom before fix: every homepage submission created TWO identical CRM
-//       Leads at the same timestamp (verified live 2026-05-23 20:00 ET with 2 duplicate
-//       "WF Probe Home 0523" records). Sentinel logs to console when it skips so future
-//       regressions are observable.
-//   (2) e.stopImmediatePropagation() inside the submit handler stops Webflow's native forms.js
-//       listener from firing in parallel. preventDefault() alone only stops the browser's
-//       default form action; it does NOT stop other JS listeners attached to the same event.
-//       Symptom before fix: every homepage submission sent a no-reply notification from
-//       no-reply-forms@webflow.com to the site owner, containing only "phone: 6788881011"
-//       because Webflow's FormData binding only recognized the shim-injected oc-lead-phone
-//       name="phone" input. Stops the noise email pipeline cleanly.
-// v1.6.0: Fire gtag('event','generate_lead') on success for Google Ads conversion
-//         optimization. Capture full UTM stack (utm_*, gclid, fbclid, msclkid,
-//         referrer) into Firebase payload so OC Tech can write to CRM Lead
-//         custom fields for ad attribution.
-// v1.5.0: Parity with widget v2.8.0 - email + phone are separate required fields,
-//         state captured silently from oc_state cookie. Backward-compatible with
-//         the legacy single-contact field name.
-// v1.4.0: onAuthStateChanged _authReady pattern (eliminates auth/Firestore SDK race).
+//
+// v2.0.0 (2026-05-28): MIGRATION to canonical olivec-prod stack.
+//   Removed direct Firestore write (olive-cover-prod was decommissioned).
+//   Submission now POSTs to https://forms-3q26d3khpa-ue.a.run.app/forms/homepage-lead
+//   which writes to olivec-prod Firestore, forwards to Clip /internal/forms,
+//   Clip creates a CRM Lead and assigns a Paperclip Issue to Lead Triage / Olive.
+//   Behavior preserved: name+email+phone+intent capture, UTM stack, state from
+//   oc_state localStorage, GA4 generate_lead conversion, sentinel double-init
+//   guard, stopImmediatePropagation against Webflow forms.js noise.
 
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+const ENDPOINT = "https://forms-3q26d3khpa-ue.a.run.app/forms/homepage-lead";
+const BEARER = "fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=";
 
-const FB_CONFIG = {
-  apiKey: "AIzaSyB1JuGUbJCkz0he8JnKNbQyRBTwtONZnWM",
-  authDomain: "olive-cover-prod.firebaseapp.com",
-  projectId: "olive-cover-prod",
-  storageBucket: "olive-cover-prod.firebasestorage.app",
-  messagingSenderId: "781066018428",
-  appId: "1:781066018428:web:535d07b690283027f9f3f9"
-};
-
-const APP_NAME = "oc-home-leads";
-const app = getApps().find(a => a.name === APP_NAME) || initializeApp(FB_CONFIG, APP_NAME);
-const db = getFirestore(app, "submissions");
-const auth = getAuth(app);
-
-const _authReady = new Promise((resolve) => {
-  const unsub = onAuthStateChanged(auth, (user) => {
-    if (user) { unsub(); resolve(user); }
-  });
-  signInAnonymously(auth).catch(e => console.warn("[oc-leads] auth:", e.code));
-});
-
-// Capture UTM/click-id params on page load with 30-day stickiness in localStorage
 function captureUTM() {
   const fields = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "msclkid"];
   const params = new URLSearchParams(location.search);
-  let captured = {};
+  const captured = {};
   let hasAny = false;
-  fields.forEach(function(f) {
+  fields.forEach(function (f) {
     const v = params.get(f);
     if (v) { captured[f] = v; hasAny = true; }
   });
@@ -76,6 +40,14 @@ function captureUTM() {
 const _utm = captureUTM();
 const _landing_referrer = document.referrer || "";
 
+function uuidv4() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 function init() {
   const form = document.getElementById("oc-lead-form-el");
   if (!form) return;
@@ -84,7 +56,7 @@ function init() {
   const errEl = document.getElementById("oc-lead-error");
   const submitBtn = document.getElementById("oc-lead-submit");
 
-  form.addEventListener("submit", async function(e) {
+  form.addEventListener("submit", async function (e) {
     e.preventDefault();
     e.stopImmediatePropagation();
 
@@ -109,16 +81,19 @@ function init() {
       return;
     }
     errEl.style.display = "none";
-    submitBtn.textContent = "Sending...";
+    submitBtn.value = "Sending...";
     submitBtn.disabled = true;
 
-    try {
-      await _authReady;
-      await addDoc(collection(db, "home-leads"), {
+    const submissionId = uuidv4();
+    const payload = {
+      form_type: "homepage-lead",
+      submission_id: submissionId,
+      page_url: location.href,
+      submitted_at: new Date().toISOString(),
+      fields: {
         name,
         email,
         phone,
-        contact: email,
         intent: intent || "not-specified",
         state,
         source: "homepage",
@@ -132,40 +107,48 @@ function init() {
         fbclid: _utm.fbclid || null,
         msclkid: _utm.msclkid || null,
         landing_referrer: _landing_referrer,
-        ts: serverTimestamp()
+      },
+    };
+
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Forms-Auth": BEARER,
+        },
+        body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status + " " + (await res.text().catch(() => "")));
+      }
       form.style.display = "none";
       if (successEl) successEl.style.display = "block";
-      // GA4 conversion event for Google Ads bidding optimization
       try {
         if (window.gtag) {
           window.gtag("event", "generate_lead", {
             form_id: "oc-lead-form-el",
             form_location: "homepage",
             state: state || "unknown",
-            value: 1
+            value: 1,
           });
         }
-      } catch (e) { /* gtag missing */ }
+      } catch (e) {}
     } catch (err) {
-      console.error("[oc-leads] save error:", err);
+      console.error("[oc-leads] submit failed:", err);
       errEl.textContent = "Something went wrong. Please call us at (678) 888-1011.";
       errEl.style.display = "block";
-      submitBtn.textContent = "Ask Olive";
+      submitBtn.value = "Ask Olive";
       submitBtn.disabled = false;
     }
   });
 }
 
-// Sentinel guard: defend against dual-load paths (page-level inline-site-script slot +
-// ocnav-complete.js IIFE loader). ES module dedup is supposed to handle this, but if the
-// two loaders use different fetch paths (e.g. different SHA pins, dynamic appendChild vs
-// inline script) the browser treats them as separate module records and runs init() twice,
-// binding the submit handler twice, creating duplicate CRM Leads on every submission.
-if (window.__ochomeleads_v17_init) {
+if (window.__ochomeleads_v2_init) {
   console.log("[oc-leads] init already registered (sentinel triggered, second load skipped)");
 } else {
-  window.__ochomeleads_v17_init = true;
+  window.__ochomeleads_v2_init = true;
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
