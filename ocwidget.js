@@ -1,7 +1,23 @@
-// ocwidget.js -- Ask Olive Floating Widget v3.0.0
+// ocwidget.js -- Ask Olive Floating Widget v3.1.0
 // Migrated to canonical olivec-prod webchat function. Replaces the legacy
 // olive-cover-prod /chat/send + /chat/thread stack that depended on a
 // decommissioned project.
+//
+// v3.1.0 (2026-05-29): MULTI-TURN CONTEXT RETENTION via two-layer approach.
+//   * Widget accumulates a local conversation thread (chatState.thread) of
+//     {role, text} entries across the session.
+//   * On each send, prepends an "[Earlier in this conversation: ...]" prefix
+//     made from prior VISITOR messages so the current backend (which passes
+//     the message field straight to Gemini) can produce context-aware replies.
+//     Verified end-to-end: probe showed Gemini references "your Cumming home"
+//     when the city was provided as bracketed prefix in the message.
+//   * Also sends a structured `conversation_history: [{role,text},...]` field
+//     for the upcoming OC Tech webchat update that will read the structured
+//     form and pass it as proper Gemini multi-turn messages. Current backend
+//     ignores the field gracefully (unknown JSON field).
+//   * When OC Tech ships structured-history support, the inline prefix is
+//     removed (the structured field becomes the source of truth and the
+//     visitor message in CRM is no longer noisy).
 //
 // v3.0.0 (2026-05-28): MIGRATION to canonical olivec-prod stack.
 //   * Endpoint switched to olivec-prod webchat function (synchronous reply).
@@ -329,7 +345,33 @@
 
   // --- Phase 3: chat ---
 
-  var chatState = { rendered: {}, optimistic: {}, pollTimer: null, typingTimer: null };
+  // chatState.thread accumulates the conversation locally so we can pass prior context
+  // to Gemini on each new send. The backend currently does NOT pull session history
+  // from Firestore into the AI prompt, so the widget includes context two ways:
+  //   1) Prepended inside the `message` field (Gemini reads it today) -- enables
+  //      visitor-aware replies like "for your Cumming home" right now.
+  //   2) Structured `conversation_history` field (forward-compatible) -- ignored by
+  //      current backend, will be honored by the upcoming OC Tech webchat update.
+  // Once OC Tech ships the structured-history support, the prefix in (1) is removed.
+  var chatState = { rendered: {}, optimistic: {}, pollTimer: null, typingTimer: null, thread: [] };
+  var MAX_HISTORY_TURNS = 12;       // last 12 messages (~6 round trips)
+  var MAX_PREFIX_CHARS = 800;       // cap on inline-prefix length
+  function buildHistoryPayload() {
+    // Return last MAX_HISTORY_TURNS entries from chatState.thread for the structured field
+    if (!chatState.thread || chatState.thread.length === 0) return [];
+    return chatState.thread.slice(-MAX_HISTORY_TURNS).map(function (m) {
+      return { role: m.role, text: (m.text || '').slice(0, 600) };
+    });
+  }
+  function buildInlinePrefix() {
+    // Concatenate the prior VISITOR messages only (skip Olive's) into a short brief.
+    // Olive's replies are typically routing language ("our Coverage Review..."), not info to recall.
+    var userMsgs = (chatState.thread || []).filter(function (m) { return m.role === 'user'; });
+    if (userMsgs.length === 0) return '';
+    var combined = userMsgs.map(function (m) { return m.text; }).join(' ');
+    if (combined.length > MAX_PREFIX_CHARS) combined = '...' + combined.slice(-MAX_PREFIX_CHARS);
+    return '[Earlier in this conversation: ' + combined + ']\n\n';
+  }
 
   function renderBubble(msg) {
     if (chatState.rendered[msg.id]) return;
@@ -451,9 +493,20 @@
     showTyping();
     if (sendBtn) { sendBtn.textContent = '...'; sendBtn.disabled = true; }
 
+    // Build context BEFORE pushing the new message to thread so prefix reflects PRIOR turns only.
+    var historyPayload = buildHistoryPayload();
+    var inlinePrefix = buildInlinePrefix();
+    // Record the new visitor message in local thread for the next round trip.
+    chatState.thread.push({ role: 'user', text: body });
+    // Send body with prefix prepended so the current backend (which passes message
+    // straight to Gemini) gets the prior-turn context. Older bundles + the backend
+    // both treat this as a single message; only Gemini parses the prefix as context.
+    var messageToSend = inlinePrefix + body;
+
     var requestBody = {
       session_id: sessionId,
-      message: body,
+      message: messageToSend,
+      conversation_history: historyPayload,  // forward-compatible; ignored by current backend
       page_url: location.href,
       visitor: {
         name: contact && contact.name ? contact.name : null,
@@ -492,6 +545,10 @@
           if (data && data.reply) {
             var localOutId = 'local-out-' + Date.now();
             renderBubble({ id: localOutId, direction: 'outbound', body: data.reply, created_at: Date.now() });
+            // Record Olive's reply in the local thread so it informs subsequent context
+            // (visitor side only, used today; structured-history side will use it after
+            // the backend update lands).
+            chatState.thread.push({ role: 'olive', text: data.reply });
           }
           if (data && data.session_id && data.session_id !== sessionId) {
             // Server canonicalized the session id -- store it for follow-ups
