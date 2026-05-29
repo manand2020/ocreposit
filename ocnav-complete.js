@@ -292,7 +292,7 @@
 
 // Ask Olive Widget loader (v4.9.9+) -- loads v2.0.0 widget; heals stale-cached old versions
 (function(){
-  var SHA = '37041b5679f56cb5a19a4827218710a2cb88fd2f';
+  var SHA = '5d0c436f1bdecf16df532d42d455f1b34ffa2294';
   var done = false;
   function ensureState() {
     if (done) return; done = true;
@@ -301,7 +301,7 @@
     var r = document.getElementById('oc-widget-root');
     if (r) r.parentNode.removeChild(r);
     var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=3.1.0&r=' + Date.now();
+    s.src = 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@' + SHA + '/ocwidget.js?v=3.2.0&r=' + Date.now();
     s.async = true;
     document.head.appendChild(s);
   }
