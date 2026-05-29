@@ -1,18 +1,20 @@
-// ocpatch.js v1.0.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.1.0 -- Consolidated runtime patcher for Olive Cover.
 //
-// Merges four standalone inline-site-scripts that previously each loaded a
-// separate file from jsDelivr and each ran its own MutationObserver +
-// TreeWalker pass on every page:
+// Merges five standalone inline-site-scripts that previously each loaded a
+// separate file and/or ran its own MutationObserver + TreeWalker pass on
+// every page:
 //
 //   ocagentadvisor  -> agent->advisor text rewrite
 //   ocbrandpatcher  -> brand-attribution body text + JSON-LD rewrite
 //   ocbookpromo     -> Book a call CTA (nav + footer), GA4 + Clip CRM bridge,
 //                      AEO JSON-LD on /book and /coverage-gap-calculator
 //   ocwidgetchips   -> Ask Olive widget quick-action chips
+//   occtafix        -> strip stray inline color on claims/stub CTAs (v1.1.0)
 //
-// Optimization: ONE jsDelivr request instead of four, ONE shared
-// MutationObserver instead of four, ONE TreeWalker text pass instead of three.
-// All text rules (agent + brand + cross) are applied in a single traversal.
+// Optimization: ONE jsDelivr request instead of five, ONE shared
+// MutationObserver instead of multiple, ONE TreeWalker text pass instead of
+// three. All text rules (agent + brand + cross) are applied in a single
+// traversal.
 //
 // Every operation is idempotent. Reversible by unregistering the `ocpatch`
 // inline-site-script.
@@ -392,7 +394,17 @@
   }
 
   // ====================================================================
-  // 6. Boot -- one shared, debounced observer drives all idempotent tasks
+  // 6. CTA color fix (folded in from occtafix) -- remove stray inline color
+  //    on claims hero CTA and stub primary CTA so brand styling wins.
+  // ====================================================================
+
+  function fixCTAColor() {
+    var els = document.querySelectorAll('.oc-claims-hero-cta, .oc-stub-cta-primary');
+    for (var i = 0; i < els.length; i++) els[i].style.removeProperty('color');
+  }
+
+  // ====================================================================
+  // 7. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
   function runOnce() {
@@ -403,6 +415,7 @@
     try { injectChips(); } catch (e) {}
     try { trackBookings(); } catch (e) {}
     try { injectSchema(); } catch (e) {}
+    try { fixCTAColor(); } catch (e) {}
   }
 
   var debounceTimer = null;
