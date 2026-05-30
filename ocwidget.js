@@ -54,7 +54,7 @@
   var WEBCHAT_ENDPOINT = 'https://webchat-3q26d3khpa-ue.a.run.app';
   var FORMS_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/widget-capture';
   var GATEWAY_TOKEN = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
-  var WGT_VER = '3.4.0';
+  var WGT_VER = '3.5.0';
   // forceForm: when true, render the capture form even for a known contact, so
   // a returning visitor can reach it via "Update details" (Bug 2 handoff).
   var forceForm = false;
@@ -244,6 +244,9 @@
       '.oc-widget-edit-row{padding:8px 16px 0;text-align:right;}',
       '.oc-widget-edit-link{background:none;border:none;color:rgba(27,58,92,0.55);font-size:0.75rem;cursor:pointer;text-decoration:underline;padding:0;font-family:Inter,sans-serif;}',
       '.oc-widget-edit-link:hover{color:#1B3A5C;}',
+      // Inline "Book a call" chip on Olive replies that reference the booking link
+      '.oc-widget-reply-chip{align-self:flex-start;margin-top:6px;background:#B8934A;color:#1B3A5C;border:none;border-radius:50px;padding:7px 16px;font-family:Inter,sans-serif;font-size:0.8125rem;font-weight:600;cursor:pointer;}',
+      '.oc-widget-reply-chip:hover{background:#C7A24B;}',
       // Footer
       '.oc-widget-panel-footer{padding:10px 16px 12px;border-top:1px solid #F5EDD8;font-size:0.75rem;color:rgba(27,58,92,0.5);}',
       '.oc-widget-disc-link{color:rgba(27,58,92,0.5);text-decoration:none;}',
@@ -469,6 +472,24 @@
     time.className = 'oc-widget-bubble-time';
     time.textContent = fmtTime(msg.created_at);
     wrap.appendChild(bubble);
+    // AI: when Olive's reply references the booking link, surface a branded
+    // "Book a call" chip (stronger affordance than a bare link). Opens the E!A
+    // booking modal via OC_OpenBooking (ocpatch) pre-filled from the captured
+    // contact, falling back to /book.
+    if (!isIn && /book\.olivecover\.com|olivecover\.com\/book|\/book(?:\b|\/)/i.test(msg.body || '')) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'oc-widget-reply-chip';
+      chip.textContent = 'Book a call';
+      chip.addEventListener('click', function () {
+        try { if (typeof window.gtag === 'function') window.gtag('event', 'widget_chip_click', { event_category: 'engagement', event_label: 'Book a call', chip_target: '/book', chip_source: 'olive_reply' }); } catch (e) {}
+        var c = getContact() || {};
+        if (typeof window.OC_OpenBooking === 'function') {
+          window.OC_OpenBooking('coverage-review', { name: c.name, email: c.email, phone: c.phone, verified_state: c.state, trigger_source: 'olive_reply' });
+        } else { window.location.href = '/book'; }
+      });
+      wrap.appendChild(chip);
+    }
     wrap.appendChild(time);
     thread.appendChild(wrap);
     thread.scrollTop = thread.scrollHeight;
