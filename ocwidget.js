@@ -54,7 +54,13 @@
   var WEBCHAT_ENDPOINT = 'https://webchat-3q26d3khpa-ue.a.run.app';
   var FORMS_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/widget-capture';
   var GATEWAY_TOKEN = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
-  var WGT_VER = '3.7.0';
+  // Cloudflare Turnstile bot-attestation for the webchat endpoint (CLIP verifies
+  // server-side via siteverify). Non-blocking: if no token can be obtained, the
+  // message sends without it and the backend decides. Swap TS_SITEKEY if CLIP
+  // provisions a dedicated non-interactive webchat sitekey.
+  var TS_SITEKEY = '0x4AAAAAAAQTptj2So4dx43e';
+  var tsToken = null, tsFetching = false;
+  var WGT_VER = '3.8.0';
   // forceForm: when true, render the capture form even for a known contact, so
   // a returning visitor can reach it via "Update details" (Bug 2 handoff).
   var forceForm = false;
@@ -139,6 +145,45 @@
   }
 
   function saveContact(c) { localStorage.setItem('oc_chat_contact', JSON.stringify(c)); }
+
+  // --- Turnstile bot attestation (non-blocking; never breaks chat) ---
+  function getTurnstileToken() {
+    return new Promise(function (resolve) {
+      var done = false;
+      var finish = function (t) { if (!done) { done = true; resolve(t || null); } };
+      var to = setTimeout(function () { finish(null); }, 6000);
+      function run() {
+        if (!window.turnstile) { clearTimeout(to); return finish(null); }
+        var c = document.getElementById('oc-ts-host');
+        if (!c) { c = document.createElement('div'); c.id = 'oc-ts-host'; c.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden'; document.body.appendChild(c); }
+        try {
+          window.turnstile.render(c, {
+            sitekey: TS_SITEKEY,
+            callback: function (token) { clearTimeout(to); finish(token); },
+            'error-callback': function () { clearTimeout(to); finish(null); },
+            'timeout-callback': function () { clearTimeout(to); finish(null); }
+          });
+        } catch (e) { clearTimeout(to); finish(null); }
+      }
+      try {
+        if (window.turnstile) return run();
+        var ex = document.querySelector('script[src*="turnstile/v0/api.js"]');
+        if (ex) { ex.addEventListener('load', run); ex.addEventListener('error', function () { clearTimeout(to); finish(null); }); return; }
+        var s = document.createElement('script');
+        s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+        s.async = true; s.defer = true;
+        s.onload = run; s.onerror = function () { clearTimeout(to); finish(null); };
+        document.head.appendChild(s);
+      } catch (e) { clearTimeout(to); finish(null); }
+    });
+  }
+
+  // Pre-warm a token when the widget opens so the first message isn't delayed.
+  function prewarmTurnstile() {
+    if (tsToken || tsFetching) return;
+    tsFetching = true;
+    getTurnstileToken().then(function (t) { tsToken = t; tsFetching = false; });
+  }
 
   // Capture UTM/click-id params with 30-day stickiness
   function getUTM() {
@@ -683,6 +728,9 @@
       session_id: sessionId,
       message: messageToSend,
       booking_selection: (opts && opts.booking_selection) || undefined,  // option-3: visitor's chosen slot -> CLIP POSTs the appointment
+      // Bot attestation on the session-establishing message (empty session_id);
+      // CLIP verifies via Cloudflare siteverify. Omitted if no token (non-blocking).
+      attestation: (!sessionId && tsToken) ? { type: 'turnstile', token: tsToken } : undefined,
       conversation_history: historyPayload,  // forward-compatible; ignored by current backend
       page_url: location.href,
       visitor: {
@@ -888,7 +936,7 @@
     var root = document.getElementById('oc-widget-root');
     if (root) {
       root.addEventListener('toggle', function () {
-        if (root.open) startPolling();
+        if (root.open) { prewarmTurnstile(); startPolling(); }
         else stopPolling();
       });
     }
