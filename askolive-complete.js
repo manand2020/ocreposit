@@ -54,8 +54,8 @@
   if (path === '/' || path === '/ask-olive-disclaimer' || path === '/ask-olive-disclaimer/') return;
 
   // If a widget is already loaded (or loading) at the correct SHA, no-op.
-  var WGT_SHA = '5640e72b851840cf13e44f0a7f15ff0e5e9b63b9';
-  var WGT_VER = '3.5.0';
+  var WGT_SHA = '5ecd7cfcbe7f0080a2fbe6bcc9772501b9ee6138';
+  var WGT_VER = '3.6.0';
   var scripts = document.querySelectorAll('script[src*="ocreposit"][src*="ocwidget.js"]');
   for (var i = 0; i < scripts.length; i++) {
     if (scripts[i].src.indexOf(WGT_SHA) >= 0) return; // already there
