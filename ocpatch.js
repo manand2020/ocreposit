@@ -1,4 +1,4 @@
-// ocpatch.js v1.3.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.4.0 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -507,7 +507,81 @@
   }
 
   // ====================================================================
-  // 10. Boot -- one shared, debounced observer drives all idempotent tasks
+  // 10. cal.diy booking embed (Olive-gated). Loads the cal.diy embed lib
+  //     latently sitewide and exposes window.OC_OpenBooking(eventType, prefill)
+  //     so Olive triggers a branded booking popup from chat after she
+  //     state-qualifies the visitor (GA + booking-fit). Per OC-Clip
+  //     booking-integration spec (2026-05-28, rev 3). GA4: book_popup_open,
+  //     book_completed.
+  // ====================================================================
+
+  function loadCalEmbed() {
+    if (window.OC_OpenBooking) return; // once
+    (function (C, A, L) {
+      var p = function (a, ar) { a.q.push(ar); };
+      var d = C.document;
+      C.Cal = C.Cal || function () {
+        var cal = C.Cal; var ar = arguments;
+        if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement('script')).src = A; cal.loaded = true; }
+        if (ar[0] === L) {
+          var api = function () { p(api, arguments); };
+          var namespace = ar[1];
+          api.q = api.q || [];
+          typeof namespace === 'string' ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar);
+          return;
+        }
+        p(cal, ar);
+      };
+    })(window, 'https://book.olivecover.com/embed/embed.js', 'init');
+
+    window.Cal('init', { origin: 'https://book.olivecover.com' });
+    window.Cal('ui', {
+      theme: 'light',
+      styles: { branding: { brandColor: '#1B3A5C' } },
+      cssVarsPerTheme: { light: {
+        'cal-bg': '#FFFFFF', 'cal-bg-muted': '#F5EDD8', 'cal-text': '#1B3A5C',
+        'cal-text-emphasis': '#1B3A5C', 'cal-border': '#B8934A', 'cal-brand': '#1B3A5C',
+        'cal-brand-emphasis': '#0F2640', 'cal-bg-success': '#F5EDD8'
+      } },
+      hideEventTypeDetails: false
+    });
+
+    window.OC_OpenBooking = function (eventType, prefill) {
+      eventType = eventType || 'coverage-review';
+      prefill = prefill || {};
+      var qp = new URLSearchParams(location.search);
+      window.Cal('popup', {
+        calLink: 'olive-cover/' + eventType,
+        config: {
+          name: prefill.name || '',
+          email: prefill.email || '',
+          phone: prefill.phone || '',
+          'metadata[topic]': prefill.topic || '',
+          'metadata[session_id]': prefill.session_id || (window.OC_SESSION && window.OC_SESSION.uid ? window.OC_SESSION.uid() : '') || '',
+          'metadata[olive_chat_id]': prefill.olive_chat_id || '',
+          'metadata[verified_state]': prefill.verified_state || 'GA',
+          'metadata[topic_classification]': prefill.topic_classification || '',
+          'metadata[utm_source]': qp.get('utm_source') || '',
+          'metadata[utm_campaign]': qp.get('utm_campaign') || '',
+          layout: 'month_view',
+          theme: 'light'
+        }
+      });
+      try {
+        if (window.gtag) window.gtag('event', 'book_popup_open', { event_category: 'booking', event_type: eventType, trigger_source: prefill.trigger_source || 'olive_chat' });
+      } catch (e) {}
+    };
+
+    window.Cal('on', { action: 'bookingSuccessful', callback: function (e) {
+      try {
+        if (window.gtag) window.gtag('event', 'book_completed', { event_category: 'booking', event_type: (e && e.detail && e.detail.data && e.detail.data.booking && e.detail.data.booking.eventType && e.detail.data.booking.eventType.slug) || 'unknown' });
+      } catch (err) {}
+      if (window.OC_OliveOnBookingSuccess) { try { window.OC_OliveOnBookingSuccess(e.detail && e.detail.data); } catch (err) {} }
+    }});
+  }
+
+  // ====================================================================
+  // 11. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
   function runOnce() {
@@ -532,6 +606,7 @@
 
   function boot() {
     try { wrapFeedbackFetch(); } catch (e) {}
+    try { loadCalEmbed(); } catch (e) {}
     runOnce();
     // Shared observer: catches late-mounted CMS content, widget mount, and
     // widget re-renders (which wipe chips). Debounced to avoid thrashing.
