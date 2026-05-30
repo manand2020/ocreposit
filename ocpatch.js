@@ -1,4 +1,4 @@
-// ocpatch.js v1.4.1 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.5.0 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -6,8 +6,9 @@
 //
 //   ocagentadvisor  -> agent->advisor text rewrite
 //   ocbrandpatcher  -> brand-attribution body text + JSON-LD rewrite
-//   ocbookpromo     -> Book a call CTA (nav + footer), GA4 + Clip CRM bridge,
-//                      AEO JSON-LD on /book and /coverage-gap-calculator
+//   ocbookpromo     -> Book a call CTA (nav + footer) + GA4; opens the
+//                      Easy!Appointments booking modal (book.olivecover.com).
+//                      Booking->CRM is server-side (E!A webhook -> CLIP).
 //   ocwidgetchips   -> Ask Olive widget quick-action chips
 //   occtafix        -> strip stray inline color on claims/stub CTAs (v1.1.0)
 //
@@ -29,8 +30,6 @@
 
   var BOOK_URL = '/book';
   var BOOK_LABEL = 'Book a call';
-  var FORMS_BASE = 'https://forms-3q26d3khpa-ue.a.run.app/forms';
-  var FORMS_AUTH = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
 
   // ====================================================================
   // 1. TEXT RULES (applied in a single TreeWalker pass)
@@ -208,82 +207,6 @@
   }
 
   // ====================================================================
-  // 3. BOOKING conversion tracking + Clip CRM bridge (/book only)
-  // ====================================================================
-
-  var bookingListenerBound = false;
-  function trackBookings() {
-    if (!ON_BOOK || bookingListenerBound) return;
-    bookingListenerBound = true;
-    window.addEventListener('message', function (ev) {
-      try {
-        if (!ev || !ev.data) return;
-        var data = ev.data;
-        if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
-        var t = data && (data.type || data.event || data.action);
-        if (!t) return;
-        if (!/booking/i.test(String(t)) || !/success/i.test(String(t))) return;
-        var payload = data.payload || data.data || {};
-        try {
-          if (typeof window.gtag === 'function') {
-            window.gtag('event', 'book_appointment', {
-              event_category: 'conversion',
-              event_label: 'cal_diy_advisor_call',
-              source_url: location.href,
-              booking_uid: payload.uid || payload.bookingUid || '',
-              event_type: payload.eventType && payload.eventType.slug ? payload.eventType.slug : 'advisorcall'
-            });
-          }
-        } catch (e) {}
-        try {
-          window.dataLayer = window.dataLayer || [];
-          window.dataLayer.push({ event: 'book_appointment', booking_source: 'cal_diy', booking_uid: payload.uid || payload.bookingUid || '' });
-        } catch (e) {}
-        showConfirmation();
-        sendBookingToCRM(payload);
-      } catch (e) {}
-    }, false);
-  }
-
-  function sendBookingToCRM(payload) {
-    try {
-      var uid = (payload && (payload.uid || payload.bookingUid)) || ('anon-' + Date.now());
-      var key = 'oc_booking_sent_' + uid;
-      if (sessionStorage.getItem(key) === '1') return;
-      sessionStorage.setItem(key, '1');
-      var attendee = (payload && payload.attendees && payload.attendees[0]) || {};
-      var body = {
-        form_type: 'booking',
-        source: 'cal_diy_advisor_call',
-        booking_uid: uid,
-        event_type: payload && payload.eventType && payload.eventType.slug ? payload.eventType.slug : 'advisorcall',
-        start_time: payload && (payload.startTime || (payload.booking && payload.booking.startTime)) || null,
-        name: attendee.name || '',
-        email: attendee.email || '',
-        phone: attendee.phone || '',
-        page_url: location.href,
-        notes: 'Booked via cal.diy on book.olivecover.com. See cal.diy booking ' + uid + ' for full details.'
-      };
-      fetch(FORMS_BASE + '/booking', {
-        method: 'POST', mode: 'cors',
-        headers: { 'Content-Type': 'application/json', 'X-Forms-Auth': FORMS_AUTH },
-        body: JSON.stringify(body), keepalive: true
-      }).catch(function () {});
-    } catch (e) {}
-  }
-
-  function showConfirmation() {
-    if (document.querySelector('[data-oc-book-confirm="1"]')) return;
-    var host = document.querySelector('#oc-cal-inline') || document.querySelector('[id*="cal-inline"]') || document.body;
-    var box = document.createElement('div');
-    box.setAttribute('data-oc-book-confirm', '1');
-    box.style.cssText = 'margin:24px auto;padding:20px 28px;max-width:680px;background:#F5EDD8;border:2px solid #B8934A;border-radius:10px;font-family:Inter,system-ui,sans-serif;color:#1B3A5C;text-align:center';
-    box.innerHTML = '<div style="font-family:Playfair Display,Georgia,serif;font-size:1.4rem;font-weight:600;margin-bottom:6px">Your call is booked.</div>' +
-      '<div style="font-size:0.95rem;line-height:1.5">Confirmation email is on its way. We will reach out before the call to confirm any details. If you need to reschedule, use the link in the confirmation email.</div>';
-    if (host && host.parentNode) host.parentNode.insertBefore(box, host); else document.body.appendChild(box);
-  }
-
-  // ====================================================================
   // 4. AEO JSON-LD on /book and /coverage-gap-calculator
   // ====================================================================
 
@@ -432,7 +355,7 @@
   }
 
   // /book is Olive-gated: it should funnel to the Ask Olive chat, NOT embed a
-  // directly-bookable calendar. Hide the old inline cal.diy embed and inject a
+  // directly-bookable calendar. Hide any leftover inline embed and inject a
   // "talk to Olive" CTA that opens the chat widget (Olive qualifies the visitor,
   // then triggers the booking popup via OC_OpenBooking). Per OC-Clip rev3 spec.
   function fixBookPage() {
@@ -530,85 +453,93 @@
   }
 
   // ====================================================================
-  // 10. cal.diy booking embed (Olive-gated). Loads the cal.diy embed lib
-  //     latently sitewide and exposes window.OC_OpenBooking(eventType, prefill)
+  // 10. Booking (Olive-gated). Opens the Easy!Appointments booking page in a
+  //     branded modal iframe; exposes window.OC_OpenBooking(eventType, prefill)
   //     so Olive triggers a branded booking popup from chat after she
   //     state-qualifies the visitor (GA + booking-fit). Per OC-Clip
   //     booking-integration spec (2026-05-28, rev 3). GA4: book_popup_open,
   //     book_completed.
   // ====================================================================
 
-  function loadCalEmbed() {
+  function setupBooking() {
     if (window.OC_OpenBooking) return; // once
-    (function (C, A, L) {
-      var p = function (a, ar) { a.q.push(ar); };
-      var d = C.document;
-      C.Cal = C.Cal || function () {
-        var cal = C.Cal; var ar = arguments;
-        if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement('script')).src = A; cal.loaded = true; }
-        if (ar[0] === L) {
-          var api = function () { p(api, arguments); };
-          var namespace = ar[1];
-          api.q = api.q || [];
-          typeof namespace === 'string' ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar);
-          return;
-        }
-        p(cal, ar);
-      };
-    })(window, 'https://book.olivecover.com/embed/embed.js', 'init');
 
-    window.Cal('init', { origin: 'https://book.olivecover.com' });
-    window.Cal('ui', {
-      theme: 'light',
-      styles: { branding: { brandColor: '#1B3A5C' } },
-      cssVarsPerTheme: { light: {
-        'cal-bg': '#FFFFFF', 'cal-bg-muted': '#F5EDD8', 'cal-text': '#1B3A5C',
-        'cal-text-emphasis': '#1B3A5C', 'cal-border': '#B8934A', 'cal-brand': '#1B3A5C',
-        'cal-brand-emphasis': '#0F2640', 'cal-bg-success': '#F5EDD8'
-      } },
-      hideEventTypeDetails: false
-    });
+    // Easy!Appointments (book.olivecover.com) replaces cal.diy. There is no
+    // embed SDK; we open the branded booking page in a modal iframe. Olive
+    // (in chat) calls OC_OpenBooking(topic, prefill) after she state-qualifies
+    // the visitor. Booking COMPLETION is captured server-side via the
+    // E!A -> CLIP webhook (appointment_save) -> CRM, so there is no front-end
+    // CRM post. The booking page is brand-themed + english-only and only
+    // frameable from olivecover.com + staging (CSP frame-ancestors).
+    var EA_BASE = 'https://book.olivecover.com/index.php/booking';
+    // topic -> E!A service id (see _oc-clip-deliverables/easyappointments-clip-integration.md)
+    var EA_SVC = {
+      'coverage-review': 2, 'free-coverage-review': 2,
+      'personal': 3, 'personal-consultation': 3,
+      'commercial': 4, 'business': 4, 'commercial-consultation': 4,
+      'customer-service': 5, 'billing': 5, 'general-questions': 5,
+      'claims-help': 6, 'claims': 6
+    };
 
-    // Verified 2026-05-30: the only live cal.diy event is `olivecover/advisorcall`.
-    // The per-topic events (olive-cover/coverage-review|claims-help|general-questions)
-    // in the OC-Clip spec do NOT exist yet (all 404), and the username is
-    // `olivecover` not `olive-cover`. Map every topic to the working event for
-    // now; the requested topic is still carried in metadata[topic]/topic_classification.
-    // When OC-Clip creates the per-topic events, update CAL_USER/CAL_EVENTS.
-    var CAL_USER = 'olivecover';
-    var CAL_EVENTS = { 'coverage-review': 'advisorcall', 'claims-help': 'advisorcall', 'general-questions': 'advisorcall', 'advisorcall': 'advisorcall' };
+    function closeModal() {
+      var m = document.getElementById('oc-ea-modal');
+      if (m && m.parentNode) m.parentNode.removeChild(m);
+      document.removeEventListener('keydown', onEsc);
+    }
+    function onEsc(e) { if (e.key === 'Escape') closeModal(); }
+
     window.OC_OpenBooking = function (eventType, prefill) {
-      eventType = eventType || 'coverage-review';
       prefill = prefill || {};
-      var qp = new URLSearchParams(location.search);
-      window.Cal('popup', {
-        calLink: CAL_USER + '/' + (CAL_EVENTS[eventType] || 'advisorcall'),
-        config: {
-          name: prefill.name || '',
-          email: prefill.email || '',
-          phone: prefill.phone || '',
-          'metadata[topic]': prefill.topic || '',
-          'metadata[session_id]': prefill.session_id || (window.OC_SESSION && window.OC_SESSION.uid ? window.OC_SESSION.uid() : '') || '',
-          'metadata[olive_chat_id]': prefill.olive_chat_id || '',
-          'metadata[verified_state]': prefill.verified_state || 'GA',
-          'metadata[topic_classification]': prefill.topic_classification || '',
-          'metadata[utm_source]': qp.get('utm_source') || '',
-          'metadata[utm_campaign]': qp.get('utm_campaign') || '',
-          layout: 'month_view',
-          theme: 'light'
-        }
-      });
+      var svc = EA_SVC[eventType] || 2;
+      var qp = new URLSearchParams();
+      var nm = String(prefill.name || '').trim().split(/\s+/);
+      if (nm[0]) qp.set('first_name', nm[0]);
+      if (nm.length > 1) qp.set('last_name', nm.slice(1).join(' '));
+      if (prefill.email) qp.set('email', prefill.email);
+      if (prefill.phone) qp.set('phone_number', prefill.phone);
+      qp.set('service', svc);
+      var url = EA_BASE + '?' + qp.toString();
+
+      if (document.getElementById('oc-ea-modal')) return;
+      var ov = document.createElement('div');
+      ov.id = 'oc-ea-modal';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(15,38,64,0.6);display:flex;align-items:center;justify-content:center;padding:16px';
+      var box = document.createElement('div');
+      box.style.cssText = 'position:relative;width:100%;max-width:920px;height:90vh;background:#F5EDD8;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
+      var cl = document.createElement('button');
+      cl.type = 'button';
+      cl.setAttribute('aria-label', 'Close booking');
+      cl.style.cssText = 'position:absolute;top:8px;right:8px;width:32px;height:32px;border:none;border-radius:50%;background:#1B3A5C;cursor:pointer;z-index:2;padding:0';
+      cl.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" style="display:block;margin:auto"><path d="M2 2 L12 12 M12 2 L2 12" stroke="#F5EDD8" stroke-width="2" stroke-linecap="round"/></svg>';
+      cl.addEventListener('click', closeModal);
+      var ifr = document.createElement('iframe');
+      ifr.src = url;
+      ifr.title = 'Book a time with an Olive Cover advisor';
+      ifr.style.cssText = 'width:100%;height:100%;border:0;display:block';
+      box.appendChild(cl);
+      box.appendChild(ifr);
+      ov.appendChild(box);
+      ov.addEventListener('click', function (e) { if (e.target === ov) closeModal(); });
+      document.addEventListener('keydown', onEsc);
+      document.body.appendChild(ov);
+
       try {
-        if (window.gtag) window.gtag('event', 'book_popup_open', { event_category: 'booking', event_type: eventType, trigger_source: prefill.trigger_source || 'olive_chat' });
+        if (window.gtag) window.gtag('event', 'book_popup_open', { event_category: 'booking', event_type: eventType || 'coverage-review', trigger_source: prefill.trigger_source || 'olive_chat' });
       } catch (e) {}
     };
 
-    window.Cal('on', { action: 'bookingSuccessful', callback: function (e) {
+    // If the E!A confirmation later postMessages {ocBooking:'success'} from the
+    // book origin, fire book_completed + close. (Authoritative completion is the
+    // server-side webhook; this is a best-effort front-end signal.)
+    window.addEventListener('message', function (ev) {
       try {
-        if (window.gtag) window.gtag('event', 'book_completed', { event_category: 'booking', event_type: (e && e.detail && e.detail.data && e.detail.data.booking && e.detail.data.booking.eventType && e.detail.data.booking.eventType.slug) || 'unknown' });
-      } catch (err) {}
-      if (window.OC_OliveOnBookingSuccess) { try { window.OC_OliveOnBookingSuccess(e.detail && e.detail.data); } catch (err) {} }
-    }});
+        if (!ev || ev.origin !== 'https://book.olivecover.com') return;
+        var d = ev.data; if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
+        if (!d || d.ocBooking !== 'success') return;
+        if (window.gtag) window.gtag('event', 'book_completed', { event_category: 'booking' });
+        closeModal();
+      } catch (e) {}
+    }, false);
   }
 
   // ====================================================================
@@ -621,7 +552,6 @@
     try { injectFooter(); } catch (e) {}
     try { injectNav(); } catch (e) {}
     try { injectChips(); } catch (e) {}
-    try { trackBookings(); } catch (e) {}
     try { injectSchema(); } catch (e) {}
     try { fixCTAColor(); } catch (e) {}
     try { fixHomeButton(); } catch (e) {}
@@ -638,7 +568,7 @@
 
   function boot() {
     try { wrapFeedbackFetch(); } catch (e) {}
-    try { loadCalEmbed(); } catch (e) {}
+    try { setupBooking(); } catch (e) {}
     runOnce();
     // Shared observer: catches late-mounted CMS content, widget mount, and
     // widget re-renders (which wipe chips). Debounced to avoid thrashing.
