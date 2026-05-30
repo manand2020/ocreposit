@@ -54,7 +54,7 @@
   var WEBCHAT_ENDPOINT = 'https://webchat-3q26d3khpa-ue.a.run.app';
   var FORMS_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/widget-capture';
   var GATEWAY_TOKEN = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
-  var WGT_VER = '3.5.0';
+  var WGT_VER = '3.6.0';
   // forceForm: when true, render the capture form even for a known contact, so
   // a returning visitor can reach it via "Update details" (Bug 2 handoff).
   var forceForm = false;
@@ -247,6 +247,10 @@
       // Inline "Book a call" chip on Olive replies that reference the booking link
       '.oc-widget-reply-chip{align-self:flex-start;margin-top:6px;background:#B8934A;color:#1B3A5C;border:none;border-radius:50px;padding:7px 16px;font-family:Inter,sans-serif;font-size:0.8125rem;font-weight:600;cursor:pointer;}',
       '.oc-widget-reply-chip:hover{background:#C7A24B;}',
+      // AI-suggested follow-up chips (Gemini-generated next questions)
+      '.oc-widget-suggest-row{display:flex;flex-wrap:wrap;gap:6px;padding:4px 16px 10px;align-items:flex-start;}',
+      '.oc-widget-suggest-chip{background:#F5EDD8;color:#1B3A5C;border:1px solid #B8934A;border-radius:50px;padding:5px 12px;font-family:Inter,sans-serif;font-size:0.75rem;cursor:pointer;text-align:left;}',
+      '.oc-widget-suggest-chip:hover{background:#efe4c8;}',
       // Footer
       '.oc-widget-panel-footer{padding:10px 16px 12px;border-top:1px solid #F5EDD8;font-size:0.75rem;color:rgba(27,58,92,0.5);}',
       '.oc-widget-disc-link{color:rgba(27,58,92,0.5);text-decoration:none;}',
@@ -444,6 +448,63 @@
     return '[Earlier in this conversation: ' + combined + ']\n\n';
   }
 
+  // AI leverage (2026-05-30): consume CLIP/Gemini's structured reply.
+  //   * Topic-aware booking: CLIP returns data.booking{topic,prefill}; until then
+  //     infer topic from the reply text. Opens the matching E!A meeting type via
+  //     OC_OpenBooking (ocpatch maps topic -> serviceId).
+  //   * AI follow-up chips: CLIP returns data.suggested_replies[]; rendered as
+  //     tappable chips that send that question on click.
+  function inferTopic(text) {
+    text = String(text || '').toLowerCase();
+    if (/claim/.test(text)) return 'claims-help';
+    if (/business|commercial|\bllc\b|company|liability|workers|fleet/.test(text)) return 'commercial';
+    return 'coverage-review';
+  }
+
+  function appendReplyChip(topic, prefill) {
+    var outs = document.querySelectorAll('#oc-wgt-thread .oc-widget-msg-wrap--out');
+    var wrap = outs[outs.length - 1];
+    if (!wrap || wrap.querySelector('.oc-widget-reply-chip')) return;
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'oc-widget-reply-chip';
+    chip.textContent = 'Book a call';
+    chip.addEventListener('click', function () {
+      try { if (typeof window.gtag === 'function') window.gtag('event', 'widget_chip_click', { event_category: 'engagement', event_label: 'Book a call', chip_target: '/book', chip_source: 'olive_reply', topic: topic || 'coverage-review' }); } catch (e) {}
+      var c = getContact() || {};
+      var pf = prefill || { name: c.name, email: c.email, phone: c.phone, verified_state: c.state };
+      pf.trigger_source = 'olive_reply';
+      if (typeof window.OC_OpenBooking === 'function') window.OC_OpenBooking(topic || 'coverage-review', pf);
+      else window.location.href = '/book';
+    });
+    wrap.appendChild(chip);
+  }
+
+  function renderSuggestions(arr) {
+    var thread = document.getElementById('oc-wgt-thread');
+    if (!thread) return;
+    var old = document.getElementById('oc-wgt-suggestions');
+    if (old && old.parentNode) old.parentNode.removeChild(old); // keep only the most recent set
+    var row = document.createElement('div');
+    row.id = 'oc-wgt-suggestions';
+    row.className = 'oc-widget-suggest-row';
+    arr.forEach(function (q) {
+      if (!q) return;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'oc-widget-suggest-chip';
+      b.textContent = String(q);
+      b.addEventListener('click', function () {
+        try { if (typeof window.gtag === 'function') window.gtag('event', 'widget_suggested_reply_click', { event_category: 'engagement', event_label: String(q).slice(0, 60) }); } catch (e) {}
+        if (row.parentNode) row.parentNode.removeChild(row);
+        sendMessage(String(q));
+      });
+      row.appendChild(b);
+    });
+    thread.appendChild(row);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
   function renderBubble(msg) {
     if (chatState.rendered[msg.id]) return;
     var isOptimistic = String(msg.id || '').indexOf('local-') === 0;
@@ -472,24 +533,6 @@
     time.className = 'oc-widget-bubble-time';
     time.textContent = fmtTime(msg.created_at);
     wrap.appendChild(bubble);
-    // AI: when Olive's reply references the booking link, surface a branded
-    // "Book a call" chip (stronger affordance than a bare link). Opens the E!A
-    // booking modal via OC_OpenBooking (ocpatch) pre-filled from the captured
-    // contact, falling back to /book.
-    if (!isIn && /book\.olivecover\.com|olivecover\.com\/book|\/book(?:\b|\/)/i.test(msg.body || '')) {
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'oc-widget-reply-chip';
-      chip.textContent = 'Book a call';
-      chip.addEventListener('click', function () {
-        try { if (typeof window.gtag === 'function') window.gtag('event', 'widget_chip_click', { event_category: 'engagement', event_label: 'Book a call', chip_target: '/book', chip_source: 'olive_reply' }); } catch (e) {}
-        var c = getContact() || {};
-        if (typeof window.OC_OpenBooking === 'function') {
-          window.OC_OpenBooking('coverage-review', { name: c.name, email: c.email, phone: c.phone, verified_state: c.state, trigger_source: 'olive_reply' });
-        } else { window.location.href = '/book'; }
-      });
-      wrap.appendChild(chip);
-    }
     wrap.appendChild(time);
     thread.appendChild(wrap);
     thread.scrollTop = thread.scrollHeight;
@@ -635,6 +678,16 @@
             // (visitor side only, used today; structured-history side will use it after
             // the backend update lands).
             chatState.thread.push({ role: 'olive', text: data.reply });
+            // AI leverage: topic-aware booking chip + AI-suggested follow-up chips.
+            // data.booking{topic,prefill} and data.suggested_replies[] are optional
+            // (CLIP/Gemini); booking intent falls back to a reply-text heuristic.
+            try {
+              var bk = data.booking || null;
+              var wantsBooking = !!bk || /book\.olivecover\.com|olivecover\.com\/book|\/book(?:\b|\/)/i.test(data.reply || '');
+              if (wantsBooking) appendReplyChip((bk && bk.topic) || data.topic || inferTopic(data.reply), bk && bk.prefill);
+              var sugg = data.suggested_replies || data.suggestions;
+              if (Array.isArray(sugg) && sugg.length) renderSuggestions(sugg.slice(0, 3));
+            } catch (e) {}
           }
           if (data && data.session_id) {
             // Server is authoritative for session_id. Store whatever it returns so
