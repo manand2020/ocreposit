@@ -54,7 +54,7 @@
   var WEBCHAT_ENDPOINT = 'https://webchat-3q26d3khpa-ue.a.run.app';
   var FORMS_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/widget-capture';
   var GATEWAY_TOKEN = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
-  var WGT_VER = '3.6.0';
+  var WGT_VER = '3.7.0';
   // forceForm: when true, render the capture form even for a known contact, so
   // a returning visitor can reach it via "Update details" (Bug 2 handoff).
   var forceForm = false;
@@ -251,6 +251,10 @@
       '.oc-widget-suggest-row{display:flex;flex-wrap:wrap;gap:6px;padding:4px 16px 10px;align-items:flex-start;}',
       '.oc-widget-suggest-chip{background:#F5EDD8;color:#1B3A5C;border:1px solid #B8934A;border-radius:50px;padding:5px 12px;font-family:Inter,sans-serif;font-size:0.75rem;cursor:pointer;text-align:left;}',
       '.oc-widget-suggest-chip:hover{background:#efe4c8;}',
+      // In-chat booking time slots (option 3)
+      '.oc-widget-slot-row{display:flex;flex-wrap:wrap;gap:6px;padding:4px 16px 10px;}',
+      '.oc-widget-slot-chip{background:#1B3A5C;color:#F5EDD8;border:none;border-radius:8px;padding:7px 12px;font-family:Inter,sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;}',
+      '.oc-widget-slot-chip:hover{background:#163250;}',
       // Footer
       '.oc-widget-panel-footer{padding:10px 16px 12px;border-top:1px solid #F5EDD8;font-size:0.75rem;color:rgba(27,58,92,0.5);}',
       '.oc-widget-disc-link{color:rgba(27,58,92,0.5);text-decoration:none;}',
@@ -505,6 +509,49 @@
     thread.scrollTop = thread.scrollHeight;
   }
 
+  // Option 3 (in-chat booking): when Olive fetches E!A availability, CLIP returns
+  // data.booking{mode:'select_slot', provider_id, service_id, date, tz, slots:[...]}.
+  // Render the slots as tappable chips; clicking sends the pick back with a
+  // structured booking_selection so CLIP can POST /appointments deterministically.
+  function fmtSlot(dateStr, hhmm) {
+    try {
+      var p = String(dateStr || '').split('-');
+      var hm = String(hhmm || '').split(':');
+      var d = new Date(+p[0], (+p[1]) - 1, +p[2], +hm[0], +(hm[1] || 0));
+      var wd = d.toLocaleString('default', { weekday: 'short' });
+      var mo = d.toLocaleString('default', { month: 'short' });
+      var hr = d.getHours() % 12 || 12;
+      var mi = String(d.getMinutes()).padStart(2, '0');
+      var ap = d.getHours() < 12 ? 'AM' : 'PM';
+      return wd + ' ' + mo + ' ' + d.getDate() + ', ' + hr + ':' + mi + ' ' + ap;
+    } catch (e) { return (dateStr || '') + ' ' + (hhmm || ''); }
+  }
+
+  function renderSlots(bk) {
+    var thread = document.getElementById('oc-wgt-thread');
+    if (!thread || !bk || !Array.isArray(bk.slots) || !bk.slots.length) return;
+    var old = document.getElementById('oc-wgt-slots');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var row = document.createElement('div');
+    row.id = 'oc-wgt-slots';
+    row.className = 'oc-widget-slot-row';
+    bk.slots.slice(0, 6).forEach(function (t) {
+      var label = fmtSlot(bk.date, t);
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'oc-widget-slot-chip';
+      b.textContent = label;
+      b.addEventListener('click', function () {
+        try { if (typeof window.gtag === 'function') window.gtag('event', 'widget_slot_select', { event_category: 'booking', event_label: label }); } catch (e) {}
+        if (row.parentNode) row.parentNode.removeChild(row);
+        sendMessage('Book ' + label, { booking_selection: { provider_id: bk.provider_id, service_id: bk.service_id, start: bk.date + ' ' + t + ':00' } });
+      });
+      row.appendChild(b);
+    });
+    thread.appendChild(row);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
   function renderBubble(msg) {
     if (chatState.rendered[msg.id]) return;
     var isOptimistic = String(msg.id || '').indexOf('local-') === 0;
@@ -603,7 +650,7 @@
   // user gets a mailto fallback inline (see sendMessage catch handler) --
   // no more direct Firestore writes from the browser.
 
-  function sendMessage(body) {
+  function sendMessage(body, opts) {
     var sessionId = getSession();
     var contact = contactWithAttribution();
     var sendBtn = document.getElementById('oc-wgt-send');
@@ -635,6 +682,7 @@
     var requestBody = {
       session_id: sessionId,
       message: messageToSend,
+      booking_selection: (opts && opts.booking_selection) || undefined,  // option-3: visitor's chosen slot -> CLIP POSTs the appointment
       conversation_history: historyPayload,  // forward-compatible; ignored by current backend
       page_url: location.href,
       visitor: {
@@ -678,13 +726,19 @@
             // (visitor side only, used today; structured-history side will use it after
             // the backend update lands).
             chatState.thread.push({ role: 'olive', text: data.reply });
-            // AI leverage: topic-aware booking chip + AI-suggested follow-up chips.
-            // data.booking{topic,prefill} and data.suggested_replies[] are optional
-            // (CLIP/Gemini); booking intent falls back to a reply-text heuristic.
+            // AI leverage: in-chat slot booking (option 3), topic-aware booking
+            // chip, and AI-suggested follow-up chips -- all driven by the optional
+            // structured fields CLIP/Gemini returns (data.booking, suggested_replies).
             try {
               var bk = data.booking || null;
-              var wantsBooking = !!bk || /book\.olivecover\.com|olivecover\.com\/book|\/book(?:\b|\/)/i.test(data.reply || '');
-              if (wantsBooking) appendReplyChip((bk && bk.topic) || data.topic || inferTopic(data.reply), bk && bk.prefill);
+              if (bk && bk.mode === 'select_slot') {
+                renderSlots(bk); // Olive fetched E!A availability -> tappable time chips
+              } else if (bk && bk.mode === 'confirmed') {
+                // booked: confirmation + reschedule link are in the reply text (linkified)
+              } else {
+                var wantsBooking = !!bk || /book\.olivecover\.com|olivecover\.com\/book|\/book(?:\b|\/)/i.test(data.reply || '');
+                if (wantsBooking) appendReplyChip((bk && bk.topic) || data.topic || inferTopic(data.reply), bk && bk.prefill);
+              }
               var sugg = data.suggested_replies || data.suggestions;
               if (Array.isArray(sugg) && sugg.length) renderSuggestions(sugg.slice(0, 3));
             } catch (e) {}
