@@ -54,7 +54,10 @@
   var WEBCHAT_ENDPOINT = 'https://webchat-3q26d3khpa-ue.a.run.app';
   var FORMS_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/widget-capture';
   var GATEWAY_TOKEN = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
-  var WGT_VER = '3.3.0';
+  var WGT_VER = '3.4.0';
+  // forceForm: when true, render the capture form even for a known contact, so
+  // a returning visitor can reach it via "Update details" (Bug 2 handoff).
+  var forceForm = false;
 
   var path = window.location.pathname;
   if (path === '/' || path === '/ask-olive-disclaimer') return;
@@ -90,6 +93,29 @@
     var mi = d.getMinutes().toString().padStart(2, '0');
     var ap = d.getHours() < 12 ? 'AM' : 'PM';
     return mo + ' ' + d.getDate() + ', ' + hr + ':' + mi + ' ' + ap;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // Bug 1 fix (OC-Clip handoff 2026-05-30): Olive's URLs were rendered as plain
+  // text. Escape the whole string first (msg.body is AI/server output -- never
+  // assign it raw to innerHTML), THEN wrap URL substrings in anchors. Matches
+  // http(s):// , www.* , and bare domain.tld/path.
+  function linkify(text) {
+    return escapeHtml(text).replace(
+      /((?:https?:\/\/|www\.)[^\s<]+|\b[a-z0-9][a-z0-9.-]*\.(?:com|org|net|io|co|gov)(?:\/[^\s<]*)?)/gi,
+      function (m) {
+        var trail = '';
+        var tm = m.match(/[.,;:!?)\]]+$/);
+        if (tm) { trail = tm[0]; m = m.slice(0, m.length - trail.length); }
+        var href = /^https?:\/\//i.test(m) ? m : 'https://' + m;
+        return '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + m + '</a>' + trail;
+      }
+    );
   }
 
   // Server-issued session ID is authoritative. On Turn 1 we send an empty session_id;
@@ -214,6 +240,10 @@
       '.oc-widget-send-btn{font-family:Inter,sans-serif;font-size:0.875rem;font-weight:600;color:#1B3A5C;background:#B8934A;border:none;border-radius:6px;padding:8px 14px;cursor:pointer;white-space:nowrap;}',
       '.oc-widget-send-btn:hover{background:#C7A24B;}',
       '.oc-widget-send-btn:disabled{opacity:0.6;cursor:not-allowed;}',
+      // Update-details link (returning visitors reach the capture form)
+      '.oc-widget-edit-row{padding:8px 16px 0;text-align:right;}',
+      '.oc-widget-edit-link{background:none;border:none;color:rgba(27,58,92,0.55);font-size:0.75rem;cursor:pointer;text-decoration:underline;padding:0;font-family:Inter,sans-serif;}',
+      '.oc-widget-edit-link:hover{color:#1B3A5C;}',
       // Footer
       '.oc-widget-panel-footer{padding:10px 16px 12px;border-top:1px solid #F5EDD8;font-size:0.75rem;color:rgba(27,58,92,0.5);}',
       '.oc-widget-disc-link{color:rgba(27,58,92,0.5);text-decoration:none;}',
@@ -255,6 +285,7 @@
 
   function threadBlockHTML() {
     return [
+      '<div class="oc-widget-edit-row"><button id="oc-wgt-edit-contact" type="button" class="oc-widget-edit-link">Not you? Update details</button></div>',
       '<div id="oc-wgt-thread" class="oc-widget-thread"></div>',
       '<div id="oc-wgt-typing" class="oc-widget-typing" style="display:none">Olive is typing...</div>',
       '<div class="oc-widget-input-bar">',
@@ -277,7 +308,8 @@
     if (OC_CHAT_ENABLED) {
       var contact = getContact();
       // Phone is optional (v3.3.0) -- a contact is "complete" with name + email.
-      var complete = contact && contact.name && contact.email;
+      // forceForm (Update details) shows the form even for a known contact.
+      var complete = !forceForm && contact && contact.name && contact.email;
       if (complete) {
         el.innerHTML = TOGGLE_HTML + PANEL_TOP + threadBlockHTML() + PANEL_FOOTER;
       } else {
@@ -432,7 +464,7 @@
     wrap.className = 'oc-widget-msg-wrap oc-widget-msg-wrap--' + (isIn ? 'in' : 'out');
     var bubble = document.createElement('div');
     bubble.className = 'oc-widget-bubble oc-widget-bubble--' + (isIn ? 'in' : 'out');
-    bubble.textContent = msg.body;
+    bubble.innerHTML = linkify(msg.body);
     var time = document.createElement('div');
     time.className = 'oc-widget-bubble-time';
     time.textContent = fmtTime(msg.created_at);
@@ -624,7 +656,24 @@
     });
   }
 
+  // Bug 2 fix (OC-Clip handoff 2026-05-30): a returning visitor with a cached
+  // oc_chat_contact was sent straight to the thread, so the capture form was
+  // unreachable. "Update details" re-renders with forceForm=true (form shows,
+  // pre-filled). Reuses injectHTML/initChat/wireClose -- no separate render path.
+  function showCaptureForm() {
+    forceForm = true;
+    var r = document.getElementById('oc-widget-root');
+    if (r && r.parentNode) r.parentNode.removeChild(r);
+    injectHTML();
+    initChat();
+    wireClose();
+    var nr = document.getElementById('oc-widget-root');
+    if (nr) nr.setAttribute('open', '');
+  }
+
   function wireInputBar() {
+    var editBtn = document.getElementById('oc-wgt-edit-contact');
+    if (editBtn) editBtn.addEventListener('click', showCaptureForm);
     var sendBtn = document.getElementById('oc-wgt-send');
     var msgInput = document.getElementById('oc-wgt-msg');
     if (!sendBtn || !msgInput) return;
@@ -692,6 +741,7 @@
       if (errEl) errEl.style.display = 'none';
       try { if (state) localStorage.setItem('oc_state', state); } catch (e) {}
       saveContact({ name: name, email: email, phone: phone, state: state });
+      forceForm = false; // reset: future loads with a complete contact go straight to the thread
       // Fire generate_lead conversion on contact capture (the actual lead moment)
       fireGenerateLead('widget-capture-form');
       switchToThread();
@@ -700,7 +750,7 @@
 
   function initChat() {
     var contact = getContact();
-    var complete = contact && contact.name && contact.email;
+    var complete = !forceForm && contact && contact.name && contact.email;
     if (!complete) {
       wireContactCapture();
     } else {
