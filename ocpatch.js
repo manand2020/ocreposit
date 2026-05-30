@@ -1,4 +1,4 @@
-// ocpatch.js v1.4.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.4.1 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -431,6 +431,29 @@
     }
   }
 
+  // /book is Olive-gated: it should funnel to the Ask Olive chat, NOT embed a
+  // directly-bookable calendar. Hide the old inline cal.diy embed and inject a
+  // "talk to Olive" CTA that opens the chat widget (Olive qualifies the visitor,
+  // then triggers the booking popup via OC_OpenBooking). Per OC-Clip rev3 spec.
+  function fixBookPage() {
+    if (location.pathname !== '/book' && location.pathname !== '/book/') return;
+    var embed = document.querySelector('#oc-cal-inline');
+    if (embed) embed.style.display = 'none';
+    if (document.querySelector('[data-oc-book-chat-cta]')) return;
+    var box = document.createElement('div');
+    box.setAttribute('data-oc-book-chat-cta', '1');
+    box.style.cssText = 'max-width:640px;margin:24px auto;padding:28px 30px;background:#F5EDD8;border:2px solid #B8934A;border-radius:12px;font-family:Inter,system-ui,sans-serif;color:#1B3A5C;text-align:center';
+    box.innerHTML = '<div style="font-family:Playfair Display,Georgia,serif;font-size:1.5rem;font-weight:600;margin-bottom:8px">Talk to Olive to find your fit</div>' +
+      '<div style="font-size:0.95rem;line-height:1.55;margin-bottom:18px">Tell Olive what you need (coverage review, a claim question, or anything else) and she will help you book the right time with a licensed Olive Cover advisor.</div>' +
+      '<button type="button" data-oc-book-chat-open style="display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 22px;background:#1B3A5C;color:#F5EDD8;border:none;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.95rem;font-weight:600;cursor:pointer">Chat with Olive</button>';
+    box.querySelector('[data-oc-book-chat-open]').addEventListener('click', function () {
+      var r = document.getElementById('oc-widget-root');
+      if (r) { try { r.open = true; r.setAttribute('open', ''); } catch (e) {} r.scrollIntoView({ block: 'center' }); }
+    });
+    if (embed && embed.parentNode) embed.parentNode.insertBefore(box, embed);
+    else (document.querySelector('main') || document.body).appendChild(box);
+  }
+
   // ====================================================================
   // 9. Suggest-a-correction widget -- add a state select + carry state in the
   //    feedback create-case payload (the ocfeedback widget in ocshim had no
@@ -546,12 +569,20 @@
       hideEventTypeDetails: false
     });
 
+    // Verified 2026-05-30: the only live cal.diy event is `olivecover/advisorcall`.
+    // The per-topic events (olive-cover/coverage-review|claims-help|general-questions)
+    // in the OC-Clip spec do NOT exist yet (all 404), and the username is
+    // `olivecover` not `olive-cover`. Map every topic to the working event for
+    // now; the requested topic is still carried in metadata[topic]/topic_classification.
+    // When OC-Clip creates the per-topic events, update CAL_USER/CAL_EVENTS.
+    var CAL_USER = 'olivecover';
+    var CAL_EVENTS = { 'coverage-review': 'advisorcall', 'claims-help': 'advisorcall', 'general-questions': 'advisorcall', 'advisorcall': 'advisorcall' };
     window.OC_OpenBooking = function (eventType, prefill) {
       eventType = eventType || 'coverage-review';
       prefill = prefill || {};
       var qp = new URLSearchParams(location.search);
       window.Cal('popup', {
-        calLink: 'olive-cover/' + eventType,
+        calLink: CAL_USER + '/' + (CAL_EVENTS[eventType] || 'advisorcall'),
         config: {
           name: prefill.name || '',
           email: prefill.email || '',
@@ -596,6 +627,7 @@
     try { fixHomeButton(); } catch (e) {}
     try { fixContactSelect(); } catch (e) {}
     try { fixFeedbackState(); } catch (e) {}
+    try { fixBookPage(); } catch (e) {}
   }
 
   var debounceTimer = null;
