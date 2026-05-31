@@ -60,7 +60,7 @@
   // provisions a dedicated non-interactive webchat sitekey.
   var TS_SITEKEY = '0x4AAAAAAAQTptj2So4dx43e';
   var tsToken = null, tsFetching = false;
-  var WGT_VER = '3.8.0';
+  var WGT_VER = '3.9.0';
   // forceForm: when true, render the capture form even for a known contact, so
   // a returning visitor can reach it via "Update details" (Bug 2 handoff).
   var forceForm = false;
@@ -292,6 +292,8 @@
       // Inline "Book a call" chip on Olive replies that reference the booking link
       '.oc-widget-reply-chip{align-self:flex-start;margin-top:6px;background:#B8934A;color:#1B3A5C;border:none;border-radius:50px;padding:7px 16px;font-family:Inter,sans-serif;font-size:0.8125rem;font-weight:600;cursor:pointer;}',
       '.oc-widget-reply-chip:hover{background:#C7A24B;}',
+      // Licensed-state waitlist note (shown instead of booking for non-licensed states)
+      '.oc-widget-waitlist{align-self:flex-start;margin-top:6px;max-width:85%;padding:8px 12px;border-radius:10px;background:#F5EDD8;border:1px dashed #B8934A;color:#1B3A5C;font-size:0.8125rem;line-height:1.4;}',
       // AI-suggested follow-up chips (Gemini-generated next questions)
       '.oc-widget-suggest-row{display:flex;flex-wrap:wrap;gap:6px;padding:4px 16px 10px;align-items:flex-start;}',
       '.oc-widget-suggest-chip{background:#F5EDD8;color:#1B3A5C;border:1px solid #B8934A;border-radius:50px;padding:5px 12px;font-family:Inter,sans-serif;font-size:0.75rem;cursor:pointer;text-align:left;}',
@@ -510,10 +512,30 @@
     return 'coverage-review';
   }
 
+  // Licensed-state gate (compliance): only offer booking where the agency is
+  // licensed. Mirrors the E!A server-side register() gate + ocstateselect.
+  // Update LICENSED_STATES when new states are added.
+  var LICENSED_STATES = ['GA'];
+  function isLicensedState() {
+    var st = '';
+    try { st = (localStorage.getItem('oc_state') || '').toUpperCase().trim(); } catch (e) {}
+    if (!st) { var c = getContact(); st = (c && c.state ? String(c.state) : '').toUpperCase().trim(); }
+    // Unknown state passes (server gate is the backstop); a KNOWN non-licensed state is blocked.
+    return !st || LICENSED_STATES.indexOf(st) >= 0;
+  }
+  function renderWaitlistNote(wrap) {
+    if (!wrap || wrap.querySelector('.oc-widget-waitlist')) return;
+    var n = document.createElement('div');
+    n.className = 'oc-widget-waitlist';
+    n.textContent = "Olive Cover isn't licensed in your state yet, so I can't book a consultation there. Share your email and I'll add you to our waitlist so you hear from us the moment we expand.";
+    wrap.appendChild(n);
+  }
+
   function appendReplyChip(topic, prefill) {
     var outs = document.querySelectorAll('#oc-wgt-thread .oc-widget-msg-wrap--out');
     var wrap = outs[outs.length - 1];
-    if (!wrap || wrap.querySelector('.oc-widget-reply-chip')) return;
+    if (!wrap || wrap.querySelector('.oc-widget-reply-chip') || wrap.querySelector('.oc-widget-waitlist')) return;
+    if (!isLicensedState()) { renderWaitlistNote(wrap); return; }
     var chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'oc-widget-reply-chip';
@@ -575,6 +597,7 @@
   function renderSlots(bk) {
     var thread = document.getElementById('oc-wgt-thread');
     if (!thread || !bk || !Array.isArray(bk.slots) || !bk.slots.length) return;
+    if (!isLicensedState()) { var o = document.querySelectorAll('#oc-wgt-thread .oc-widget-msg-wrap--out'); renderWaitlistNote(o[o.length - 1] || thread); return; }
     var old = document.getElementById('oc-wgt-slots');
     if (old && old.parentNode) old.parentNode.removeChild(old);
     var row = document.createElement('div');
