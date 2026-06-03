@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.1 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.2 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -38,6 +38,10 @@
 //                      toggling its display (behavior, not styling -- same
 //                      approach the nav script uses for the mobile panel).
 //                      (v1.10.1)
+//   injectNewsNav    -> (v1.10.2) also adds "News and Updates" to the flat
+//                      mobile menu (.oc-mobile-panel-link) after About; desktop
+//                      block now stands down when the Designer About dropdown's
+//                      tagged News link is present.
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -716,40 +720,52 @@
   }
 
   function injectNewsNav() {
-    if (document.querySelector('[data-oc-news-nav="1"]')) return;
-    var links = document.querySelectorAll('a[href="/about"], a[href$="/about"]');
-    if (!links.length) return;
-    // Prefer the desktop top-level About link (ocnav-link); else the first.
-    var about = null, i;
-    for (i = 0; i < links.length; i++) {
-      if ((links[i].className || '').indexOf('ocnav-link') >= 0) { about = links[i]; break; }
+    // DESKTOP: the About dropdown (Designer-built) already holds a News link
+    // tagged data-oc-news-nav, so this block stands down. It remains only as a
+    // defensive fallback: if that tagged link is ever absent, nest into an
+    // About dropdown if one exists, else add a top-level News link by About.
+    if (!document.querySelector('[data-oc-news-nav="1"]')) {
+      var links = document.querySelectorAll('a[href="/about"], a[href$="/about"]');
+      var about = null, i;
+      for (i = 0; i < links.length; i++) {
+        if ((links[i].className || '').indexOf('ocnav-link') >= 0) { about = links[i]; break; }
+      }
+      if (about) {
+        var dd = about.closest ? about.closest('.w-dropdown, [class*="dropdown"]') : null;
+        var list = dd ? dd.querySelector('.w-dropdown-list, [class*="dropdown-list"]') : null;
+        if (list && list !== about.parentNode) {
+          var sub = document.createElement('a');
+          sub.href = '/news';
+          sub.textContent = 'News & Updates';
+          sub.setAttribute('data-oc-news-nav', '1');
+          var sib = list.querySelector('a');
+          if (sib) sub.className = sib.className || '';
+          list.appendChild(sub);
+          addRecencyDot(sub);
+        } else {
+          var news = document.createElement('a');
+          news.href = '/news';
+          news.textContent = 'News';
+          news.setAttribute('data-oc-news-nav', '1');
+          news.className = about.className || '';
+          if (about.parentNode) about.parentNode.insertBefore(news, about.nextSibling);
+          addRecencyDot(news);
+        }
+      }
     }
-    if (!about) about = links[0];
 
-    // If About lives inside a real dropdown that has a dropdown list, nest
-    // "News & Updates" there (honors the About-dropdown intent when present).
-    var dd = about.closest ? about.closest('.w-dropdown, [class*="dropdown"]') : null;
-    var list = dd ? dd.querySelector('.w-dropdown-list, [class*="dropdown-list"]') : null;
-    if (list && list !== about.parentNode) {
-      var sub = document.createElement('a');
-      sub.href = '/news';
-      sub.textContent = 'News & Updates';
-      sub.setAttribute('data-oc-news-nav', '1');
-      var sib = list.querySelector('a');
-      if (sib) sub.className = sib.className || '';
-      list.appendChild(sub);
-      addRecencyDot(sub);
-      return;
+    // MOBILE: the mobile menu is a flat list of .oc-mobile-panel-link items.
+    // Add "News and Updates" right after "About Olive Cover". Independent of the
+    // desktop guard so it always runs.
+    var mAbout = document.querySelector('.oc-mobile-panel-link[href="/about"], .oc-mobile-panel-link[href$="/about"]');
+    if (mAbout && !document.querySelector('[data-oc-news-mnav="1"]')) {
+      var mnews = document.createElement('a');
+      mnews.href = '/news';
+      mnews.textContent = 'News and Updates';
+      mnews.setAttribute('data-oc-news-mnav', '1');
+      mnews.className = 'oc-mobile-panel-link';
+      if (mAbout.parentNode) mAbout.parentNode.insertBefore(mnews, mAbout.nextSibling);
     }
-
-    // Fallback: clean native-styled top-level "News" link right after About.
-    var news = document.createElement('a');
-    news.href = '/news';
-    news.textContent = 'News';
-    news.setAttribute('data-oc-news-nav', '1');
-    news.className = about.className || '';
-    if (about.parentNode) about.parentNode.insertBefore(news, about.nextSibling);
-    addRecencyDot(news);
   }
 
   var OC_BRAND_LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/6a13bd76b6e65cc6a3bcd114_Blue%20Olive%20Cover%20Logo.png';
