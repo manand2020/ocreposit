@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.3 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.4 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -829,12 +829,17 @@
   // API (page-link resolved to /news, collectionPage output the slug literally),
   // so the card href is set here from the slug. Fallback href is /news.
   function fixNewsCardLinks() {
-    var cards = document.querySelectorAll('a[data-news-slug]');
-    for (var i = 0; i < cards.length; i++) {
-      var slug = (cards[i].getAttribute('data-news-slug') || '').trim();
-      if (!slug) continue;
-      var want = '/news/' + slug;
-      if (cards[i].getAttribute('href') !== want) cards[i].setAttribute('href', want);
+    // v1.10.4: also handles the rebuilt /insights hub (data-insights-slug).
+    var maps = [['data-news-slug', '/news/'], ['data-insights-slug', '/insights/']];
+    for (var m = 0; m < maps.length; m++) {
+      var attr = maps[m][0], base = maps[m][1];
+      var cards = document.querySelectorAll('a[' + attr + ']');
+      for (var i = 0; i < cards.length; i++) {
+        var slug = (cards[i].getAttribute(attr) || '').trim();
+        if (!slug) continue;
+        var want = base + slug;
+        if (cards[i].getAttribute('href') !== want) cards[i].setAttribute('href', want);
+      }
     }
   }
 
