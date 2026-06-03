@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.2 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.3 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -824,6 +824,20 @@
     });
   }
 
+  // News collection cards (hub + homepage strip) carry data-news-slug bound to
+  // the item Slug. Webflow's current-item link could not be expressed via the
+  // API (page-link resolved to /news, collectionPage output the slug literally),
+  // so the card href is set here from the slug. Fallback href is /news.
+  function fixNewsCardLinks() {
+    var cards = document.querySelectorAll('a[data-news-slug]');
+    for (var i = 0; i < cards.length; i++) {
+      var slug = (cards[i].getAttribute('data-news-slug') || '').trim();
+      if (!slug) continue;
+      var want = '/news/' + slug;
+      if (cards[i].getAttribute('href') !== want) cards[i].setAttribute('href', want);
+    }
+  }
+
   function wireAboutDropdown() {
     var dd = document.getElementById('ocn-item-about');
     var panel = document.getElementById('ocn-item-about-panel');
@@ -861,6 +875,7 @@
     try { injectNewsNav(); } catch (e) {}
     try { injectNewsSchema(); } catch (e) {}
     try { wireAboutDropdown(); } catch (e) {}
+    try { fixNewsCardLinks(); } catch (e) {}
   }
 
   var debounceTimer = null;
