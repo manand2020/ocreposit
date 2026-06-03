@@ -1,4 +1,4 @@
-// ocpatch.js v1.5.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.0 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -11,6 +11,25 @@
 //                      Booking->CRM is server-side (E!A webhook -> CLIP).
 //   ocwidgetchips   -> Ask Olive widget quick-action chips
 //   occtafix        -> strip stray inline color on claims/stub CTAs (v1.1.0)
+//   occarrierhub    -> add NFIP to the hand-built carrier hub pages: a proper
+//                      row in the /personal-carriers flood comparison table
+//                      (clone the Selective flood row + relabel); cleanup-only
+//                      on the other hubs. Static pages, not CMS-driven. (v1.7.0)
+//   fixCarrierClaimsPhone -> set the claims phone on carrier profile pages for
+//                      carriers not yet in ocshim's occarrierphones map (new
+//                      carriers, e.g. NFIP -> Selective flood WYO line). (v1.8.0)
+//   fixCarrierTableNA -> replace bare "N/A" text in the carrier comparison
+//                      tables (/personal-carriers, /commercial-carriers) with a
+//                      muted dash; keeps the cell's class so it stays gray and
+//                      reads cleaner next to the green checks. (v1.9.0)
+//   injectNewsNav    -> add a "News" entry to the global nav: if About sits in
+//                      a dropdown, nest "News & Updates" there; else add a clean
+//                      native-styled top-level "News" link after About. Adds a
+//                      gold recency dot when the newest News post is < 30 days
+//                      old. Insights is left under Resources untouched. (v1.10.0)
+//   injectNewsSchema -> NewsArticle + BreadcrumbList JSON-LD on /news/{slug},
+//                      built from the rendered article DOM (headline, date,
+//                      category, hero image, summary). AEO payload. (v1.10.0)
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -543,6 +562,245 @@
   }
 
   // ====================================================================
+  // 10.5 occarrierhub -- add NFIP to the hand-built carrier hub pages
+  // (/personal-carriers, /commercial-carriers, /carriers). These pages are
+  // static (not CMS-driven). On /personal-carriers the right home for NFIP is
+  // the "Flood, Jewelry, Umbrella & Landlord" comparison table, so we clone
+  // the existing flood carrier's row (Selective), relabel it for NFIP, and
+  // insert it right after. On the other hubs we only clean up the stray chip
+  // an earlier version appended to the top quick-pick strip (no good flood row
+  // to clone there). Idempotent.
+  // ====================================================================
+
+  var CARRIER_HUB = {
+    '/personal-carriers': {
+      cloneFrom: 'selective-insurance', slug: 'nfip-flood-insurance',
+      name: 'NFIP Flood', tagline: 'Federal flood program (FEMA)',
+      rating: 'Federal',
+      notesMatch: /Higher limits than NFIP/,
+      notes: 'Federal flood program (FEMA); up to $250K building and $100K contents; the baseline when private flood will not write.'
+    },
+    '/commercial-carriers': { cleanupOnly: true, slug: 'nfip-flood-insurance' },
+    '/carriers': { cleanupOnly: true, slug: 'nfip-flood-insurance' }
+  };
+
+  function ocRelabelRow(clone, cfg) {
+    var as = clone.querySelectorAll('a[href]');
+    for (var i = 0; i < as.length; i++) {
+      var h = as[i].getAttribute('href') || '';
+      if (h.indexOf(cfg.cloneFrom) >= 0) as[i].setAttribute('href', '/carriers/' + cfg.slug);
+    }
+    var w = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
+    var t, ns = [];
+    while (t = w.nextNode()) ns.push(t);
+    for (var j = 0; j < ns.length; j++) {
+      var nv = ns[j].nodeValue, s = nv.trim();
+      if (s === 'Selective') ns[j].nodeValue = nv.replace('Selective', cfg.name);
+      else if (s === 'Private flood specialist') ns[j].nodeValue = cfg.tagline;
+      else if (s === 'Private Flood') ns[j].nodeValue = 'Federal Flood';
+      else if (s === 'A') ns[j].nodeValue = cfg.rating;
+      else if (cfg.notesMatch && cfg.notesMatch.test(nv)) ns[j].nodeValue = cfg.notes;
+    }
+  }
+
+  function injectCarrierHub() {
+    var cfg = CARRIER_HUB[path.replace(/\/$/, '') || '/'];
+    if (!cfg) return;
+    // Remove the stray chip an earlier version appended to a quick-pick strip.
+    var stale = document.querySelectorAll('a[data-oc-injected="1"]');
+    for (var i = 0; i < stale.length; i++) {
+      if ((stale[i].getAttribute('href') || '').indexOf(cfg.slug) >= 0 && stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
+    }
+    if (cfg.cleanupOnly || !cfg.cloneFrom) return;
+    if (document.querySelector('[data-oc-injected="floodrow"]')) return;
+    var refs = document.querySelectorAll('a[href*="' + cfg.cloneFrom + '"]');
+    if (!refs.length) return;
+    var seen = [];
+    for (var r = 0; r < refs.length; r++) {
+      var row = refs[r].closest ? refs[r].closest('tr') : null;
+      if (!row || row === document.body || seen.indexOf(row) >= 0) continue;
+      if (!/flood/i.test(row.textContent)) continue; // only the flood row
+      seen.push(row);
+      var clone = row.cloneNode(true);
+      ocRelabelRow(clone, cfg);
+      clone.setAttribute('data-oc-injected', 'floodrow');
+      if (row.parentNode) row.parentNode.insertBefore(clone, row.nextSibling);
+    }
+  }
+
+  // ====================================================================
+  // 10.6 fixCarrierClaimsPhone -- ocshim's occarrierphones holds a static map
+  // of the original 41 carriers; a NEW carrier's profile shows the template's
+  // "Phone unavailable" fallback. Patch known new carriers here until they are
+  // added to ocshim's map. NFIP claims route through the Selective flood WYO
+  // line. Idempotent.
+  // ====================================================================
+
+  var NEW_CARRIER_PHONES = { 'nfip-flood-insurance': '877-348-0552' };
+
+  function fixCarrierClaimsPhone() {
+    var m = location.pathname.match(/^\/carriers\/([a-z0-9-]+)\/?$/);
+    if (!m) return;
+    var phone = NEW_CARRIER_PHONES[m[1]];
+    if (!phone) return;
+    var link = document.getElementById('carrier-claims-phone-link');
+    if (!link) return;
+    var tel = phone.replace(/[^0-9]/g, '');
+    if (link.getAttribute('href') === 'tel:' + tel) return; // already set
+    link.setAttribute('href', 'tel:' + tel);
+    link.textContent = phone;
+    link.style.setProperty('color', '#B8934A', 'important');
+    link.style.setProperty('font-weight', '600', 'important');
+  }
+
+  // ====================================================================
+  // 10.7 fixCarrierTableNA -- the carrier comparison tables show a bare "N/A"
+  // in feature columns a carrier does not apply to. Replace that text with a
+  // muted dash (the cell keeps its existing class, so it stays gray) so it
+  // reads cleaner next to the green checks. Neutral on purpose: these columns
+  // are "not offered / not applicable", not a failing grade, so no red cross.
+  // Class-agnostic (personal uses .no/.no-1, commercial uses .c-no-1).
+  // ====================================================================
+
+  function fixCarrierTableNA() {
+    if (!/^\/(personal|commercial)-carriers\/?$/.test(location.pathname)) return;
+    var cells = document.querySelectorAll('table td');
+    for (var i = 0; i < cells.length; i++) {
+      var td = cells[i], target = null;
+      if (td.children.length === 0) {
+        if (td.textContent.trim() === 'N/A') target = td;
+      } else {
+        var leaves = td.querySelectorAll('*');
+        for (var j = 0; j < leaves.length; j++) {
+          if (leaves[j].children.length === 0 && leaves[j].textContent.trim() === 'N/A') { target = leaves[j]; break; }
+        }
+      }
+      if (target) { target.textContent = '–'; if (target.setAttribute) target.setAttribute('aria-label', 'Not applicable'); }
+    }
+  }
+
+  // ====================================================================
+  // 12. News section -- nav entry + recency dot, and NewsArticle +
+  //     BreadcrumbList JSON-LD on /news/{slug}. The /news hub + detail
+  //     template + homepage strip + footer link are built in the Designer;
+  //     this adds the global-nav discoverability and the AEO payload.
+  // ====================================================================
+
+  // Newest News post date (ISO yyyy-mm-dd). Drives the nav recency dot (<30
+  // days). Bump this when a newer News post is published (or have CLIP set it).
+  var NEWS_LATEST = '2026-06-02';
+
+  function newsIsRecent() {
+    try {
+      var d = new Date(NEWS_LATEST + 'T00:00:00');
+      return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
+    } catch (e) { return false; }
+  }
+
+  function addRecencyDot(a) {
+    if (!newsIsRecent()) return;
+    if (a.querySelector('[data-oc-news-dot]')) return;
+    var dot = document.createElement('span');
+    dot.setAttribute('data-oc-news-dot', '1');
+    dot.setAttribute('aria-hidden', 'true');
+    dot.style.cssText = 'display:inline-block;width:7px;height:7px;border-radius:50%;background:#B8934A;margin-left:6px;vertical-align:middle';
+    a.appendChild(dot);
+  }
+
+  function injectNewsNav() {
+    if (document.querySelector('[data-oc-news-nav="1"]')) return;
+    var links = document.querySelectorAll('a[href="/about"], a[href$="/about"]');
+    if (!links.length) return;
+    // Prefer the desktop top-level About link (ocnav-link); else the first.
+    var about = null, i;
+    for (i = 0; i < links.length; i++) {
+      if ((links[i].className || '').indexOf('ocnav-link') >= 0) { about = links[i]; break; }
+    }
+    if (!about) about = links[0];
+
+    // If About lives inside a real dropdown that has a dropdown list, nest
+    // "News & Updates" there (honors the About-dropdown intent when present).
+    var dd = about.closest ? about.closest('.w-dropdown, [class*="dropdown"]') : null;
+    var list = dd ? dd.querySelector('.w-dropdown-list, [class*="dropdown-list"]') : null;
+    if (list && list !== about.parentNode) {
+      var sub = document.createElement('a');
+      sub.href = '/news';
+      sub.textContent = 'News & Updates';
+      sub.setAttribute('data-oc-news-nav', '1');
+      var sib = list.querySelector('a');
+      if (sib) sub.className = sib.className || '';
+      list.appendChild(sub);
+      addRecencyDot(sub);
+      return;
+    }
+
+    // Fallback: clean native-styled top-level "News" link right after About.
+    var news = document.createElement('a');
+    news.href = '/news';
+    news.textContent = 'News';
+    news.setAttribute('data-oc-news-nav', '1');
+    news.className = about.className || '';
+    if (about.parentNode) about.parentNode.insertBefore(news, about.nextSibling);
+    addRecencyDot(news);
+  }
+
+  var OC_BRAND_LOGO = 'https://cdn.prod.website-files.com/69e03a098b0bf5d05f9f777b/6a13bd76b6e65cc6a3bcd114_Blue%20Olive%20Cover%20Logo.png';
+
+  function injectNewsSchema() {
+    var p = location.pathname.replace(/\/$/, '');
+    if (p === '/news' || p.indexOf('/news/') !== 0) return; // only /news/{slug}
+    if (document.querySelector('script[data-oc-news-schema="1"]')) return;
+    var h1 = document.querySelector('h1.oc-news-h1') || document.querySelector('h1');
+    if (!h1) return;
+    var headline = (h1.textContent || '').trim().slice(0, 110);
+    if (!headline) return;
+
+    var catEl = document.querySelector('.oc-news-cat');
+    var section = catEl ? (catEl.textContent || '').trim() : '';
+    var dateEl = document.querySelector('.oc-news-date');
+    var pubISO = '';
+    if (dateEl) { var dt = new Date((dateEl.textContent || '').trim()); if (!isNaN(dt.getTime())) pubISO = dt.toISOString(); }
+    var imgEl = document.querySelector('.oc-news-hero-bg') || document.querySelector('.oc-news-hero img');
+    var img = imgEl ? (imgEl.getAttribute('src') || imgEl.src || '') : '';
+    var descMeta = document.querySelector('meta[name="description"]');
+    var desc = descMeta ? (descMeta.getAttribute('content') || '') : '';
+    var canonical = location.origin + location.pathname;
+
+    var publisher = {
+      '@type': 'Organization', 'name': 'Olive Cover', 'legalName': 'Olive Insurance Services, LLC',
+      'logo': { '@type': 'ImageObject', 'url': OC_BRAND_LOGO }
+    };
+    var article = {
+      '@context': 'https://schema.org', '@type': 'NewsArticle',
+      'headline': headline,
+      'author': { '@type': 'Organization', 'name': 'Olive Cover', 'legalName': 'Olive Insurance Services, LLC' },
+      'publisher': publisher,
+      'mainEntityOfPage': canonical, 'inLanguage': 'en-US'
+    };
+    if (pubISO) { article.datePublished = pubISO; article.dateModified = pubISO; }
+    if (section) article.articleSection = section;
+    if (img) article.image = img;
+    if (desc) article.description = desc;
+
+    var crumbs = {
+      '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': location.origin + '/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'News', 'item': location.origin + '/news' },
+        { '@type': 'ListItem', 'position': 3, 'name': headline, 'item': canonical }
+      ]
+    };
+
+    [article, crumbs].forEach(function (obj) {
+      var s = document.createElement('script');
+      s.type = 'application/ld+json';
+      s.setAttribute('data-oc-news-schema', '1');
+      s.textContent = JSON.stringify(obj);
+      document.head.appendChild(s);
+    });
+  }
+
+  // ====================================================================
   // 11. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
@@ -558,6 +816,11 @@
     try { fixContactSelect(); } catch (e) {}
     try { fixFeedbackState(); } catch (e) {}
     try { fixBookPage(); } catch (e) {}
+    try { injectCarrierHub(); } catch (e) {}
+    try { fixCarrierClaimsPhone(); } catch (e) {}
+    try { fixCarrierTableNA(); } catch (e) {}
+    try { injectNewsNav(); } catch (e) {}
+    try { injectNewsSchema(); } catch (e) {}
   }
 
   var debounceTimer = null;
