@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.1 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -30,6 +30,14 @@
 //   injectNewsSchema -> NewsArticle + BreadcrumbList JSON-LD on /news/{slug},
 //                      built from the rendered article DOM (headline, date,
 //                      category, hero image, summary). AEO payload. (v1.10.0)
+//   wireAboutDropdown -> the About nav dropdown is hand-built in the Designer
+//                      (oc-nav-dropdown + oc-nav-panel), but the existing nav
+//                      panels open via per-element Webflow interactions that
+//                      cannot be replicated on a new element. This wires the
+//                      About panel's open/close on hover + keyboard focus by
+//                      toggling its display (behavior, not styling -- same
+//                      approach the nav script uses for the mobile panel).
+//                      (v1.10.1)
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -800,6 +808,21 @@
     });
   }
 
+  function wireAboutDropdown() {
+    var dd = document.getElementById('ocn-item-about');
+    var panel = document.getElementById('ocn-item-about-panel');
+    if (!dd || !panel) return;
+    if (dd.dataset.ocAboutWired === '1') return;
+    dd.dataset.ocAboutWired = '1';
+    var show = function () { panel.style.setProperty('display', 'flex'); dd.setAttribute('aria-expanded', 'true'); };
+    var hide = function () { panel.style.setProperty('display', 'none'); dd.setAttribute('aria-expanded', 'false'); };
+    dd.addEventListener('mouseenter', show);
+    dd.addEventListener('mouseleave', hide);
+    dd.addEventListener('focusin', show);
+    dd.addEventListener('focusout', function (e) { if (!dd.contains(e.relatedTarget)) hide(); });
+    dd.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hide(); } });
+  }
+
   // ====================================================================
   // 11. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
@@ -821,6 +844,7 @@
     try { fixCarrierTableNA(); } catch (e) {}
     try { injectNewsNav(); } catch (e) {}
     try { injectNewsSchema(); } catch (e) {}
+    try { wireAboutDropdown(); } catch (e) {}
   }
 
   var debounceTimer = null;
