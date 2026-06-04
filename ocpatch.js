@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.4 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.5 -- Consolidated runtime patcher for Olive Cover.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -828,6 +828,22 @@
   // the item Slug. Webflow's current-item link could not be expressed via the
   // API (page-link resolved to /news, collectionPage output the slug literally),
   // so the card href is set here from the slug. Fallback href is /news.
+  // v1.10.5: news/insights hub card images are CMS-bound Webflow Images that
+  // default to loading="lazy". Below the tall hero they don't load until
+  // scrolled, so the navy card background ("blue box") shows. These hubs have
+  // only ~12 small cards/page, so load them eagerly to remove the blue boxes.
+  function eagerCardImages() {
+    var imgs = document.querySelectorAll('a.oc-newscard img');
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i];
+      if (img.getAttribute('loading') === 'lazy') {
+        img.setAttribute('loading', 'eager');
+        var s = img.getAttribute('src');
+        if (s && !img.complete) { img.src = s; }
+      }
+    }
+  }
+
   function fixNewsCardLinks() {
     // v1.10.4: also handles the rebuilt /insights hub (data-insights-slug).
     var maps = [['data-news-slug', '/news/'], ['data-insights-slug', '/insights/']];
@@ -881,6 +897,7 @@
     try { injectNewsSchema(); } catch (e) {}
     try { wireAboutDropdown(); } catch (e) {}
     try { fixNewsCardLinks(); } catch (e) {}
+    try { eagerCardImages(); } catch (e) {}
   }
 
   var debounceTimer = null;
