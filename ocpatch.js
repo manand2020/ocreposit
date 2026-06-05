@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.8 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.9 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,10 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.9 -- injectRelatedTerms + injectRelatedFaqs: extend both to run on
+//            /insurance/* and /carriers/* pages, placing RelTerms -> RelFAQs
+//            before footer in a race-safe manner. Slug keywords drive term
+//            matching; H1 text drives FAQ matching; General fills remainder.
 // v1.11.8 -- injectRelatedTerms + injectRelatedFaqs: anchor both sections off
 //            .oc-term-cta-section on /insurance-terms/* pages so order CTA ->
 //            RelTerms -> RelFAQs is enforced regardless of which async fetch
@@ -1576,7 +1580,9 @@
     var pg = location.pathname;
     var isFaqDetail = /^\/faq\/[^/]+/.test(pg);
     var isTermDetail = /^\/insurance-terms\/[^/]+/.test(pg);
-    if (!isFaqDetail && !isTermDetail) return;
+    var isInsuranceDetail = /^\/insurance\/[^/]+/.test(pg);
+    var isCarrierDetail = /^\/carriers\/[^/]+/.test(pg);
+    if (!isFaqDetail && !isTermDetail && !isInsuranceDetail && !isCarrierDetail) return;
     fetchFaqIdx(function (idx) {
       if (!idx.length || document.querySelector('[data-oc-rel-faqs]')) return;
       var related;
@@ -1720,7 +1726,9 @@
     var pg = location.pathname;
     var isFaqDetail = /^\/faq\/[^/]+/.test(pg);
     var isTermDetail = /^\/insurance-terms\/[^/]+/.test(pg);
-    if (!isFaqDetail && !isTermDetail) return;
+    var isInsuranceDetail = /^\/insurance\/[^/]+/.test(pg);
+    var isCarrierDetail = /^\/carriers\/[^/]+/.test(pg);
+    if (!isFaqDetail && !isTermDetail && !isInsuranceDetail && !isCarrierDetail) return;
 
     function buildAndInsertTerms(subset, onFaqPage) {
       if (!subset.length || document.querySelector('[data-oc-rel-terms]')) return;
@@ -1747,6 +1755,11 @@
         var cmsSec = document.querySelector('.oc-term-related-section');
         if (cmsSec && cmsSec.parentNode) {
           cmsSec.parentNode.insertBefore(el, cmsSec.nextSibling); return;
+        }
+        // Insurance/carrier: if RelFAQs already landed, go before it (race-safe).
+        var existingFaqs = document.querySelector('[data-oc-rel-faqs]');
+        if (existingFaqs && existingFaqs.parentNode) {
+          existingFaqs.parentNode.insertBefore(el, existingFaqs); return;
         }
       }
       insertBeforeFooter(el);
@@ -1782,8 +1795,10 @@
         });
       });
     } else {
-      // Term detail page: find current term, keyword-match + same-category pills
-      var tsl = pg.replace(/^\/insurance-terms\//, '').replace(/\/$/, '');
+      // Term/insurance/carrier detail: keyword-match terms from page slug
+      var tsl = isTermDetail ? pg.replace(/^\/insurance-terms\//, '').replace(/\/$/, '')
+               : isInsuranceDetail ? pg.replace(/^\/insurance\//, '').replace(/\/$/, '')
+               : pg.replace(/^\/carriers\//, '').replace(/\/$/, '');
       fetchTermsIdx(function (tIdx) {
         if (!tIdx.length || document.querySelector('[data-oc-rel-terms]')) return;
         var cur = null;
