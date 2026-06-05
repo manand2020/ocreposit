@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.25 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.26 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1469,7 +1469,55 @@
   }
 
   // ====================================================================
-  // 11. Boot -- one shared, debounced observer drives all idempotent tasks
+  // 11. Marketing consent fields
+  //     /contact + /quote-request: visible checkbox above submit button
+  //     /coverage-review: implicit consent hidden input
+  // ====================================================================
+
+  function injectMarketingConsentFields() {
+    // /coverage-review: hidden implicit consent field
+    if (/^\/coverage-review(\/|$)/.test(location.pathname)) {
+      var crvForm = document.querySelector('#oc-crv-wrap');
+      if (crvForm && !crvForm.querySelector('input[name="marketing_consent_implicit"]')) {
+        var imp = document.createElement('input');
+        imp.type = 'hidden';
+        imp.name = 'marketing_consent_implicit';
+        imp.value = 'true';
+        imp.setAttribute('data-oc-mktg', '1');
+        crvForm.appendChild(imp);
+      }
+      return;
+    }
+    // /contact + /quote-request: visible opt-in checkbox above submit
+    var isContact = /^\/contact(\/|$)/.test(location.pathname);
+    var isQuote = /^\/quote-request(\/|$)/.test(location.pathname);
+    if (!isContact && !isQuote) return;
+    var form = document.querySelector(isContact ? '#oc-contact-form-el' : 'form');
+    if (!form) form = document.querySelector('form');
+    if (!form || form.querySelector('[data-oc-mktg-consent]')) return;
+    var submit = form.querySelector('input[type="submit"], button[type="submit"]');
+    if (!submit) return;
+    var wrap = document.createElement('div');
+    wrap.setAttribute('data-oc-mktg-consent', '1');
+    wrap.style.cssText = 'display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;font-family:Inter,system-ui,sans-serif;';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.name = 'marketing_consent_checkbox';
+    cb.value = 'true';
+    cb.id = 'oc-mktg-consent';
+    cb.style.cssText = 'margin-top:3px;flex-shrink:0;accent-color:#B8934A;width:16px;height:16px;cursor:pointer;';
+    var lbl = document.createElement('label');
+    lbl.setAttribute('for', 'oc-mktg-consent');
+    lbl.textContent = 'Yes, send me practical Georgia insurance tips by email (one a week, unsubscribe anytime).';
+    lbl.style.cssText = 'font-size:0.875rem;color:#1B3A5C;line-height:1.5;cursor:pointer;';
+    wrap.appendChild(cb);
+    wrap.appendChild(lbl);
+    var submitParent = submit.parentElement;
+    if (submitParent) submitParent.insertBefore(wrap, submit);
+  }
+
+  // ====================================================================
+  // 12. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
   function runOnce() {
@@ -1499,6 +1547,7 @@
     try { injectRelatedFaqs(); } catch (e) {}
     try { injectRelatedTerms(); } catch (e) {}
     try { hideDetailedRelTerms(); } catch (e) {}
+    try { injectMarketingConsentFields(); } catch (e) {}
     try { injectFooterCTA(); } catch (e) {}
   }
 
