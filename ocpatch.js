@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.7 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.8 -- Consolidated runtime patcher for Olive Cover.
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -924,9 +924,24 @@
     var srcImg = card.querySelector('.oc-newscard-img');
     var fImg = feat.querySelector('.oc-feat-img');
     if (fImg && srcImg) {
-      var s = srcImg.currentSrc || srcImg.getAttribute('src');
-      if (s) { fImg.setAttribute('src', s); fImg.setAttribute('loading', 'eager'); }
-      if (srcImg.getAttribute('alt')) fImg.setAttribute('alt', srcImg.getAttribute('alt'));
+      var s = srcImg.getAttribute('src') || srcImg.currentSrc || '';
+      var ialt = srcImg.getAttribute('alt') || '';
+      if (s) {
+        // whtml turned the <img> into a non-rendering <imgraw>; swap in a real
+        // <img> so the photo actually displays (keeps the native class + CSS).
+        if ((fImg.tagName || '').toLowerCase() === 'imgraw') {
+          var real = document.createElement('img');
+          real.setAttribute('class', fImg.getAttribute('class') || 'oc-feat-img');
+          real.setAttribute('loading', 'eager');
+          real.setAttribute('alt', ialt);
+          real.setAttribute('src', s);
+          if (fImg.parentNode) fImg.parentNode.replaceChild(real, fImg);
+        } else {
+          fImg.setAttribute('src', s);
+          fImg.setAttribute('loading', 'eager');
+          if (ialt) fImg.setAttribute('alt', ialt);
+        }
+      }
     }
     var slug = (card.getAttribute('data-insights-slug') || '').trim();
     if (slug) {
