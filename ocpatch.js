@@ -1,5 +1,9 @@
-// ocpatch.js v1.10.14 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.15 -- Consolidated runtime patcher for Olive Cover.
 //
+//   revealCarrierFaqs (v1.10.15): differentiate the FAQ question from its
+//                      answer -- question is bold navy Inter, answer is set off
+//                      with a gold left rule + indent (template rendered both
+//                      as similar gray text, hard to tell apart).
 //   revealCarrierFaqs (v1.10.14): wire the carrier-page FAQ accordion. The
 //                      answer (.oc-faq-a) is hidden by template CSS regardless
 //                      of the <details> open state (native toggle was only
@@ -1116,7 +1120,23 @@
         det.setAttribute('data-oc-faq-wired', '1');
         var ans = det.querySelector('.oc-faq-a') || det.querySelector('p');
         var sum = det.querySelector('summary');
-        if (sum) sum.style.setProperty('cursor', 'pointer');
+        // Differentiate question from answer: question is bold navy (Inter),
+        // answer is set off with a gold left rule + indent so the two read as
+        // distinct. (template default renders both as similar gray text).
+        if (sum) {
+          sum.style.setProperty('cursor', 'pointer');
+          sum.style.setProperty('font-family', 'Inter, system-ui, sans-serif');
+          sum.style.setProperty('font-weight', '700');
+          sum.style.setProperty('color', '#1B3A5C');
+          sum.style.setProperty('font-size', '1.0625rem');
+          sum.style.setProperty('line-height', '1.4');
+        }
+        if (ans) {
+          ans.style.setProperty('margin-top', '10px');
+          ans.style.setProperty('padding-left', '14px');
+          ans.style.setProperty('border-left', '2px solid #B8934A');
+          ans.style.setProperty('color', '#374151');
+        }
         var sync = function () {
           if (!ans) return;
           ans.style.setProperty('display', det.open ? 'block' : 'none', 'important');
