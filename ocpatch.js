@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.3 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.4 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,15 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.4 -- Insights capture fixes:
+//   injectExitIntentModal -> "Open Ask Olive" FAB selector updated to include
+//                      `summary.oc-widget-toggle` so clicking the button in
+//                      the modal actually opens the widget. The widget toggle
+//                      is a <summary> element -- prior selectors all missed it.
+//   injectInsightsInlineCTA, injectInsightsStickyBar -> success message softened
+//                      from "Check your inbox -- your guide is on the way."
+//                      to "Got it! We'll send your checklist shortly." since
+//                      email delivery is pending Mailchimp setup.
 // v1.11.3 -- Version bump for Webflow registration (no functional change from v1.11.2).
 // v1.11.2 -- Terms page fixes:
 //   hideDetailedRelTerms -> no longer hides .oc-term-cta-section; native
@@ -2203,7 +2212,7 @@
       if (!em || em.indexOf('@') < 0) { msgEl.textContent = 'Please enter a valid email address.'; msgEl.style.display = 'block'; return; }
       btn.textContent = 'Sending...'; btn.disabled = true; msgEl.style.display = 'none';
       ocSubmitCapture(em, magnet.id, 'inline',
-        function () { btn.textContent = 'Sent!'; msgEl.textContent = 'Check your inbox -- your guide is on the way.'; msgEl.style.display = 'block'; },
+        function () { btn.textContent = 'Sent!'; msgEl.textContent = 'Got it! We\'ll send your checklist shortly.'; msgEl.style.display = 'block'; },
         function () { btn.textContent = 'Get the PDF'; btn.disabled = false; msgEl.textContent = 'Something went wrong. Please try again.'; msgEl.style.display = 'block'; }
       );
     });
@@ -2318,7 +2327,7 @@
     chatBtn.addEventListener('click', function (e) {
       e.preventDefault();
       overlay.style.display = 'none';
-      var fab = document.querySelector('#oc-widget-fab, #oc-wgt-fab, .oc-widget-fab, [data-oc-widget-toggle]');
+      var fab = document.querySelector('summary.oc-widget-toggle, .oc-widget-toggle, #oc-widget-fab, #oc-wgt-fab, .oc-widget-fab, [data-oc-widget-toggle]');
       if (fab) fab.click();
       ocPushCapture('email_capture_dismissed', { placement: 'exit_modal', action: 'open_chat', page_path: location.pathname });
     });
