@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.9 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.10 -- Consolidated runtime patcher for Olive Cover.
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -1016,6 +1016,15 @@
     if (!tmpl) return;
     bar.dataset.ocBuilt = '1';
     var items = [].slice.call(grid.querySelectorAll('.w-dyn-item'));
+    // Single-article hub: the featured block consumed the only post, leaving no
+    // grid items. Hide the empty grid and the now-pointless filter bar so the
+    // featured card stands alone.
+    if (items.length === 0) {
+      bar.style.setProperty('display', 'none');
+      var wrap0 = document.querySelector('.oc-newshub-list-inner .w-dyn-list');
+      if (wrap0) wrap0.style.setProperty('display', 'none');
+      return;
+    }
     var cats = [];
     items.forEach(function (it) {
       var ce = it.querySelector('.oc-newscard-cat');
@@ -1023,6 +1032,8 @@
       if (t && cats.indexOf(t) < 0) cats.push(t);
     });
     cats.sort();
+    // Only one category present -> a filter offers nothing; hide the bar.
+    if (cats.length < 2) { bar.style.setProperty('display', 'none'); return; }
     cats.forEach(function (t) {
       var chip = tmpl.cloneNode(true);
       chip.classList.remove('oc-news-chip-active');
