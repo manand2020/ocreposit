@@ -1275,6 +1275,11 @@
       }
       if (!related.length) return;
       var el = buildRelFaqSection(related);
+      // On FAQ pages: if terms pills already injected above, insert after them.
+      var relTermsSec = document.querySelector('[data-oc-rel-terms]');
+      if (relTermsSec && relTermsSec.parentNode) {
+        relTermsSec.parentNode.insertBefore(el, relTermsSec.nextSibling); return;
+      }
       // Insert after the section containing the answer or back-link (FAQ detail),
       // or the related-terms wrapper (term detail). Fall back to before footer.
       var anc = document.querySelector('.oc-term-related-wrap,[class*="oc-term-rel"],.oc-faq-a,.oc-faq-back-link');
@@ -1376,52 +1381,91 @@
 
   function injectRelatedTerms() {
     if (document.querySelector('[data-oc-rel-terms]')) return;
-    if (!/^\/faq\/[^/]+/.test(location.pathname)) return;
-    var sl = location.pathname.replace(/^\/faq\//, '').replace(/\/$/, '');
-    fetchFaqIdx(function (faqIdx) {
-      if (!faqIdx.length) return;
-      var cur = null;
-      for (var i = 0; i < faqIdx.length; i++) { if (faqIdx[i].s === sl) { cur = faqIdx[i]; break; } }
-      if (!cur) return;
-      var termCats = FAQ_TERM_CATS[cur.c] || ['General'];
-      // Keywords from slug for relevance-first matching
-      var kws = slugKeywords(sl);
-      fetchTermsIdx(function (tIdx) {
-        if (!tIdx.length || document.querySelector('[data-oc-rel-terms]')) return;
-        var seen = {};
-        function dedup(arr) {
-          return arr.filter(function (t) { if (seen[t.s]) return false; seen[t.s] = 1; return true; });
-        }
-        // 1. Keyword matches (term name contains any FAQ slug keyword)
-        var byKw = kws.length ? tIdx.filter(function (t) {
-          var nl = t.n.toLowerCase();
-          return kws.some(function (k) { return nl.indexOf(k) !== -1; });
-        }) : [];
-        var result = dedup(byKw);
-        // 2. Category matches to fill
-        if (result.length < 5) {
-          dedup(tIdx.filter(function (t) { return termCats.indexOf(t.c) !== -1; })).forEach(function (t) { result.push(t); });
-        }
-        // 3. General fallback
-        if (result.length < 3) {
-          dedup(tIdx.filter(function (t) { return t.c === 'General'; })).forEach(function (t) { result.push(t); });
-        }
-        var subset = result.slice(0, 5);
-        if (!subset.length) return;
-        var el = buildRelTermsSection(subset);
+    var pg = location.pathname;
+    var isFaqDetail = /^\/faq\/[^/]+/.test(pg);
+    var isTermDetail = /^\/insurance-terms\/[^/]+/.test(pg);
+    if (!isFaqDetail && !isTermDetail) return;
+
+    function buildAndInsertTerms(subset, onFaqPage) {
+      if (!subset.length || document.querySelector('[data-oc-rel-terms]')) return;
+      var el = buildRelTermsSection(subset);
+      if (onFaqPage) {
+        // Terms go ABOVE the FAQ section -- insert before it if present, else after anchor
         var relFaqSec = document.querySelector('[data-oc-rel-faqs]');
         if (relFaqSec && relFaqSec.parentNode) {
-          relFaqSec.parentNode.insertBefore(el, relFaqSec.nextSibling);
-          return;
+          relFaqSec.parentNode.insertBefore(el, relFaqSec); return;
         }
         var anc2 = document.querySelector('.oc-faq-a,.oc-faq-back-link');
         if (anc2) {
           var ps2 = anc2.closest('section') || anc2.parentElement;
           if (ps2 && ps2.parentNode) { ps2.parentNode.insertBefore(el, ps2.nextSibling); return; }
         }
-        insertBeforeFooter(el);
+      } else {
+        // Term detail page -- insert after CMS related-terms section
+        var cmsSec = document.querySelector('.oc-term-related-section');
+        if (cmsSec && cmsSec.parentNode) {
+          cmsSec.parentNode.insertBefore(el, cmsSec.nextSibling); return;
+        }
+      }
+      insertBeforeFooter(el);
+    }
+
+    if (isFaqDetail) {
+      var sl = pg.replace(/^\/faq\//, '').replace(/\/$/, '');
+      fetchFaqIdx(function (faqIdx) {
+        if (!faqIdx.length) return;
+        var cur = null;
+        for (var i = 0; i < faqIdx.length; i++) { if (faqIdx[i].s === sl) { cur = faqIdx[i]; break; } }
+        if (!cur) return;
+        var termCats = FAQ_TERM_CATS[cur.c] || ['General'];
+        var kws = slugKeywords(sl);
+        fetchTermsIdx(function (tIdx) {
+          if (!tIdx.length || document.querySelector('[data-oc-rel-terms]')) return;
+          var seen = {};
+          function dedup(arr) {
+            return arr.filter(function (t) { if (seen[t.s]) return false; seen[t.s] = 1; return true; });
+          }
+          var byKw = kws.length ? tIdx.filter(function (t) {
+            var nl = t.n.toLowerCase();
+            return kws.some(function (k) { return nl.indexOf(k) !== -1; });
+          }) : [];
+          var result = dedup(byKw);
+          if (result.length < 5) {
+            dedup(tIdx.filter(function (t) { return termCats.indexOf(t.c) !== -1; })).forEach(function (t) { result.push(t); });
+          }
+          if (result.length < 3) {
+            dedup(tIdx.filter(function (t) { return t.c === 'General'; })).forEach(function (t) { result.push(t); });
+          }
+          buildAndInsertTerms(result.slice(0, 5), true);
+        });
       });
-    });
+    } else {
+      // Term detail page: find current term, keyword-match + same-category pills
+      var tsl = pg.replace(/^\/insurance-terms\//, '').replace(/\/$/, '');
+      fetchTermsIdx(function (tIdx) {
+        if (!tIdx.length || document.querySelector('[data-oc-rel-terms]')) return;
+        var cur = null;
+        for (var i = 0; i < tIdx.length; i++) { if (tIdx[i].s === tsl) { cur = tIdx[i]; break; } }
+        var curCat = cur ? cur.c : 'General';
+        var kws = slugKeywords(tsl);
+        var seen = {}; seen[tsl] = 1; // exclude current term
+        function dedup(arr) {
+          return arr.filter(function (t) { if (seen[t.s]) return false; seen[t.s] = 1; return true; });
+        }
+        var byKw = kws.length ? tIdx.filter(function (t) {
+          var nl = t.n.toLowerCase();
+          return kws.some(function (k) { return nl.indexOf(k) !== -1; });
+        }) : [];
+        var result = dedup(byKw);
+        if (result.length < 5) {
+          dedup(tIdx.filter(function (t) { return t.c === curCat; })).forEach(function (t) { result.push(t); });
+        }
+        if (result.length < 3) {
+          dedup(tIdx.filter(function (t) { return t.c === 'General'; })).forEach(function (t) { result.push(t); });
+        }
+        buildAndInsertTerms(result.slice(0, 5), false);
+      });
+    }
   }
 
   // ====================================================================
