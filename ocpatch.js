@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.7 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.8 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,10 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.8 -- injectRelatedTerms + injectRelatedFaqs: anchor both sections off
+//            .oc-term-cta-section on /insurance-terms/* pages so order CTA ->
+//            RelTerms -> RelFAQs is enforced regardless of which async fetch
+//            (terms-index.json vs faq-index.json) resolves first.
 // v1.11.7 -- injectDefinedTermSchema: remove Webflow-embed bare JSON-LD text
 //            node and body-level LD script before injecting proper head schema.
 //            Webflow strips <script> wrappers from embeds, rendering the JSON
@@ -1606,9 +1610,15 @@
       if (relTermsSec && relTermsSec.parentNode) {
         relTermsSec.parentNode.insertBefore(el, relTermsSec.nextSibling); return;
       }
-      // Insert after the section containing the answer or back-link (FAQ detail),
-      // or the related-terms wrapper (term detail). Fall back to before footer.
-      var anc = document.querySelector('.oc-term-related-wrap,[class*="oc-term-rel"],.oc-faq-a,.oc-faq-back-link');
+      // Term detail: anchor after CTA (Terms will wedge between CTA and FAQs
+      // when it resolves, producing CTA -> RelTerms -> RelFAQs above footer).
+      if (isTermDetail) {
+        var ctaSec = document.querySelector('.oc-term-cta-section');
+        if (ctaSec && ctaSec.parentNode) { ctaSec.parentNode.insertBefore(el, ctaSec.nextSibling); return; }
+        insertBeforeFooter(el); return;
+      }
+      // FAQ detail: insert after the answer or back-link section.
+      var anc = document.querySelector('.oc-faq-a,.oc-faq-back-link');
       if (anc) {
         var ps = anc.closest('section') || anc.parentElement;
         if (ps && ps.parentNode) { ps.parentNode.insertBefore(el, ps.nextSibling); return; }
@@ -1727,7 +1737,13 @@
           if (ps2 && ps2.parentNode) { ps2.parentNode.insertBefore(el, ps2.nextSibling); return; }
         }
       } else {
-        // Term detail page -- insert after CMS related-terms section
+        // Term detail page -- insert immediately after native CTA section.
+        // Using cta.nextSibling ensures Terms wedges between CTA and FAQs
+        // even when injectRelatedFaqs resolves first (race-safe).
+        var ctaSec2 = document.querySelector('.oc-term-cta-section');
+        if (ctaSec2 && ctaSec2.parentNode) {
+          ctaSec2.parentNode.insertBefore(el, ctaSec2.nextSibling); return;
+        }
         var cmsSec = document.querySelector('.oc-term-related-section');
         if (cmsSec && cmsSec.parentNode) {
           cmsSec.parentNode.insertBefore(el, cmsSec.nextSibling); return;
