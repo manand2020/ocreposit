@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.32 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.0 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -109,6 +109,20 @@
 //   injectFooterCTA    -> Exclude /carriers/* and /insurance/* from footer CTA
 //                      injection -- those templates have a native Webflow CTA
 //                      section, so the injected one was duplicating it. (v1.10.32)
+//
+// v1.11.0 -- Consolidation: absorbed ocattribution.js + ocstagingfixesv12 to
+//            eliminate two registered scripts and two maintained files.
+//   initAttribution    -> GCLID + UTM form attribution capture (was ocattribution.js
+//                      v1.0.0). Persists to sessionStorage; populates hidden inputs
+//                      on all forms; MutationObserver covers dynamic forms.
+//   augmentCarrierReviewRating -> Adds reviewRating {5/5} to Review JSON-LD on
+//                      /carriers/* when absent (was ocstagingfixesv12 fixSchema).
+//   restrictCoverageReviewDropdown -> Restricts state <select> to Georgia-only
+//                      on /coverage-review (was ocstagingfixesv12 fixDD).
+//   AGENT_RULES        -> Added "office visits by appointment only" text fix
+//                      (was ocstagingfixesv12 fixFt TreeWalker).
+//   injectNewsSchema   -> Now skips injection when CMS has already rendered a
+//                      NewsArticle schema (absorbs ocstagingfixesv12 injNews dedup).
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -337,7 +351,8 @@
     [/\bour agent\b/g, 'our advisor'],
     [/\bThe agent is who you buy from\b/g, 'The advisor is who you buy from'],
     [/\bthe agent is who you buy from\b/g, 'the advisor is who you buy from'],
-    [/\bagent will follow up\b/g, 'advisor will follow up']
+    [/\bagent will follow up\b/g, 'advisor will follow up'],
+    [/office visits by appointment only/gi, 'by appointment so we can give you our full attention']
   ];
 
   // brand attribution: "Olive Cover is a licensed [...] agency" ->
@@ -1029,6 +1044,15 @@
     var p = location.pathname.replace(/\/$/, '');
     if (p === '/news' || p.indexOf('/news/') !== 0) return; // only /news/{slug}
     if (document.querySelector('script[data-oc-news-schema="1"]')) return;
+    // Skip if CMS has already rendered a NewsArticle (prevents duplicate schema)
+    var ldScripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var ci = 0; ci < ldScripts.length; ci++) {
+      try {
+        var lo = JSON.parse(ldScripts[ci].textContent);
+        var la = lo['@graph'] || [lo];
+        if (la.some(function(it){ return it && it['@type'] === 'NewsArticle'; })) return;
+      } catch(e) {}
+    }
     var h1 = document.querySelector('h1.oc-news-h1') || document.querySelector('h1');
     if (!h1) return;
     var headline = (h1.textContent || '').trim().slice(0, 110);
@@ -1827,6 +1851,8 @@
     try { injectRelatedTerms(); } catch (e) {}
     try { hideDetailedRelTerms(); } catch (e) {}
     try { injectMarketingConsentFields(); } catch (e) {}
+    try { augmentCarrierReviewRating(); } catch (e) {}
+    try { restrictCoverageReviewDropdown(); } catch (e) {}
     try { injectInsightsInlineCTA(); } catch (e) {}
     try { injectInsightsStickyBar(); } catch (e) {}
     try { injectExitIntentModal(); } catch (e) {}
@@ -2007,7 +2033,50 @@
   }
 
   // ====================================================================
-  // 13. Insights email capture
+  // 13. Carrier Review schema augmentation (absorbed from ocstagingfixesv12)
+  //     Adds reviewRating {5/5} to any Review JSON-LD on /carriers/* that
+  //     lacks it. Guard: only runs when the field is absent.
+  // ====================================================================
+
+  function augmentCarrierReviewRating() {
+    if (!/^\/carriers\/[^/]+/.test(location.pathname)) return;
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s) {
+      try {
+        var o = JSON.parse(s.textContent);
+        var arr = o['@graph'] || [o];
+        var changed = false;
+        arr.forEach(function(it) {
+          if (it && it['@type'] === 'Review' && !it.reviewRating) {
+            it.reviewRating = {'@type': 'Rating', 'ratingValue': '5', 'bestRating': '5', 'worstRating': '1'};
+            changed = true;
+          }
+        });
+        if (changed) s.textContent = JSON.stringify(o);
+      } catch(e) {}
+    });
+  }
+
+  // Restricts both state <select> elements on /coverage-review to Georgia only.
+  // Removes all options except the placeholder and Georgia. Idempotent.
+  function restrictCoverageReviewDropdown() {
+    if (location.pathname !== '/coverage-review') return;
+    if (document.querySelector('[data-oc-dd-restricted]')) return;
+    var restricted = 0;
+    document.querySelectorAll('select').forEach(function(sel) {
+      Array.from(sel.options).forEach(function(opt) {
+        var v = (opt.value || '').toLowerCase();
+        var x = (opt.text || '').toLowerCase();
+        if (v && v !== 'ga' && v !== 'georgia' && x.indexOf('georgia') < 0 && x.indexOf('select') < 0) {
+          opt.remove();
+        }
+      });
+      sel.setAttribute('data-oc-dd-restricted', '1');
+      restricted++;
+    });
+  }
+
+  // ====================================================================
+  // 14. Insights email capture
   //     Component 1: inline article CTA (mid-scroll card)
   //     Component 2: sticky bottom bar (mobile-primary, dismissable)
   //     Component 3: exit-intent modal (desktop only, routes to Ask Olive)
@@ -2296,6 +2365,68 @@
     document.addEventListener('mouseleave', onMouseLeave);
   }
 
+  // ====================================================================
+  // 15. Form attribution -- GCLID + UTM capture (absorbed from ocattribution.js)
+  //     Persists first-touch data to sessionStorage; populates hidden inputs
+  //     on all forms site-wide. MutationObserver covers dynamic forms (CRV
+  //     multi-step, widget capture form).
+  // ====================================================================
+
+  var OC_ATTR_KEY = 'oc_attr';
+  var OC_ATTR_PARAMS = ['gclid','gbraid','wbraid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+  var OC_ATTR_FIELDS = OC_ATTR_PARAMS.concat(['referrer','landing_page','attribution_capture_ts']);
+
+  function ocAttrReadUrl() {
+    var search = new URLSearchParams(location.search);
+    var out = {};
+    OC_ATTR_PARAMS.forEach(function(k){ var v=search.get(k); if(v) out[k]=v.substring(0,500); });
+    return out;
+  }
+
+  function ocAttrReadGclCookie() {
+    var m = document.cookie.match(/_gcl_aw=([^;]+)/);
+    if (!m) return null;
+    var parts = decodeURIComponent(m[1]).split('.');
+    return parts.length >= 3 ? parts.slice(2).join('.') : null;
+  }
+
+  function ocAttrGet() {
+    try {
+      var stored = sessionStorage.getItem(OC_ATTR_KEY);
+      if (stored) { var p = JSON.parse(stored); if (p && p.attribution_capture_ts) return p; }
+    } catch(e) {}
+    var fresh = ocAttrReadUrl();
+    if (!fresh.gclid) { var cg = ocAttrReadGclCookie(); if (cg) fresh.gclid = cg; }
+    fresh.referrer = (document.referrer || '').substring(0, 500);
+    fresh.landing_page = (location.origin + location.pathname).substring(0, 500);
+    fresh.attribution_capture_ts = new Date().toISOString();
+    try { sessionStorage.setItem(OC_ATTR_KEY, JSON.stringify(fresh)); } catch(e) {}
+    return fresh;
+  }
+
+  function ocAttrPopulateForms(attr) {
+    document.querySelectorAll('form').forEach(function(form) {
+      OC_ATTR_FIELDS.forEach(function(name) {
+        var inp = form.querySelector('input[name="' + name + '"]');
+        if (!inp) {
+          inp = document.createElement('input');
+          inp.type = 'hidden'; inp.name = name;
+          inp.setAttribute('data-oc-attr', '1');
+          form.appendChild(inp);
+        }
+        if (attr[name]) inp.value = attr[name];
+      });
+    });
+  }
+
+  function initAttribution() {
+    var attr = ocAttrGet();
+    ocAttrPopulateForms(attr);
+    var obs = new MutationObserver(function(){ ocAttrPopulateForms(attr); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(function(){ try { obs.disconnect(); } catch(e){} }, 60000);
+  }
+
   var debounceTimer = null;
   function scheduleRun() {
     if (debounceTimer) return;
@@ -2303,6 +2434,7 @@
   }
 
   function boot() {
+    try { initAttribution(); } catch (e) {}
     try { wrapFeedbackFetch(); } catch (e) {}
     try { setupBooking(); } catch (e) {}
     runOnce();
