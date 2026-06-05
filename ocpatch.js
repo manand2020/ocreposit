@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.20 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.21 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1353,30 +1353,47 @@
     return sec;
   }
 
+  var TERM_STOP = /^(what|is|a|an|the|how|does|do|i|my|can|will|are|for|to|in|of|on|with|and|or|if|it|be|not|when|why|which|who|from|at|by|this|that|have|has|had|was|were|should|would|could|may|might|need|use|get|give|make|help|own|set|does|do|covers|covered|cover|work|works)$/;
+
+  function slugKeywords(slug) {
+    return slug.split(/[-_]+/).filter(function (w) { return w.length > 2 && !TERM_STOP.test(w); });
+  }
+
   function injectRelatedTerms() {
     if (document.querySelector('[data-oc-rel-terms]')) return;
     if (!/^\/faq\/[^/]+/.test(location.pathname)) return;
     var sl = location.pathname.replace(/^\/faq\//, '').replace(/\/$/, '');
-    // Need FAQ category -- share the cached faq index
     fetchFaqIdx(function (faqIdx) {
       if (!faqIdx.length) return;
       var cur = null;
       for (var i = 0; i < faqIdx.length; i++) { if (faqIdx[i].s === sl) { cur = faqIdx[i]; break; } }
       if (!cur) return;
       var termCats = FAQ_TERM_CATS[cur.c] || ['General'];
+      // Keywords from slug for relevance-first matching
+      var kws = slugKeywords(sl);
       fetchTermsIdx(function (tIdx) {
         if (!tIdx.length || document.querySelector('[data-oc-rel-terms]')) return;
-        var matched = tIdx.filter(function (t) { return termCats.indexOf(t.c) !== -1; });
-        if (matched.length < 3) {
-          tIdx.filter(function (t) { return t.c === 'General'; }).forEach(function (t) { matched.push(t); });
+        var seen = {};
+        function dedup(arr) {
+          return arr.filter(function (t) { if (seen[t.s]) return false; seen[t.s] = 1; return true; });
         }
-        // Deduplicate by slug
-        var seen = {}, deduped = [];
-        matched.forEach(function (t) { if (!seen[t.s]) { seen[t.s] = 1; deduped.push(t); } });
-        var subset = deduped.slice(0, 5);
+        // 1. Keyword matches (term name contains any FAQ slug keyword)
+        var byKw = kws.length ? tIdx.filter(function (t) {
+          var nl = t.n.toLowerCase();
+          return kws.some(function (k) { return nl.indexOf(k) !== -1; });
+        }) : [];
+        var result = dedup(byKw);
+        // 2. Category matches to fill
+        if (result.length < 5) {
+          dedup(tIdx.filter(function (t) { return termCats.indexOf(t.c) !== -1; })).forEach(function (t) { result.push(t); });
+        }
+        // 3. General fallback
+        if (result.length < 3) {
+          dedup(tIdx.filter(function (t) { return t.c === 'General'; })).forEach(function (t) { result.push(t); });
+        }
+        var subset = result.slice(0, 5);
         if (!subset.length) return;
         var el = buildRelTermsSection(subset);
-        // Insert after Related Questions section if present, else after FAQ answer
         var relFaqSec = document.querySelector('[data-oc-rel-faqs]');
         if (relFaqSec && relFaqSec.parentNode) {
           relFaqSec.parentNode.insertBefore(el, relFaqSec.nextSibling);
