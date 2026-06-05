@@ -1546,9 +1546,16 @@
     btn.href = '/coverage-review';
     btn.textContent = 'Free Coverage Review';
     btn.style.cssText = 'display:inline-block;padding:0 28px;background:#B8934A;font-family:Inter,system-ui,sans-serif;font-size:0.9375rem;font-weight:600;text-decoration:none;border-radius:4px;height:44px;line-height:44px;';
-    btn.style.setProperty('color', '#fff', 'important');
-    btn.addEventListener('mouseover', function () { btn.style.background = '#C7A24B'; btn.style.setProperty('color', '#fff', 'important'); });
-    btn.addEventListener('mouseout', function () { btn.style.background = '#B8934A'; btn.style.setProperty('color', '#fff', 'important'); });
+    // Use a scoped <style> rule rather than inline setProperty -- ocshim's global
+    // link-color fixer runs after us and overwrites inline color even with !important.
+    if (!document.querySelector('#oc-footer-cta-style')) {
+      var st = document.createElement('style');
+      st.id = 'oc-footer-cta-style';
+      st.textContent = '[data-oc-footer-cta] a{color:#fff!important}[data-oc-footer-cta] a:hover{background:#C7A24B!important;color:#fff!important}';
+      document.head.appendChild(st);
+    }
+    btn.addEventListener('mouseover', function () { btn.style.background = '#C7A24B'; });
+    btn.addEventListener('mouseout', function () { btn.style.background = '#B8934A'; });
     inner.appendChild(h);
     inner.appendChild(sub);
     inner.appendChild(btn);
