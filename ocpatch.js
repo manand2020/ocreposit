@@ -381,7 +381,7 @@
   // ====================================================================
 
   function fixCTAColor() {
-    var els = document.querySelectorAll('.oc-claims-hero-cta, .oc-stub-cta-primary');
+    var els = document.querySelectorAll('.oc-claims-hero-cta, .oc-stub-cta-primary, [data-oc-footer-cta] a');
     for (var i = 0; i < els.length; i++) els[i].style.removeProperty('color');
   }
 
