@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.0 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.2 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -109,6 +109,19 @@
 //   injectFooterCTA    -> Exclude /carriers/* and /insurance/* from footer CTA
 //                      injection -- those templates have a native Webflow CTA
 //                      section, so the injected one was duplicating it. (v1.10.32)
+//
+// v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
+//            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.2 -- Terms page fixes:
+//   hideDetailedRelTerms -> no longer hides .oc-term-cta-section; native
+//                      contextual CTA ("Want this checked against your actual
+//                      policy?") should remain visible. Only .oc-term-related-section
+//                      is suppressed (replaced by injected pills).
+//   injectFooterCTA    -> Added /insurance-terms/ to exclusion regex so generic
+//                      CTA is not injected on terms pages that have native CTA.
+//   buildRelFaqSection -> Changed from closed <details> accordion to direct
+//                      linked list -- question text is a clickable link to the
+//                      FAQ page; no click-to-expand required.
 //
 // v1.11.0 -- Consolidation: absorbed ocattribution.js + ocstagingfixesv12 to
 //            eliminate two registered scripts and two maintained files.
@@ -1513,29 +1526,14 @@
     h.style.cssText = 'font-family:Playfair Display,serif;font-size:1.25rem;font-weight:700;color:#1B3A5C;margin:0 0 16px;';
     sec.appendChild(h);
     faqs.forEach(function (f) {
-      var det = document.createElement('details');
-      det.style.cssText = 'border-bottom:1px solid #e5e7eb;padding:12px 0;';
-      var sum = document.createElement('summary');
-      sum.textContent = f.q;
-      sum.style.cssText = 'cursor:pointer;font-family:Inter,system-ui,sans-serif;font-weight:700;color:#1B3A5C;font-size:1.0625rem;line-height:1.4;list-style:none;';
-      var ans = document.createElement('div');
-      ans.style.cssText = 'margin-top:10px;padding-left:14px;border-left:2px solid #B8934A;';
-      ans.style.setProperty('display', 'none', 'important');
-      var ap = document.createElement('p');
-      ap.textContent = f.a;
-      ap.style.cssText = 'color:#374151;font-family:Inter,system-ui,sans-serif;font-size:0.9375rem;line-height:1.6;margin:0 0 8px;';
-      var al = document.createElement('a');
-      al.href = '/faq/' + f.s;
-      al.textContent = 'Read full answer';
-      al.style.cssText = 'color:#B8934A;font-weight:600;text-decoration:none;font-size:0.875rem;';
-      ans.appendChild(ap);
-      ans.appendChild(al);
-      det.appendChild(sum);
-      det.appendChild(ans);
-      det.addEventListener('toggle', function () {
-        ans.style.setProperty('display', det.open ? 'block' : 'none', 'important');
-      });
-      sec.appendChild(det);
+      var row = document.createElement('div');
+      row.style.cssText = 'border-bottom:1px solid #e5e7eb;padding:11px 0;';
+      var a = document.createElement('a');
+      a.href = '/faq/' + f.s;
+      a.textContent = f.q;
+      a.style.cssText = 'font-family:Inter,system-ui,sans-serif;font-weight:600;color:#1B3A5C;font-size:1rem;text-decoration:none;display:block;line-height:1.4;';
+      row.appendChild(a);
+      sec.appendChild(row);
     });
     return sec;
   }
@@ -1976,7 +1974,7 @@
   // pages since the injected pill section replaces it.
   function hideDetailedRelTerms() {
     if (/^\/insurance-terms\/[^/]+/.test(location.pathname)) {
-      ['.oc-term-related-section', '.oc-term-cta-section'].forEach(function (sel) {
+      ['.oc-term-related-section'].forEach(function (sel) {
         var sec = document.querySelector(sel);
         if (sec && sec.style.display !== 'none') sec.style.display = 'none';
       });
@@ -2000,7 +1998,7 @@
   function injectFooterCTA() {
     if (document.querySelector('[data-oc-footer-cta]')) return;
     var pg = location.pathname.replace(/\/$/, '');
-    if (/^\/(coverage-review|contact|book|carriers|insurance)(\/|$)/.test(pg) || pg === '') return;
+    if (/^\/(coverage-review|contact|book|carriers|insurance(-terms)?)(\/|$)/.test(pg) || pg === '') return;
     var sec = document.createElement('section');
     sec.setAttribute('data-oc-footer-cta', '1');
     sec.style.cssText = 'background:#F5EDD8;padding:48px 24px;text-align:center;';
