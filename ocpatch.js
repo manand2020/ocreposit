@@ -1,4 +1,9 @@
-// ocpatch.js v1.10.11 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.12 -- Consolidated runtime patcher for Olive Cover.
+//
+//   revealCarrierFaqs (v1.10.12): collapse the carrier-profile FAQ accordions
+//                      so only the questions show (click to expand), hide the
+//                      duplicate short-answer preview, and append a single
+//                      "View all insurance FAQs ->" link to the FAQ hub.
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -1093,15 +1098,34 @@
       if (show) anyVis = true;
       var det = it.querySelector('details');
       if (det) {
+        det.removeAttribute('open'); // clean collapsed accordion (question; click to expand)
         var sum = det.querySelector('summary');
         if (sum && sum.className.indexOf('oc-faq-q') < 0) sum.classList.add('oc-faq-q');
         [].forEach.call(det.children, function (c) { if (c.tagName !== 'SUMMARY' && c.className.indexOf('oc-faq-a') < 0) c.classList.add('oc-faq-a'); });
       }
+      // hide the short-answer preview so the question is not duplicated above the accordion
+      var sh = it.querySelector('.oc-faq-short');
+      if (sh) sh.style.display = 'none';
     });
     if (anyVis) {
       sec.classList.remove('oc-hidden');
       sec.style.setProperty('display', 'block', 'important');
       sec.removeAttribute('aria-hidden');
+      // add a single link to the full FAQ hub for discoverability + internal linking
+      if (!sec.querySelector('.oc-cfaq-allfaq')) {
+        var wrap = document.createElement('div');
+        wrap.className = 'oc-cfaq-allfaq-wrap';
+        wrap.style.setProperty('margin-top', '24px');
+        var a = document.createElement('a');
+        a.className = 'oc-cfaq-allfaq';
+        a.setAttribute('href', '/faq');
+        a.textContent = 'View all insurance FAQs →';
+        a.style.setProperty('color', '#B8934A', 'important');
+        a.style.setProperty('font-weight', '600', 'important');
+        a.style.setProperty('text-decoration', 'none', 'important');
+        wrap.appendChild(a);
+        list.appendChild(wrap);
+      }
     }
   }
 
