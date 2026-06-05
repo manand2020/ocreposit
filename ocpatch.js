@@ -1517,7 +1517,7 @@
         var wrapper = faqItem.firstElementChild;
         if (wrapper) {
           var last = wrapper.lastElementChild;
-          if (last && last.querySelector('a[href*="/coverage-review"]') && last.style.display !== 'none') {
+          if (last && last.textContent.indexOf('Have a question') !== -1 && last.style.display !== 'none') {
             last.style.display = 'none';
           }
         }
