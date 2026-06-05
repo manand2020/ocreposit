@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.10 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.11 -- Consolidated runtime patcher for Olive Cover.
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -1058,6 +1058,53 @@
     });
   }
 
+  // --- Carrier profile FAQ section (v1.10.11) ---
+  // ocfaq-complete.js force-hides per-page FAQ sections (#car-faq etc.) on all
+  // non-/faq pages, and its state filter only runs on /faq. Carrier appointments
+  // are national (where the agency and carrier do business), so carrier FAQs
+  // should show on the carrier profile regardless of the visitor's state, while
+  // any state-regulation-specific FAQ (tagged with a state) shows only when that
+  // state is selected. This reveals #car-faq on /carriers/{slug} and applies that
+  // model: national/untagged FAQs always show; state-tagged FAQs gate on state.
+  function revealCarrierFaqs() {
+    if (location.pathname.indexOf('/carriers/') !== 0) return;
+    var sec = document.getElementById('car-faq');
+    if (!sec) return;
+    var list = sec.querySelector('#car-faq-list, .oc-faq-list') || sec;
+    var items = [].slice.call(list.querySelectorAll('.w-dyn-item'));
+    if (!items.length) return; // no FAQs for this carrier -> leave hidden
+    var DEFAULT_STATE = 'national';
+    var active = (document.body.getAttribute('data-state') || DEFAULT_STATE).toLowerCase();
+    var stateOf = function (it) {
+      var d = it.querySelector('[data-state]') || it;
+      var s = (d.getAttribute && d.getAttribute('data-state')) || '';
+      return (s || DEFAULT_STATE).toLowerCase();
+    };
+    var qnum = function (it) { var d = it.querySelector('[data-question-number]'); return d ? d.getAttribute('data-question-number') : null; };
+    var over = {};
+    items.forEach(function (it) { var s = stateOf(it), q = qnum(it); if (s === active && s !== DEFAULT_STATE && q) over[q] = true; });
+    var anyVis = false;
+    items.forEach(function (it) {
+      var s = stateOf(it), q = qnum(it), show;
+      if (s === DEFAULT_STATE) { show = !over[q]; }
+      else if (s === active) { show = true; }
+      else { show = false; }
+      it.style.display = show ? '' : 'none';
+      if (show) anyVis = true;
+      var det = it.querySelector('details');
+      if (det) {
+        var sum = det.querySelector('summary');
+        if (sum && sum.className.indexOf('oc-faq-q') < 0) sum.classList.add('oc-faq-q');
+        [].forEach.call(det.children, function (c) { if (c.tagName !== 'SUMMARY' && c.className.indexOf('oc-faq-a') < 0) c.classList.add('oc-faq-a'); });
+      }
+    });
+    if (anyVis) {
+      sec.classList.remove('oc-hidden');
+      sec.style.setProperty('display', 'block', 'important');
+      sec.removeAttribute('aria-hidden');
+    }
+  }
+
   // ====================================================================
   // 11. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
@@ -1085,6 +1132,7 @@
     try { insightsFeatured(); } catch (e) {}
     try { insightsLoadAll(); } catch (e) {}
     try { insightsFilter(); } catch (e) {}
+    try { revealCarrierFaqs(); } catch (e) {}
   }
 
   var debounceTimer = null;
