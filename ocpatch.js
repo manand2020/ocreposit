@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.29 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.30 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -77,6 +77,19 @@
 //                      Adds spatialCoverage if body[data-oc-jurisdiction="Georgia"]
 //                      (Designer binding; absent = Federal, no spatial scope).
 //                      (v1.10.28)
+//   injectJurisdictionNotice -> Displays a one-line "Georgia-specific content"
+//                      notice after the H1 on Georgia FAQ and Insights detail
+//                      pages. Uses baked-in lookup maps (OC_FAQ_GA_SLUGS from
+//                      state-slug field, OC_INSIGHTS_SCOPE from scope field),
+//                      both fetched via Data API on 2026-06-05 (534 FAQs,
+//                      23 Insights). Insurance Terms skipped (all null juris.).
+//                      (v1.10.30)
+//   augmentQAPageSchema -> Adds spatialCoverage {State: Georgia} to the CMS-
+//                      rendered QAPage JSON-LD on Georgia FAQ detail pages.
+//                      Guards via data-oc-schema-aug attribute. (v1.10.30)
+//   augmentInsightsSchema -> Adds spatialCoverage {State: Georgia} to the CMS-
+//                      rendered Article JSON-LD on Georgia-scope Insights pages.
+//                      Guards via data-oc-schema-aug attribute. (v1.10.30)
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -96,6 +109,180 @@
 
   var BOOK_URL = '/book';
   var BOOK_LABEL = 'Book a call';
+
+  // ====================================================================
+  // JURISDICTION LOOKUP MAPS (baked from CMS Data API, 2026-06-05)
+  // FAQs: state-slug field. 266 of 534 FAQs are Georgia-specific.
+  // Insights: scope field. 8 of 23 articles are Georgia-scope.
+  // Insurance Terms: all 84 items have jurisdiction=null; skipped.
+  // ====================================================================
+  var OC_FAQ_GA_SLUGS = {
+    "aig-ga-high-net-worth":1,"alpharetta-best-carriers":1,"alpharetta-hoa":1,
+    "alpharetta-tech-workers":1,"alpharetta-tech-workers-coverage":1,
+    "amtrust-workers-comp-georgia-coverage":1,"berkley-aspire-ga-surplus-lines":1,
+    "berkley-mgmt-do-epl-specialty":1,"boat-lake-lanier":1,"bop-employee-injury":1,
+    "branch-ga-atlanta-limits":1,"branch-ga-community-underwriting":1,
+    "buford-insurance-lake-lanier-commercial":1,"cheapest-renters-georgia":1,
+    "cherokee-forsyth-best-carriers":1,"cherokee-forsyth-rural":1,
+    "cherokee-forsyth-rural-coverage":1,"cherokee-forsyth-shop":1,
+    "chubb-commercial-do-epl-specialty":1,"chubb-ga-masterpiece-high-value":1,
+    "cna-commercial-ga-professional-liability":1,"coalition-cyber-active-insurance":1,
+    "collector-auto-insurance-vs-regular":1,"columbus-best-carriers":1,
+    "columbus-military-insurance-fort-moore":1,"columbus-military-needs":1,
+    "columbus-weather-flood":1,"condo-insurance-amount":1,
+    "cowbell-cyber-ai-underwriting":1,"cumming-best-carriers":1,
+    "cumming-dwelling-review":1,"cumming-lake-lanier-boat":1,
+    "cumming-new-construction-coverage":1,
+    "difference-between-insurance-carrier-and-agent":1,
+    "does-georgia-require-workers-compensation":1,"duluth-best-carriers":1,
+    "duluth-business-gaps":1,"duluth-business-insurance-community":1,
+    "duluth-flood":1,"employers-wc-ga-small-business":1,
+    "foremost-ga-specialty-lines":1,"ga-auto-minimums":1,
+    "ga-auto-teen-driver-premium":1,"ga-auto-um-coverage-why":1,
+    "ga-auto-um-needed":1,"ga-auto-um-why":1,"ga-boat-liability-limits":1,
+    "ga-boat-liability-limits-96694":1,"ga-boat-liability-limits-needed":1,
+    "ga-bop-cost-vs-separate":1,"ga-bop-included-excluded":1,
+    "ga-bop-property-limit-check":1,"ga-bop-who-needs":1,
+    "ga-commercial-auto-hnoa":1,"ga-commercial-auto-hnoa-needed":1,
+    "ga-commercial-auto-minimums":1,"ga-commercial-auto-rate-factors":1,
+    "ga-commercial-umbrella-needed":1,"ga-condo-bare-walls-all-in":1,
+    "ga-condo-earthquake":1,"ga-condo-liability":1,
+    "ga-condo-loss-assessment-coverage":1,"ga-condo-loss-assessment-ga":1,
+    "ga-condo-master-gap":1,"ga-condo-water-backup-drains":1,
+    "ga-cyber-average-claim-cost":1,"ga-cyber-security-controls":1,
+    "ga-cyber-social-engineering":1,"ga-cyber-underwriting-controls-mfa":1,
+    "ga-cyber-what-covered-excluded":1,"ga-cyber-who-needs":1,
+    "ga-eo-how-much-limits":1,"ga-epo-claims-made-how-works":1,
+    "ga-farm-fire-protection-class":1,"ga-farm-hobby-classification":1,
+    "ga-farm-livestock":1,"ga-farm-protection-class":1,"ga-farm-regions":1,
+    "ga-farm-vs-homeowners":1,"ga-farm-what-covered":1,"ga-fault-state":1,
+    "ga-flood-private-vs-nfip":1,"ga-flood-private-vs-nfip-when":1,
+    "ga-flood-zone-x":1,"ga-flood-zone-x-risk":1,
+    "ga-gl-coi-vs-additional-insured":1,"ga-gl-how-much-limits":1,
+    "ga-gl-key-exclusions":1,"ga-gl-limits-standard":1,
+    "ga-habitational-apartment-building":1,"ga-habitational-common-claims":1,
+    "ga-habitational-earthquake-excluded":1,"ga-habitational-hoa-master-policy":1,
+    "ga-habitational-liability-limits":1,
+    "ga-habitational-loss-of-rents-excluded":1,"ga-ho-dog-bite":1,
+    "ga-ho-dog-bite-liability":1,"ga-ho-extended-replacement-cost":1,
+    "ga-ho-rcv-vs-acv":1,"ga-ho-rcv-vs-acv-explained":1,
+    "ga-ho-wind-hail-deductible":1,"ga-home-biz-client-injury":1,
+    "ga-home-biz-ecommerce-products":1,"ga-home-biz-eo-needed":1,
+    "ga-home-biz-equipment-gap":1,"ga-home-biz-exclusion-explained":1,
+    "ga-home-biz-liability":1,"ga-homeowners-required":1,
+    "ga-jewelry-appraisal-docs":1,"ga-jewelry-appraisal-needed":1,
+    "ga-jewelry-homeowners-sublimit-gap":1,
+    "ga-jewelry-homeowners-vs-standalone":1,
+    "ga-jewelry-mysterious-disappearance":1,
+    "ga-jewelry-mysterious-disappearance-3c870":1,
+    "ga-landlord-loss-of-rents":1,"ga-landlord-loss-of-rents-amount":1,
+    "ga-landlord-require-tenants-renters":1,"ga-landlord-what-covered":1,
+    "ga-mgmt-fiduciary-erisa":1,"ga-mgmt-liability-claims-made":1,
+    "ga-mgmt-liability-do-claim-triggers":1,
+    "ga-mgmt-liability-do-epl-who-needs":1,
+    "ga-mgmt-liability-epl-triggers":1,"ga-mgmt-liability-personal-exposure":1,
+    "ga-moto-coverage-recommendations":1,"ga-moto-custom-accessories":1,
+    "ga-moto-liability-limits":1,"ga-moto-minimum-required":1,
+    "ga-moto-passenger-coverage":1,"ga-moto-required-coverage":1,
+    "ga-moto-theft-comprehensive":1,"ga-nonprofit-abuse-molestation":1,
+    "ga-nonprofit-board-do-liability":1,"ga-nonprofit-carriers":1,
+    "ga-nonprofit-do-donor-claims":1,"ga-nonprofit-required-coverage":1,
+    "ga-nonprofit-three-coverages":1,"ga-other-commercial-contractor-package":1,
+    "ga-other-commercial-liquor-liability":1,"ga-other-commercial-specialty":1,
+    "ga-other-commercial-what-needed":1,"ga-other-manufactured-home":1,
+    "ga-other-personal-available":1,"ga-other-personal-carriers":1,
+    "ga-other-personal-event-wedding":1,"ga-other-personal-identity-theft":1,
+    "ga-other-personal-pet-insurance":1,"ga-other-personal-rv-coverage":1,
+    "ga-other-personal-specialty":1,"ga-other-rv-coverage":1,
+    "ga-other-vacation-home":1,"ga-pl-exclusions":1,"ga-pl-retroactive-date":1,
+    "ga-pl-tail-coverage":1,"ga-renters-ale-displacement":1,
+    "ga-renters-how-much-coverage":1,"ga-require-renters":1,
+    "ga-scheduled-advantages-over-ho":1,"ga-scheduled-articles-items":1,
+    "ga-scheduled-vs-standalone":1,"ga-scheduled-what-to-schedule":1,
+    "ga-state-auto-minimums-enough":1,"ga-state-flood-risk-statewide":1,
+    "ga-state-homeowners-common-mistakes":1,"ga-state-how-differs":1,
+    "ga-state-licensed-all-counties":1,"ga-str-occasional-vs-full-time":1,
+    "ga-str-permit-rules":1,"ga-str-permits":1,"ga-str-type-policy-needed":1,
+    "ga-umbrella-assets-protected":1,"ga-umbrella-how-much-coverage":1,
+    "ga-umbrella-underlying-limits":1,"ga-umbrella-who-needs-it":1,
+    "ga-wc-employee-count":1,"ga-wc-premium-calculation-7b719":1,
+    "ga-wc-threshold":1,"ga-wc-threshold-counting-employees":1,
+    "georgia-at-fault-no-fault-auto-insurance":1,
+    "georgia-minimum-auto-insurance-requirements":1,
+    "gwinnett-best-carriers":1,"gwinnett-county-business-insurance":1,
+    "gwinnett-shop-multiple":1,"gwinnett-weather-flood":1,
+    "hanover-commercial-ga-small-mid-market":1,
+    "hartford-commercial-ga-bop-wc":1,"hartford-commercial-service":1,
+    "hartford-ga-best-fit":1,"hartford-ga-personal-lines":1,
+    "hippo-ga-best-fit":1,"hippo-ga-smart-home-difference":1,
+    "how-to-file-insurance-complaint-georgia":1,
+    "insurance-alpharetta-homeowners-georgia":1,
+    "insurance-buford-lake-lanier-georgia":1,
+    "insurance-cumming-forsyth-county-georgia":1,
+    "insurance-duluth-gwinnett-county-georgia":1,
+    "insurance-lawrenceville-gwinnett-georgia":1,
+    "insurance-needs-johns-creek-homeowners":1,"insurance-sugar-hill-georgia":1,
+    "insurance-suwanee-georgia":1,"jewelers-mutual-ga-claims-process":1,
+    "johns-creek-best-carriers":1,"johns-creek-cost-reason":1,
+    "johns-creek-hoa-coverage":1,"johns-creek-underinsured-dwelling":1,
+    "lawrenceville-best-carriers":1,"lawrenceville-medical-professional-coverage":1,
+    "lawrenceville-professional":1,"lawrenceville-weather":1,
+    "my-renewal-went-up-should-i-shop-around":1,
+    "national-general-ga-non-standard":1,"nationwide-claims-quality":1,
+    "nationwide-commercial-claims":1,"nationwide-commercial-ga-appointed":1,
+    "nationwide-commercial-ga-farm-bop":1,"nationwide-ga-appointed":1,
+    "nationwide-ga-claims-satisfaction":1,"nationwide-ga-farm-rural":1,
+    "nationwide-ga-farm-rural-b237f":1,"nfip-vs-private-ga":1,
+    "north-atlanta-best-carriers":1,"north-atlanta-common-coverage-gaps":1,
+    "north-atlanta-weather-risks":1,"north-atlanta-why-different":1,
+    "olive-licensed":1,"openly-ga-appetite":1,"openly-ga-appointed":1,
+    "openly-ga-high-value-homes":1,"philadelphia-insurance-ga-nonprofit":1,
+    "progressive-commercial-ga-appointed":1,"progressive-commercial-ga-auto":1,
+    "progressive-commercial-wc":1,"progressive-ga-appointed":1,
+    "progressive-ga-auto-pricing":1,"progressive-ga-best-for":1,
+    "progressive-ga-snapshot-telematics":1,"progressive-specialty-vehicles":1,
+    "renters-required-georgia":1,"rli-ga-standalone-umbrella":1,
+    "safeco-ga-appointed":1,"safeco-ga-auto-pricing":1,"safeco-ga-best-for":1,
+    "safeco-independent-agent-only":1,"savannah-active-carriers":1,
+    "savannah-coastal-different":1,"savannah-coastal-homeowners-coverage":1,
+    "savannah-tybee-flood":1,"selective-ga-flood-private":1,
+    "steadily-ga-str-landlord":1,"stillwater-ga-appointed":1,
+    "stillwater-ga-non-standard":1,"stillwater-pricing-context":1,
+    "sugar-hill-homeowners-coverage-issues":1,"suwanee-hoa-coverage-interaction":1,
+    "travelers-am-best-explained":1,"travelers-commercial-business-size":1,
+    "travelers-commercial-ga-appointed":1,"travelers-commercial-ga-mid-market":1,
+    "travelers-ga-am-best-rating":1,"travelers-ga-best-pricing":1,
+    "travelers-ga-claims-experience":1,"travelers-ga-homeowners-appetite":1,
+    "umbrella-asset-protection-ga":1,"us-assure-builders-risk-georgia":1,
+    "wc-1099-contractors":1,"wc-3-employee-rule":1
+  };
+
+  // Insights scope: Georgia (g) or National (n). 8 Georgia-scope articles.
+  var OC_INSIGHTS_SCOPE = {
+    "acv-vs-rcv-replacement-cost-coverage-explained":"n",
+    "atlanta-tornado-hail-wind-coverage":"g",
+    "georgia-auto-insurance-minimum-limits":"g",
+    "georgia-bop-insurance-guide":"n",
+    "georgia-commercial-auto-insurance-guide-b880e":"n",
+    "georgia-cyber-insurance-guide":"n",
+    "georgia-flood-insurance-nfip-vs-private":"n",
+    "georgia-general-liability-insurance-guide":"n",
+    "georgia-home-underinsured-dwelling-coverage":"n",
+    "georgia-homeowners-insurance-common-gaps":"n",
+    "georgia-professional-liability-insurance-guide":"n",
+    "georgia-renters-insurance-guide":"n",
+    "georgia-sewer-backup-water-damage-coverage":"g",
+    "georgia-small-business-insurance-guide":"n",
+    "georgia-umbrella-insurance-guide":"n",
+    "georgia-wind-hail-deductibles-explained":"g",
+    "georgia-workers-compensation-guide":"g",
+    "nfip-flood-insurance-georgia":"n",
+    "north-atlanta-homeowners-underinsured":"g",
+    "north-atlanta-insurance-markets-guide":"g",
+    "not-at-fault-georgia-accident-insurance":"g",
+    "personal-umbrella-insurance-georgia":"n",
+    "what-is-a-declarations-page":"n"
+  };
 
   // ====================================================================
   // 1. TEXT RULES (applied in a single TreeWalker pass)
@@ -1589,6 +1776,9 @@
     try { injectNewsNav(); } catch (e) {}
     try { injectNewsSchema(); } catch (e) {}
     try { injectDefinedTermSchema(); } catch (e) {}
+    try { augmentQAPageSchema(); } catch (e) {}
+    try { augmentInsightsSchema(); } catch (e) {}
+    try { injectJurisdictionNotice(); } catch (e) {}
     try { wireAboutDropdown(); } catch (e) {}
     try { fixNewsCardLinks(); } catch (e) {}
     try { eagerCardImages(); } catch (e) {}
@@ -1604,6 +1794,74 @@
     try { injectInsightsStickyBar(); } catch (e) {}
     try { injectExitIntentModal(); } catch (e) {}
     try { injectFooterCTA(); } catch (e) {}
+  }
+
+  // Injects a one-line notice after the H1 on Georgia-specific FAQ and Insights
+  // detail pages. Reads from OC_FAQ_GA_SLUGS and OC_INSIGHTS_SCOPE.
+  // Insurance Terms: skipped (all items have null jurisdiction as of 2026-06-05).
+  function injectJurisdictionNotice() {
+    if (document.querySelector('[data-oc-juris-notice]')) return;
+    var p = location.pathname.replace(/\/$/, '');
+    var msg = null;
+    var m;
+    m = p.match(/^\/faq\/(.+)$/);
+    if (m && OC_FAQ_GA_SLUGS[m[1]]) {
+      msg = 'Georgia-specific. Rules and requirements described here apply to Georgia residents. Details may differ in other states.';
+    }
+    if (!msg) {
+      m = p.match(/^\/insights\/(.+)$/);
+      if (m && OC_INSIGHTS_SCOPE[m[1]] === 'g') {
+        msg = 'Georgia-specific. Coverage rules described in this article apply to Georgia. Requirements may differ in other states.';
+      }
+    }
+    if (!msg) return;
+    var h1 = document.querySelector('h1');
+    if (!h1) return;
+    var div = document.createElement('div');
+    div.setAttribute('data-oc-juris-notice', '1');
+    div.style.cssText = 'display:block;background:#F5EDD8;border-left:3px solid #B8934A;padding:7px 12px;margin:10px 0 18px;font-size:13px;color:#1B3A5C;line-height:1.5;border-radius:0 3px 3px 0;font-family:Inter,sans-serif;font-weight:400;';
+    div.textContent = msg;
+    h1.parentNode.insertBefore(div, h1.nextSibling);
+  }
+
+  // Augments the CMS-rendered QAPage JSON-LD on Georgia FAQ detail pages with
+  // spatialCoverage. Modifies in-place to keep exactly one QAPage schema.
+  function augmentQAPageSchema() {
+    var m = location.pathname.replace(/\/$/, '').match(/^\/faq\/(.+)$/);
+    if (!m || !OC_FAQ_GA_SLUGS[m[1]]) return;
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var i = 0; i < scripts.length; i++) {
+      if (scripts[i].hasAttribute('data-oc-schema-aug')) continue;
+      try {
+        var obj = JSON.parse(scripts[i].textContent);
+        if (obj['@type'] === 'QAPage') {
+          obj.spatialCoverage = {'@type': 'State', 'name': 'Georgia, United States'};
+          scripts[i].textContent = JSON.stringify(obj);
+          scripts[i].setAttribute('data-oc-schema-aug', '1');
+          return;
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Augments the CMS-rendered Article JSON-LD on Georgia-scope Insights pages
+  // with spatialCoverage. Modifies in-place to keep exactly one Article schema.
+  function augmentInsightsSchema() {
+    var m = location.pathname.replace(/\/$/, '').match(/^\/insights\/(.+)$/);
+    if (!m || OC_INSIGHTS_SCOPE[m[1]] !== 'g') return;
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var i = 0; i < scripts.length; i++) {
+      if (scripts[i].hasAttribute('data-oc-schema-aug')) continue;
+      try {
+        var obj = JSON.parse(scripts[i].textContent);
+        if (obj['@type'] === 'Article') {
+          obj.spatialCoverage = {'@type': 'State', 'name': 'Georgia, United States'};
+          scripts[i].textContent = JSON.stringify(obj);
+          scripts[i].setAttribute('data-oc-schema-aug', '1');
+          return;
+        }
+      } catch (e) {}
+    }
   }
 
   // Hides the CMS-bound detailed related-terms section on /insurance-terms/{slug}
