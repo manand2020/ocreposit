@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.26 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.27 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1548,6 +1548,9 @@
     try { injectRelatedTerms(); } catch (e) {}
     try { hideDetailedRelTerms(); } catch (e) {}
     try { injectMarketingConsentFields(); } catch (e) {}
+    try { injectInsightsInlineCTA(); } catch (e) {}
+    try { injectInsightsStickyBar(); } catch (e) {}
+    try { injectExitIntentModal(); } catch (e) {}
     try { injectFooterCTA(); } catch (e) {}
   }
 
@@ -1610,6 +1613,296 @@
     inner.appendChild(btn);
     sec.appendChild(inner);
     insertBeforeFooter(sec);
+  }
+
+  // ====================================================================
+  // 13. Insights email capture
+  //     Component 1: inline article CTA (mid-scroll card)
+  //     Component 2: sticky bottom bar (mobile-primary, dismissable)
+  //     Component 3: exit-intent modal (desktop only, routes to Ask Olive)
+  //     Email submissions POST to OliveCRM via CLIP forms endpoint.
+  //     Mailchimp audience tagging is a follow-up task (needs account setup).
+  // ====================================================================
+
+  var OC_EC_ENDPOINT = 'https://forms-3q26d3khpa-ue.a.run.app/forms/email-capture';
+  var OC_EC_AUTH = 'fLnkE70cjSKztJ2VGnThheVSFwuW16WepOCxcSrDeHY=';
+
+  var OC_MAGNETS = {
+    '/insights/georgia-flood-insurance-nfip-vs-private': {
+      id: 'flood-decision-guide',
+      headline: 'Get the GA Flood Zone Decision Guide',
+      desc: 'NFIP vs private flood, waiting periods, and zone classifications explained in plain English. One page.'
+    },
+    '/insights/georgia-homeowners-insurance-common-gaps': {
+      id: 'coverage-gaps-checklist',
+      headline: 'Get the Coverage Gaps Checklist',
+      desc: 'The 7 coverage gaps most Georgia homeowners miss, with plain-language explanations of each.'
+    },
+    '/insights/personal-umbrella-insurance-georgia': {
+      id: 'umbrella-calculator',
+      headline: 'Try the Umbrella Coverage Calculator',
+      desc: 'Enter your assets and exposure -- get a suggested umbrella limit in under 2 minutes.'
+    }
+  };
+
+  var OC_MAGNET_DEFAULT = {
+    id: 'coverage-gaps-checklist',
+    headline: 'Get the Coverage Gaps Checklist',
+    desc: 'A free plain-English guide to the 7 coverage gaps most Georgia homeowners miss.'
+  };
+
+  function ocGetMagnet() {
+    return OC_MAGNETS[location.pathname.replace(/\/$/, '')] || OC_MAGNET_DEFAULT;
+  }
+
+  function ocPushCapture(name, params) {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(Object.assign({ event: name }, params || {}));
+  }
+
+  function ocSubmitCapture(email, magnetId, placement, onSuccess, onError) {
+    var payload = {
+      form_type: 'email-capture',
+      submission_id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2)),
+      page_url: location.href,
+      submitted_at: new Date().toISOString(),
+      fields: {
+        email: email,
+        lead_magnet_id: magnetId,
+        placement: placement,
+        source: 'insights',
+        page_path: location.pathname,
+        state: (function () { try { return (localStorage.getItem('oc_state') || '').toUpperCase(); } catch (e) { return ''; } })()
+      }
+    };
+    fetch(OC_EC_ENDPOINT, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json', 'X-Forms-Auth': OC_EC_AUTH },
+      body: JSON.stringify(payload)
+    }).then(function (res) {
+      if (!res.ok) throw new Error(res.status);
+      ocPushCapture('email_capture_submitted', { placement: placement, magnet: magnetId, page_path: location.pathname });
+      onSuccess();
+    }).catch(function () { onError(); });
+  }
+
+  function ocMakeEmailInput(idAttr, placeholder) {
+    var inp = document.createElement('input');
+    inp.type = 'email';
+    inp.id = idAttr;
+    inp.name = 'email';
+    inp.placeholder = placeholder || 'Your email address';
+    inp.required = true;
+    inp.autocomplete = 'email';
+    return inp;
+  }
+
+  // Component 1: inline card inserted after the 2nd H2 in /insights/* articles
+  function injectInsightsInlineCTA() {
+    if (!/^\/insights\/[^/]+/.test(location.pathname)) return;
+    if (document.querySelector('[data-oc-email-capture="inline"]')) return;
+    var h2s = Array.from(document.querySelectorAll('h2'));
+    var anchor = h2s[1] || h2s[0];
+    if (!anchor) return;
+    var magnet = ocGetMagnet();
+
+    var wrap = document.createElement('div');
+    wrap.setAttribute('data-oc-email-capture', 'inline');
+    wrap.setAttribute('data-magnet', magnet.id);
+    wrap.style.cssText = 'background:#F5EDD8;border:1px solid #B8934A;border-radius:8px;padding:24px;margin:32px 0;font-family:Inter,system-ui,sans-serif;';
+
+    var hEl = document.createElement('p');
+    hEl.textContent = magnet.headline;
+    hEl.style.cssText = 'font-family:Playfair Display,serif;font-size:1.125rem;font-weight:700;color:#1B3A5C;margin:0 0 8px;';
+
+    var dEl = document.createElement('p');
+    dEl.textContent = magnet.desc;
+    dEl.style.cssText = 'font-size:0.875rem;color:#1B3A5C;opacity:0.75;margin:0 0 16px;line-height:1.5;';
+
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+
+    var inp = ocMakeEmailInput('oc-ec-inline-email', 'Your email');
+    inp.style.cssText = 'flex:1 1 180px;padding:0 12px;height:40px;border:1px solid #B8934A;border-radius:4px;font-size:0.875rem;font-family:Inter,system-ui,sans-serif;background:#fff;color:#1B3A5C;min-width:0;';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Get the PDF';
+    btn.style.cssText = 'padding:0 20px;height:40px;background:#B8934A;color:#fff;border:none;border-radius:4px;font-size:0.875rem;font-weight:600;font-family:Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;';
+
+    var msgEl = document.createElement('p');
+    msgEl.style.cssText = 'font-size:0.8125rem;color:#1B3A5C;margin:8px 0 0;display:none;';
+
+    var fine = document.createElement('p');
+    fine.textContent = 'One email. No spam. Unsubscribe anytime.';
+    fine.style.cssText = 'font-size:0.75rem;color:#1B3A5C;opacity:0.55;margin:8px 0 0;';
+
+    btn.addEventListener('click', function () {
+      var em = inp.value.trim();
+      if (!em || em.indexOf('@') < 0) { msgEl.textContent = 'Please enter a valid email address.'; msgEl.style.display = 'block'; return; }
+      btn.textContent = 'Sending...'; btn.disabled = true; msgEl.style.display = 'none';
+      ocSubmitCapture(em, magnet.id, 'inline',
+        function () { btn.textContent = 'Sent!'; msgEl.textContent = 'Check your inbox -- your guide is on the way.'; msgEl.style.display = 'block'; },
+        function () { btn.textContent = 'Get the PDF'; btn.disabled = false; msgEl.textContent = 'Something went wrong. Please try again.'; msgEl.style.display = 'block'; }
+      );
+    });
+
+    row.appendChild(inp); row.appendChild(btn);
+    wrap.appendChild(hEl); wrap.appendChild(dEl); wrap.appendChild(row);
+    wrap.appendChild(msgEl); wrap.appendChild(fine);
+    anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+
+    if (window.IntersectionObserver) {
+      var seen = false;
+      new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting && !seen) {
+          seen = true;
+          ocPushCapture('email_capture_displayed', { placement: 'inline', magnet: magnet.id, page_path: location.pathname });
+        }
+      }).observe(wrap);
+    }
+  }
+
+  // Component 2: sticky bottom bar, /insights/* only, dismissable
+  function injectInsightsStickyBar() {
+    if (!/^\/insights\/[^/]+/.test(location.pathname)) return;
+    if (document.querySelector('[data-oc-email-bar]')) return;
+    try { if (sessionStorage.getItem('oc_bar_dismissed')) return; } catch (e) {}
+
+    var bar = document.createElement('div');
+    bar.setAttribute('data-oc-email-bar', '1');
+    bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9998;background:#1B3A5C;padding:12px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;font-family:Inter,system-ui,sans-serif;box-shadow:0 -2px 8px rgba(0,0,0,0.15);';
+
+    var lbl = document.createElement('span');
+    lbl.textContent = 'Want a free Georgia insurance tip every week?';
+    lbl.style.cssText = 'color:#F5EDD8;font-size:0.875rem;flex:1 1 180px;';
+
+    var inp = ocMakeEmailInput('oc-ec-bar-email', 'Your email');
+    inp.style.cssText = 'width:200px;max-width:100%;padding:0 10px;height:36px;border:1px solid #B8934A;border-radius:4px;font-size:0.875rem;background:#fff;color:#1B3A5C;';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Subscribe';
+    btn.style.cssText = 'padding:0 16px;height:36px;background:#B8934A;color:#fff;border:none;border-radius:4px;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.setAttribute('aria-label', 'Dismiss');
+    closeBtn.textContent = 'x';
+    closeBtn.style.cssText = 'background:none;border:none;color:#F5EDD8;opacity:0.6;font-size:1.25rem;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;';
+
+    closeBtn.addEventListener('click', function () {
+      bar.style.display = 'none';
+      try { sessionStorage.setItem('oc_bar_dismissed', '1'); } catch (e) {}
+      ocPushCapture('email_capture_dismissed', { placement: 'sticky_bar', page_path: location.pathname });
+    });
+
+    btn.addEventListener('click', function () {
+      var em = inp.value.trim();
+      if (!em || em.indexOf('@') < 0) { inp.style.borderColor = '#c00'; return; }
+      inp.style.borderColor = '#B8934A';
+      btn.textContent = 'Sending...'; btn.disabled = true;
+      var magnet = ocGetMagnet();
+      ocSubmitCapture(em, magnet.id, 'sticky_bar',
+        function () { btn.textContent = 'Subscribed!'; inp.style.display = 'none'; },
+        function () { btn.textContent = 'Subscribe'; btn.disabled = false; }
+      );
+    });
+
+    bar.appendChild(lbl); bar.appendChild(inp); bar.appendChild(btn); bar.appendChild(closeBtn);
+    document.body.appendChild(bar);
+
+    function showBar() {
+      if (bar.style.display === 'flex') return;
+      bar.style.display = 'flex';
+      ocPushCapture('email_capture_displayed', { placement: 'sticky_bar', page_path: location.pathname });
+    }
+
+    var scrollFired = false;
+    window.addEventListener('scroll', function () {
+      if (scrollFired) return;
+      var pct = (window.scrollY + window.innerHeight) / Math.max(document.body.scrollHeight, 1);
+      if (pct >= 0.5) { scrollFired = true; showBar(); }
+    }, { passive: true });
+
+    setTimeout(showBar, 30000);
+  }
+
+  // Component 3: exit-intent modal (desktop only), routes to Ask Olive chat
+  function injectExitIntentModal() {
+    if (!/^\/insights\/[^/]+/.test(location.pathname)) return;
+    if (window.innerWidth < 768) return;
+    if (document.querySelector('[data-oc-exit-modal]')) return;
+    try { if (sessionStorage.getItem('oc_exit_shown')) return; } catch (e) {}
+
+    var overlay = document.createElement('div');
+    overlay.setAttribute('data-oc-exit-modal', '1');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;';
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:8px;padding:32px 28px;max-width:380px;width:90%;text-align:center;font-family:Inter,system-ui,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
+
+    var h = document.createElement('p');
+    h.textContent = 'Hold on -- got a question?';
+    h.style.cssText = 'font-family:Playfair Display,serif;font-size:1.25rem;font-weight:700;color:#1B3A5C;margin:0 0 10px;';
+
+    var sub = document.createElement('p');
+    sub.textContent = 'Ask Olive for an instant plain-English answer about your coverage.';
+    sub.style.cssText = 'font-size:0.9375rem;color:#1B3A5C;opacity:0.75;line-height:1.5;margin:0 0 24px;';
+
+    var chatBtn = document.createElement('a');
+    chatBtn.href = '#';
+    chatBtn.textContent = 'Open Ask Olive';
+    chatBtn.style.cssText = 'display:block;padding:0 28px;height:44px;line-height:44px;background:#B8934A;color:#fff;text-decoration:none;border-radius:4px;font-size:0.9375rem;font-weight:600;margin-bottom:12px;';
+    chatBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      overlay.style.display = 'none';
+      var fab = document.querySelector('#oc-widget-fab, #oc-wgt-fab, .oc-widget-fab, [data-oc-widget-toggle]');
+      if (fab) fab.click();
+      ocPushCapture('email_capture_dismissed', { placement: 'exit_modal', action: 'open_chat', page_path: location.pathname });
+    });
+
+    var noBtn = document.createElement('button');
+    noBtn.type = 'button';
+    noBtn.textContent = 'No thanks';
+    noBtn.style.cssText = 'display:block;width:100%;background:none;border:none;color:#1B3A5C;opacity:0.5;font-size:0.875rem;cursor:pointer;padding:4px 0;font-family:Inter,system-ui,sans-serif;';
+    noBtn.addEventListener('click', function () {
+      overlay.style.display = 'none';
+      ocPushCapture('email_capture_dismissed', { placement: 'exit_modal', action: 'declined', page_path: location.pathname });
+    });
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        overlay.style.display = 'none';
+        ocPushCapture('email_capture_dismissed', { placement: 'exit_modal', action: 'backdrop', page_path: location.pathname });
+      }
+    });
+
+    box.appendChild(h); box.appendChild(sub); box.appendChild(chatBtn); box.appendChild(noBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    // Scoped white-text rule so ocshim's global gold link color doesn't bleed in
+    if (!document.querySelector('#oc-exit-modal-style')) {
+      var st = document.createElement('style');
+      st.id = 'oc-exit-modal-style';
+      st.textContent = '[data-oc-exit-modal] a{color:#fff!important}[data-oc-exit-modal] a:hover{background:#C7A24B!important;color:#fff!important}';
+      document.head.appendChild(st);
+    }
+
+    function showModal() {
+      overlay.style.display = 'flex';
+      try { sessionStorage.setItem('oc_exit_shown', '1'); } catch (e) {}
+      ocPushCapture('email_capture_displayed', { placement: 'exit_modal', page_path: location.pathname });
+      document.removeEventListener('mouseleave', onMouseLeave);
+    }
+
+    function onMouseLeave(e) {
+      if (e.clientY <= 10) showModal();
+    }
+
+    document.addEventListener('mouseleave', onMouseLeave);
   }
 
   var debounceTimer = null;
