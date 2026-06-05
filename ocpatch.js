@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.16 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.17 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1176,6 +1176,106 @@
   }
 
   // ====================================================================
+  // 12. Related FAQs -- /faq/{slug} and /insurance-terms/{slug} detail pages
+  //     Fetches the static faq-index.json (hosted on GitHub / jsDelivr),
+  //     finds same-category FAQs, and renders a collapsed accordion below
+  //     the main answer / related-terms section. Same Q/A styling as the
+  //     page-level FAQ sections (bold-navy Q, gold-rule A). Link to full
+  //     answer so the visitor can read the canonical FAQ page.
+  // ====================================================================
+  var _faqIdx = null;
+  function fetchFaqIdx(cb) {
+    if (_faqIdx !== null) { cb(_faqIdx); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@main/faq-index.json');
+    xhr.onload = function () {
+      try { _faqIdx = JSON.parse(xhr.responseText); } catch (e) { _faqIdx = []; }
+      cb(_faqIdx);
+    };
+    xhr.onerror = function () { _faqIdx = []; cb([]); };
+    xhr.send();
+  }
+
+  var TERM_FAQ_CATS = {
+    'Auto': ['Auto', 'Commercial Auto', 'Motorcycle', 'Collector Auto', 'Boat'],
+    'Home': ['Homeowners', 'Landlord', 'Renters', 'Flood'],
+    'Commercial': ['Commercial', 'Commercial Auto', 'Commercial Property', 'Business Owners Policy', 'General Liability', 'Workers Compensation', 'Professional Liability', 'Cyber', 'Management Liability'],
+    'Flood': ['Flood', 'Homeowners'],
+    'Business': ['Business Owners Policy', 'General Liability', 'Workers Compensation', 'Professional Liability', 'Cyber', 'Management Liability', 'Commercial'],
+    'General': ['General', 'Umbrella', 'Carrier']
+  };
+
+  function buildRelFaqSection(faqs) {
+    var sec = document.createElement('section');
+    sec.setAttribute('data-oc-rel-faqs', '1');
+    sec.style.cssText = 'max-width:860px;margin:40px auto 0;padding:24px 24px 0;border-top:2px solid #e5e7eb;';
+    var h = document.createElement('h3');
+    h.textContent = 'Related Questions';
+    h.style.cssText = 'font-family:Playfair Display,serif;font-size:1.25rem;font-weight:700;color:#1B3A5C;margin:0 0 16px;';
+    sec.appendChild(h);
+    faqs.forEach(function (f) {
+      var det = document.createElement('details');
+      det.style.cssText = 'border-bottom:1px solid #e5e7eb;padding:12px 0;';
+      var sum = document.createElement('summary');
+      sum.textContent = f.q;
+      sum.style.cssText = 'cursor:pointer;font-family:Inter,system-ui,sans-serif;font-weight:700;color:#1B3A5C;font-size:1.0625rem;line-height:1.4;list-style:none;';
+      var ans = document.createElement('div');
+      ans.style.cssText = 'margin-top:10px;padding-left:14px;border-left:2px solid #B8934A;';
+      ans.style.setProperty('display', 'none', 'important');
+      var ap = document.createElement('p');
+      ap.textContent = f.a;
+      ap.style.cssText = 'color:#374151;font-family:Inter,system-ui,sans-serif;font-size:0.9375rem;line-height:1.6;margin:0 0 8px;';
+      var al = document.createElement('a');
+      al.href = '/faq/' + f.s;
+      al.textContent = 'Read full answer';
+      al.style.cssText = 'color:#B8934A;font-weight:600;text-decoration:none;font-size:0.875rem;';
+      ans.appendChild(ap);
+      ans.appendChild(al);
+      det.appendChild(sum);
+      det.appendChild(ans);
+      det.addEventListener('toggle', function () {
+        ans.style.setProperty('display', det.open ? 'block' : 'none', 'important');
+      });
+      sec.appendChild(det);
+    });
+    return sec;
+  }
+
+  function injectRelatedFaqs() {
+    if (document.querySelector('[data-oc-rel-faqs]')) return;
+    var pg = location.pathname;
+    var isFaqDetail = /^\/faq\/[^/]+/.test(pg);
+    var isTermDetail = /^\/insurance-terms\/[^/]+/.test(pg);
+    if (!isFaqDetail && !isTermDetail) return;
+    fetchFaqIdx(function (idx) {
+      if (!idx.length || document.querySelector('[data-oc-rel-faqs]')) return;
+      var related;
+      if (isFaqDetail) {
+        var sl = pg.replace(/^\/faq\//, '').replace(/\/$/, '');
+        var cur = null;
+        for (var i = 0; i < idx.length; i++) { if (idx[i].s === sl) { cur = idx[i]; break; } }
+        if (!cur) return;
+        related = idx.filter(function (f) { return f.c === cur.c && f.s !== sl; }).slice(0, 4);
+      } else {
+        var catEl = document.querySelector('.oc-it-card-cat,[class*="term-cat"],[class*="oc-cat"]');
+        var tc = catEl ? catEl.textContent.trim() : 'General';
+        var fc = TERM_FAQ_CATS[tc] || TERM_FAQ_CATS['General'];
+        related = idx.filter(function (f) { return fc.indexOf(f.c) !== -1; }).slice(0, 4);
+      }
+      if (!related.length) return;
+      var el = buildRelFaqSection(related);
+      // Insert after the section containing the answer or related-terms wrapper
+      var anc = document.querySelector('.oc-term-related-wrap,[class*="oc-term-rel"],.oc-faq-a');
+      if (anc) {
+        var ps = anc.closest('section') || anc.parentElement;
+        if (ps && ps.parentNode) { ps.parentNode.insertBefore(el, ps.nextSibling); return; }
+      }
+      var main = document.querySelector('main,[class*="oc-main"]') || document.body;
+      main.appendChild(el);
+    });
+  }
+
+  // ====================================================================
   // 11. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
@@ -1203,6 +1303,7 @@
     try { insightsLoadAll(); } catch (e) {}
     try { insightsFilter(); } catch (e) {}
     try { revealPageFaqs(); } catch (e) {}
+    try { injectRelatedFaqs(); } catch (e) {}
   }
 
   var debounceTimer = null;
