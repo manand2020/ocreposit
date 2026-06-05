@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.31 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.32 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -100,6 +100,15 @@
 //                      augmentInsightsSchema now read citation URLs from a DOM
 //                      element [data-oc-faq-sources] / [data-oc-insights-sources]
 //                      when bound via Designer (no-op until binding exists).
+//   augmentDefinedTermSchema -> Augments the CMS-rendered DefinedTerm JSON-LD on
+//                      Insurance Terms pages with spatialCoverage (Georgia) and
+//                      citation. Separate from injectDefinedTermSchema because
+//                      that function early-returns when the CMS has already
+//                      rendered a DefinedTerm schema (which it always does on live
+//                      pages). Guards via data-oc-schema-aug attribute. (v1.10.32)
+//   injectFooterCTA    -> Exclude /carriers/* and /insurance/* from footer CTA
+//                      injection -- those templates have a native Webflow CTA
+//                      section, so the injected one was duplicating it. (v1.10.32)
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -1805,6 +1814,7 @@
     try { injectDefinedTermSchema(); } catch (e) {}
     try { augmentQAPageSchema(); } catch (e) {}
     try { augmentInsightsSchema(); } catch (e) {}
+    try { augmentDefinedTermSchema(); } catch (e) {}
     try { injectJurisdictionNotice(); } catch (e) {}
     try { wireAboutDropdown(); } catch (e) {}
     try { fixNewsCardLinks(); } catch (e) {}
@@ -1911,6 +1921,30 @@
     }
   }
 
+  // Augments the CMS-rendered DefinedTerm JSON-LD on Insurance Terms pages with
+  // spatialCoverage and citation. Modifies in-place (injectDefinedTermSchema early-
+  // returns when CMS already has one, so this separate augmenter handles it).
+  function augmentDefinedTermSchema() {
+    var m = location.pathname.replace(/\/$/, '').match(/^\/insurance-terms\/(.+)$/);
+    if (!m) return;
+    var slug = m[1];
+    if (!OC_TERMS_GEO[slug] && !OC_TERMS_FED[slug] && !OC_TERMS_CITE[slug]) return;
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var i = 0; i < scripts.length; i++) {
+      if (scripts[i].hasAttribute('data-oc-schema-aug')) continue;
+      try {
+        var obj = JSON.parse(scripts[i].textContent);
+        if (obj['@type'] === 'DefinedTerm') {
+          if (OC_TERMS_GEO[slug]) obj.spatialCoverage = {'@type': 'State', 'name': 'Georgia, United States'};
+          if (OC_TERMS_CITE[slug]) obj.citation = OC_TERMS_CITE[slug];
+          scripts[i].textContent = JSON.stringify(obj);
+          scripts[i].setAttribute('data-oc-schema-aug', '1');
+          return;
+        }
+      } catch (e) {}
+    }
+  }
+
   // Hides the CMS-bound detailed related-terms section on /insurance-terms/{slug}
   // pages since the injected pill section replaces it.
   function hideDetailedRelTerms() {
@@ -1939,7 +1973,7 @@
   function injectFooterCTA() {
     if (document.querySelector('[data-oc-footer-cta]')) return;
     var pg = location.pathname.replace(/\/$/, '');
-    if (/^\/(coverage-review|contact|book)(\/|$)/.test(pg) || pg === '') return;
+    if (/^\/(coverage-review|contact|book|carriers|insurance)(\/|$)/.test(pg) || pg === '') return;
     var sec = document.createElement('section');
     sec.setAttribute('data-oc-footer-cta', '1');
     sec.style.cssText = 'background:#F5EDD8;padding:48px 24px;text-align:center;';
