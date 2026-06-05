@@ -1498,6 +1498,46 @@
     try { revealPageFaqs(); } catch (e) {}
     try { injectRelatedFaqs(); } catch (e) {}
     try { injectRelatedTerms(); } catch (e) {}
+    try { hideDetailedRelTerms(); } catch (e) {}
+    try { injectFooterCTA(); } catch (e) {}
+  }
+
+  // Hides the CMS-bound detailed related-terms section on /insurance-terms/{slug}
+  // pages since the injected pill section replaces it.
+  function hideDetailedRelTerms() {
+    if (!/^\/insurance-terms\/[^/]+/.test(location.pathname)) return;
+    var sec = document.querySelector('.oc-term-related-section');
+    if (sec && sec.style.display !== 'none') sec.style.display = 'none';
+  }
+
+  // Injects a "Free Coverage Review" CTA strip just above the footer on all
+  // pages except the coverage-review and contact forms themselves.
+  function injectFooterCTA() {
+    if (document.querySelector('[data-oc-footer-cta]')) return;
+    var pg = location.pathname.replace(/\/$/, '');
+    if (/^\/(coverage-review|contact|book)(\/|$)/.test(pg) || pg === '') return;
+    var sec = document.createElement('section');
+    sec.setAttribute('data-oc-footer-cta', '1');
+    sec.style.cssText = 'background:#F5EDD8;padding:48px 24px;text-align:center;';
+    var inner = document.createElement('div');
+    inner.style.cssText = 'max-width:600px;margin:0 auto;';
+    var h = document.createElement('p');
+    h.textContent = 'Not sure what coverage you need?';
+    h.style.cssText = 'font-family:Playfair Display,serif;font-size:1.5rem;font-weight:700;color:#1B3A5C;margin:0 0 10px;';
+    var sub = document.createElement('p');
+    sub.textContent = 'A free coverage review takes under 10 minutes. No obligation.';
+    sub.style.cssText = 'font-family:Inter,system-ui,sans-serif;font-size:0.9375rem;color:#1B3A5C;opacity:0.75;margin:0 0 22px;';
+    var btn = document.createElement('a');
+    btn.href = '/coverage-review';
+    btn.textContent = 'Free Coverage Review';
+    btn.style.cssText = 'display:inline-block;padding:0 28px;background:#B8934A;color:#fff;font-family:Inter,system-ui,sans-serif;font-size:0.9375rem;font-weight:600;text-decoration:none;border-radius:4px;height:44px;line-height:44px;';
+    btn.addEventListener('mouseover', function () { btn.style.background = '#C7A24B'; });
+    btn.addEventListener('mouseout', function () { btn.style.background = '#B8934A'; });
+    inner.appendChild(h);
+    inner.appendChild(sub);
+    inner.appendChild(btn);
+    sec.appendChild(inner);
+    insertBeforeFooter(sec);
   }
 
   var debounceTimer = null;
