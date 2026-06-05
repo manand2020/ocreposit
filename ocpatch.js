@@ -1,9 +1,11 @@
-// ocpatch.js v1.10.12 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.13 -- Consolidated runtime patcher for Olive Cover.
 //
-//   revealCarrierFaqs (v1.10.12): collapse the carrier-profile FAQ accordions
-//                      so only the questions show (click to expand), hide the
-//                      duplicate short-answer preview, and append a single
+//   revealCarrierFaqs (v1.10.13): hide the duplicate questions-only list
+//                      (.oc-faq-short-list) and keep only the collapsed
+//                      accordion (#car-faq-collection). Adds a single
 //                      "View all insurance FAQs ->" link to the FAQ hub.
+//                      (v1.10.12 collapsed accordions; the short-list was the
+//                      real duplicate and is now removed.)
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -1075,8 +1077,15 @@
     if (location.pathname.indexOf('/carriers/') !== 0) return;
     var sec = document.getElementById('car-faq');
     if (!sec) return;
-    var list = sec.querySelector('#car-faq-list, .oc-faq-list') || sec;
-    var items = [].slice.call(list.querySelectorAll('.w-dyn-item'));
+    // The section renders TWO lists: a questions-only "table of contents"
+    // (.oc-faq-short-list) and the real accordion (#car-faq-collection). The
+    // short list duplicates the accordion's questions, so hide it entirely and
+    // keep only the collapsed accordion below.
+    var shortList = sec.querySelector('.oc-faq-short-list');
+    if (shortList) shortList.style.setProperty('display', 'none', 'important');
+    var coll = sec.querySelector('#car-faq-collection') || sec;
+    var items = [].slice.call(coll.querySelectorAll('.w-dyn-item'));
+    var list = coll;
     if (!items.length) return; // no FAQs for this carrier -> leave hidden
     var DEFAULT_STATE = 'national';
     var active = (document.body.getAttribute('data-state') || DEFAULT_STATE).toLowerCase();
