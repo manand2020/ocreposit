@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.6 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.7 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,10 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.7 -- injectDefinedTermSchema: remove Webflow-embed bare JSON-LD text
+//            node and body-level LD script before injecting proper head schema.
+//            Webflow strips <script> wrappers from embeds, rendering the JSON
+//            as a visible bare text node at the top of /insurance-terms/* pages.
 // v1.11.6 -- injectFooterCTA: add /insights/* to exclusion regex so insights
 //            pages with a native Webflow CTA section do not get a second injected CTA.
 // v1.11.5 -- Remove insights email capture components from runOnce() --
@@ -1138,11 +1142,20 @@
     if (p.indexOf('/insurance-terms/') !== 0) return;
     var slug = p.slice('/insurance-terms/'.length);
     if (!slug) return;
-    if (document.querySelector('script[data-oc-term-schema="1"]')) return;
-    var existingLd = document.querySelectorAll('script[type="application/ld+json"]');
-    for (var ei = 0; ei < existingLd.length; ei++) {
-      try { if (JSON.parse(existingLd[ei].textContent)['@type'] === 'DefinedTerm') return; } catch (e) {}
+    // Webflow embed strips <script> wrappers, leaving a bare JSON text node
+    // directly in <body> and sometimes also a body-level <script> LD tag.
+    // Remove both before injecting the proper head schema.
+    var bWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    var bNode, bJsonNodes = [];
+    while ((bNode = bWalker.nextNode())) {
+      if (bNode.parentNode === document.body && bNode.textContent.indexOf('"@context"') !== -1) bJsonNodes.push(bNode);
     }
+    bJsonNodes.forEach(function(n) { n.parentNode.removeChild(n); });
+    var bLdScripts = document.body.querySelectorAll('script[type="application/ld+json"]');
+    for (var bi = 0; bi < bLdScripts.length; bi++) {
+      try { if (JSON.parse(bLdScripts[bi].textContent)['@type'] === 'DefinedTerm') bLdScripts[bi].parentNode.removeChild(bLdScripts[bi]); } catch(e) {}
+    }
+    if (document.querySelector('script[data-oc-term-schema="1"]')) return;
     var h1 = document.querySelector('h1');
     if (!h1) return;
     var termName = (h1.textContent || '').trim();
