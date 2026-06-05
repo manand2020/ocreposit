@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.8 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.9 -- Consolidated runtime patcher for Olive Cover.
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -885,13 +885,19 @@
     dd.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hide(); } });
   }
 
-  // --- Insights hub (v1.10.6): featured lead block + category filter ---
-  function onInsightsHub() {
-    return location.pathname.replace(/\/+$/, '') === '/insights';
+  // --- News/Insights hub (v1.10.6+): featured lead block + category filter ---
+  // Shared logic for both /insights and /news (same oc-newshub/oc-newscard/
+  // oc-feat-card/oc-news-filter markup); only the slug attribute and link base
+  // differ per hub. (v1.10.9: extended to /news.)
+  function hubKind() {
+    var p = location.pathname.replace(/\/+$/, '');
+    if (p === '/insights') return { slugAttr: 'data-insights-slug', base: '/insights/' };
+    if (p === '/news') return { slugAttr: 'data-news-slug', base: '/news/' };
+    return null;
   }
 
   function insightsFeatured() {
-    if (!onInsightsHub()) return;
+    var hk = hubKind(); if (!hk) return;
     var feat = document.querySelector('[class*="oc-feat-card"]');
     var grid = document.querySelector('.oc-news-grid');
     if (!feat || !grid) return;
@@ -943,10 +949,10 @@
         }
       }
     }
-    var slug = (card.getAttribute('data-insights-slug') || '').trim();
+    var slug = (card.getAttribute(hk.slugAttr) || '').trim();
     if (slug) {
-      feat.setAttribute('href', '/insights/' + slug);
-      feat.setAttribute('data-insights-slug', slug);
+      feat.setAttribute('href', hk.base + slug);
+      feat.setAttribute(hk.slugAttr, slug);
     } else {
       var h = card.getAttribute('href');
       if (h && h !== '#') feat.setAttribute('href', h);
@@ -957,7 +963,7 @@
   }
 
   function insightsLoadAll() {
-    if (!onInsightsHub()) return;
+    var hk = hubKind(); if (!hk) return;
     var grid = document.querySelector('.oc-news-grid');
     if (!grid) return;
     var state = grid.getAttribute('data-oc-loadall');
@@ -967,7 +973,7 @@
     grid.setAttribute('data-oc-loadall', 'loading');
     var seen = {};
     var keyOf = function (it) {
-      var a = it.querySelector('a[data-insights-slug]');
+      var a = it.querySelector('a[data-insights-slug],a[data-news-slug]');
       if (a) { return a.getAttribute('data-insights-slug') || a.getAttribute('href') || ''; }
       var t = it.querySelector('.oc-newscard-title');
       return t ? t.textContent.trim() : '';
@@ -1000,7 +1006,7 @@
   }
 
   function insightsFilter() {
-    if (!onInsightsHub()) return;
+    var hk = hubKind(); if (!hk) return;
     var bar = document.querySelector('.oc-news-filter');
     var grid = document.querySelector('.oc-news-grid');
     if (!bar || !grid) return;
