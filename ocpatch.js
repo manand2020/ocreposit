@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.30 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.31 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -90,6 +90,16 @@
 //   augmentInsightsSchema -> Adds spatialCoverage {State: Georgia} to the CMS-
 //                      rendered Article JSON-LD on Georgia-scope Insights pages.
 //                      Guards via data-oc-schema-aug attribute. (v1.10.30)
+//   v1.10.31: Insurance Terms jurisdiction classified and CMS updated for 5
+//                      terms (Federal: nfip, flood-zone, elevation-certificate;
+//                      Georgia: workers-compensation, sr-22). OC_TERMS_GEO +
+//                      OC_TERMS_FED + OC_TERMS_CITE maps added. injectDefinedTermSchema
+//                      now reads from slug maps (supplements data-oc-jurisdiction)
+//                      and adds citation property. injectJurisdictionNotice extended
+//                      to Insurance Terms. augmentQAPageSchema and
+//                      augmentInsightsSchema now read citation URLs from a DOM
+//                      element [data-oc-faq-sources] / [data-oc-insights-sources]
+//                      when bound via Designer (no-op until binding exists).
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -282,6 +292,20 @@
     "not-at-fault-georgia-accident-insurance":"g",
     "personal-umbrella-insurance-georgia":"n",
     "what-is-a-declarations-page":"n"
+  };
+
+  // Insurance Terms jurisdiction maps (2026-06-05 classification).
+  // Federal: FEMA programs/forms. Georgia: state-law-specific terms.
+  // All other 79 terms have null jurisdiction and no notice.
+  var OC_TERMS_GEO = {'workers-compensation':1,'sr-22':1};
+  var OC_TERMS_FED = {'nfip':1,'flood-zone':1,'elevation-certificate':1};
+  // Citation URLs for the classified terms (authoritative primary sources).
+  var OC_TERMS_CITE = {
+    'nfip':'https://www.fema.gov/flood-insurance',
+    'flood-zone':'https://msc.fema.gov',
+    'elevation-certificate':'https://www.fema.gov/flood-maps/tools-resources/flood-map-products/elevation-certificate',
+    'workers-compensation':'https://sbwc.georgia.gov',
+    'sr-22':'https://dds.georgia.gov'
   };
 
   // ====================================================================
@@ -1067,6 +1091,8 @@
       desc = metaEl ? (metaEl.getAttribute('content') || '').trim() : '';
     }
     var juris = (document.body.getAttribute('data-oc-jurisdiction') || '').trim();
+    if (!juris && OC_TERMS_GEO[slug]) juris = 'Georgia';
+    if (!juris && OC_TERMS_FED[slug]) juris = 'Federal';
     var term = {
       '@context': 'https://schema.org', '@type': 'DefinedTerm',
       'name': termName, 'url': location.origin + location.pathname,
@@ -1074,6 +1100,7 @@
     };
     if (desc) term.description = desc;
     if (juris === 'Georgia') term.spatialCoverage = { '@type': 'State', 'name': 'Georgia, United States' };
+    if (OC_TERMS_CITE[slug]) term.citation = OC_TERMS_CITE[slug];
     var crumbs = {
       '@context': 'https://schema.org', '@type': 'BreadcrumbList',
       'itemListElement': [
@@ -1814,6 +1841,16 @@
         msg = 'Georgia-specific. Coverage rules described in this article apply to Georgia. Requirements may differ in other states.';
       }
     }
+    if (!msg) {
+      m = p.match(/^\/insurance-terms\/(.+)$/);
+      if (m) {
+        if (OC_TERMS_GEO[m[1]]) {
+          msg = 'Georgia-specific. Rules and requirements described here apply specifically to Georgia. Details may differ in other states.';
+        } else if (OC_TERMS_FED[m[1]]) {
+          msg = 'Federal program. This term is defined under federal law and applies across all states.';
+        }
+      }
+    }
     if (!msg) return;
     var h1 = document.querySelector('h1');
     if (!h1) return;
@@ -1836,6 +1873,11 @@
         var obj = JSON.parse(scripts[i].textContent);
         if (obj['@type'] === 'QAPage') {
           obj.spatialCoverage = {'@type': 'State', 'name': 'Georgia, United States'};
+          var srcEl = document.querySelector('[data-oc-faq-sources]');
+          if (srcEl) {
+            var citeLinks = srcEl.querySelectorAll('a[href]');
+            if (citeLinks.length) obj.citation = Array.prototype.map.call(citeLinks, function(a){return a.href;});
+          }
           scripts[i].textContent = JSON.stringify(obj);
           scripts[i].setAttribute('data-oc-schema-aug', '1');
           return;
@@ -1856,6 +1898,11 @@
         var obj = JSON.parse(scripts[i].textContent);
         if (obj['@type'] === 'Article') {
           obj.spatialCoverage = {'@type': 'State', 'name': 'Georgia, United States'};
+          var srcEl = document.querySelector('[data-oc-insights-sources]');
+          if (srcEl) {
+            var citeLinks = srcEl.querySelectorAll('a[href]');
+            if (citeLinks.length) obj.citation = Array.prototype.map.call(citeLinks, function(a){return a.href;});
+          }
           scripts[i].textContent = JSON.stringify(obj);
           scripts[i].setAttribute('data-oc-schema-aug', '1');
           return;
