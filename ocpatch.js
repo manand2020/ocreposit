@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.5 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.6 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,8 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.6 -- injectFooterCTA: add /insights/* to exclusion regex so insights
+//            pages with a native Webflow CTA section do not get a second injected CTA.
 // v1.11.5 -- Remove insights email capture components from runOnce() --
 //            injectInsightsInlineCTA, injectInsightsStickyBar,
 //            injectExitIntentModal disabled pending PDF + CLIP wiring.
@@ -2012,7 +2014,7 @@
   function injectFooterCTA() {
     if (document.querySelector('[data-oc-footer-cta]')) return;
     var pg = location.pathname.replace(/\/$/, '');
-    if (/^\/(coverage-review|contact|book|carriers|insurance(-terms)?)(\/|$)/.test(pg) || pg === '') return;
+    if (/^\/(coverage-review|contact|book|carriers|insurance(-terms)?|insights)(\/|$)/.test(pg) || pg === '') return;
     var sec = document.createElement('section');
     sec.setAttribute('data-oc-footer-cta', '1');
     sec.style.cssText = 'background:#F5EDD8;padding:48px 24px;text-align:center;';
