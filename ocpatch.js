@@ -1,11 +1,12 @@
-// ocpatch.js v1.10.13 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.14 -- Consolidated runtime patcher for Olive Cover.
 //
-//   revealCarrierFaqs (v1.10.13): hide the duplicate questions-only list
-//                      (.oc-faq-short-list) and keep only the collapsed
-//                      accordion (#car-faq-collection). Adds a single
-//                      "View all insurance FAQs ->" link to the FAQ hub.
-//                      (v1.10.12 collapsed accordions; the short-list was the
-//                      real duplicate and is now removed.)
+//   revealCarrierFaqs (v1.10.14): wire the carrier-page FAQ accordion. The
+//                      answer (.oc-faq-a) is hidden by template CSS regardless
+//                      of the <details> open state (native toggle was only
+//                      wired on /faq), so a toggle listener now reveals the
+//                      answer on click. Collapsed by default. Also hides the
+//                      duplicate questions-only list (.oc-faq-short-list) and
+//                      adds a single "View all insurance FAQs ->" hub link.
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -1105,16 +1106,25 @@
       else { show = false; }
       it.style.display = show ? '' : 'none';
       if (show) anyVis = true;
+      // Wire the accordion: the answer (.oc-faq-a) is hidden by template CSS
+      // regardless of the <details> open state, because the native toggle was
+      // only ever wired by ocfaq-complete.js on /faq. So drive the answer's
+      // visibility from the details' toggle event (collapsed by default,
+      // reveals the answer on click).
       var det = it.querySelector('details');
-      if (det) {
-        det.removeAttribute('open'); // clean collapsed accordion (question; click to expand)
+      if (det && !det.getAttribute('data-oc-faq-wired')) {
+        det.setAttribute('data-oc-faq-wired', '1');
+        var ans = det.querySelector('.oc-faq-a') || det.querySelector('p');
         var sum = det.querySelector('summary');
-        if (sum && sum.className.indexOf('oc-faq-q') < 0) sum.classList.add('oc-faq-q');
-        [].forEach.call(det.children, function (c) { if (c.tagName !== 'SUMMARY' && c.className.indexOf('oc-faq-a') < 0) c.classList.add('oc-faq-a'); });
+        if (sum) sum.style.setProperty('cursor', 'pointer');
+        var sync = function () {
+          if (!ans) return;
+          ans.style.setProperty('display', det.open ? 'block' : 'none', 'important');
+        };
+        det.addEventListener('toggle', sync);
+        det.removeAttribute('open'); // start collapsed
+        sync();
       }
-      // hide the short-answer preview so the question is not duplicated above the accordion
-      var sh = it.querySelector('.oc-faq-short');
-      if (sh) sh.style.display = 'none';
     });
     if (anyVis) {
       sec.classList.remove('oc-hidden');
