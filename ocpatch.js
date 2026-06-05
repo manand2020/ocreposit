@@ -391,6 +391,7 @@
     if (/\bagent\b/i.test(v)) return true;
     if (v.indexOf('Olive Cover') >= 0) return true;
     if (/We are a licensed P/i.test(v)) return true;
+    if (/office visits by appointment only/i.test(v)) return true;
     if (ON_COMMERCIAL_CARRIERS && /real estate/i.test(v)) return true;
     return false;
   }
