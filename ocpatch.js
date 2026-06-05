@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.18 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.19 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1250,9 +1250,12 @@
     fetchFaqIdx(function (idx) {
       if (!idx.length || document.querySelector('[data-oc-rel-faqs]')) return;
       var related;
-      var seenSlugs = {};
+      var seenSlugs = {}, seenQs = {};
       function dedupFilter(arr) {
-        return arr.filter(function (f) { if (seenSlugs[f.s]) return false; seenSlugs[f.s] = 1; return true; });
+        return arr.filter(function (f) {
+          if (seenSlugs[f.s] || seenQs[f.q]) return false;
+          seenSlugs[f.s] = 1; seenQs[f.q] = 1; return true;
+        });
       }
       if (isFaqDetail) {
         var sl = pg.replace(/^\/faq\//, '').replace(/\/$/, '');
