@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.27 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.28 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -71,6 +71,12 @@
 //                      mobile menu (.oc-mobile-panel-link) after About; desktop
 //                      block now stands down when the Designer About dropdown's
 //                      tagged News link is present.
+//   injectDefinedTermSchema -> DefinedTerm + BreadcrumbList JSON-LD on every
+//                      /insurance-terms/{slug} detail page. Reads term name from
+//                      H1, description from .oc-term-short or meta description.
+//                      Adds spatialCoverage if body[data-oc-jurisdiction="Georgia"]
+//                      (Designer binding; absent = Federal, no spatial scope).
+//                      (v1.10.28)
 //
 // Optimization: ONE jsDelivr request instead of five, ONE shared
 // MutationObserver instead of multiple, ONE TreeWalker text pass instead of
@@ -853,6 +859,47 @@
     });
   }
 
+  function injectDefinedTermSchema() {
+    var p = location.pathname.replace(/\/$/, '');
+    if (p.indexOf('/insurance-terms/') !== 0) return;
+    var slug = p.slice('/insurance-terms/'.length);
+    if (!slug) return;
+    if (document.querySelector('script[data-oc-term-schema="1"]')) return;
+    var h1 = document.querySelector('h1');
+    if (!h1) return;
+    var termName = (h1.textContent || '').trim();
+    if (!termName) return;
+    var descEl = document.querySelector('.oc-term-short, .oc-term-def-short');
+    var desc = descEl ? (descEl.textContent || '').trim() : '';
+    if (!desc) {
+      var metaEl = document.querySelector('meta[name="description"]');
+      desc = metaEl ? (metaEl.getAttribute('content') || '').trim() : '';
+    }
+    var juris = (document.body.getAttribute('data-oc-jurisdiction') || '').trim();
+    var term = {
+      '@context': 'https://schema.org', '@type': 'DefinedTerm',
+      'name': termName, 'url': location.origin + location.pathname,
+      'inDefinedTermSet': { '@type': 'DefinedTermSet', 'name': 'Olive Cover Insurance Glossary', 'url': location.origin + '/insurance-terms' }
+    };
+    if (desc) term.description = desc;
+    if (juris === 'Georgia') term.spatialCoverage = { '@type': 'State', 'name': 'Georgia, United States' };
+    var crumbs = {
+      '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': location.origin + '/' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Insurance Terms', 'item': location.origin + '/insurance-terms' },
+        { '@type': 'ListItem', 'position': 3, 'name': termName, 'item': location.origin + location.pathname }
+      ]
+    };
+    [term, crumbs].forEach(function (obj) {
+      var s = document.createElement('script');
+      s.type = 'application/ld+json';
+      s.setAttribute('data-oc-term-schema', '1');
+      s.textContent = JSON.stringify(obj);
+      document.head.appendChild(s);
+    });
+  }
+
   // News collection cards (hub + homepage strip) carry data-news-slug bound to
   // the item Slug. Webflow's current-item link could not be expressed via the
   // API (page-link resolved to /news, collectionPage output the slug literally),
@@ -1537,6 +1584,7 @@
     try { fixCarrierTableNA(); } catch (e) {}
     try { injectNewsNav(); } catch (e) {}
     try { injectNewsSchema(); } catch (e) {}
+    try { injectDefinedTermSchema(); } catch (e) {}
     try { wireAboutDropdown(); } catch (e) {}
     try { fixNewsCardLinks(); } catch (e) {}
     try { eagerCardImages(); } catch (e) {}
