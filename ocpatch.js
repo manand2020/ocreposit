@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.19 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.20 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1287,6 +1287,112 @@
   }
 
   // ====================================================================
+  // 13. Related Terms -- /faq/{slug} detail pages
+  //     Fetches terms-index.json, maps the FAQ category to glossary term
+  //     categories, and renders 3-4 term pills below the Related Questions
+  //     section. Links each pill to /insurance-terms/{slug}.
+  // ====================================================================
+  var _termsIdx = null;
+  function fetchTermsIdx(cb) {
+    if (_termsIdx !== null) { cb(_termsIdx); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://cdn.jsdelivr.net/gh/manand2020/ocreposit@main/terms-index.json');
+    xhr.onload = function () {
+      try { _termsIdx = JSON.parse(xhr.responseText); } catch (e) { _termsIdx = []; }
+      cb(_termsIdx);
+    };
+    xhr.onerror = function () { _termsIdx = []; cb([]); };
+    xhr.send();
+  }
+
+  // Maps FAQ category -> term categories (for filtering terms-index)
+  var FAQ_TERM_CATS = {
+    'Auto': ['Auto'],
+    'Commercial Auto': ['Auto', 'Commercial'],
+    'Motorcycle': ['Auto'],
+    'Collector Auto': ['Auto'],
+    'Boat': ['Auto'],
+    'Homeowners': ['Home'],
+    'Renters': ['Home'],
+    'Landlord': ['Home'],
+    'Flood': ['Flood', 'Home'],
+    'Commercial': ['Commercial', 'Business'],
+    'Commercial Property': ['Commercial', 'Business'],
+    'Business Owners Policy': ['Business', 'Commercial'],
+    'General Liability': ['Business', 'Commercial'],
+    'Workers Compensation': ['Business'],
+    'Professional Liability': ['Business', 'Commercial'],
+    'Cyber': ['Business', 'Commercial'],
+    'Management Liability': ['Business', 'Commercial'],
+    'General': ['General'],
+    'Umbrella': ['General'],
+    'Carrier': ['General'],
+    'State': ['General']
+  };
+
+  function buildRelTermsSection(terms) {
+    var sec = document.createElement('section');
+    sec.setAttribute('data-oc-rel-terms', '1');
+    sec.style.cssText = 'max-width:860px;margin:32px auto 0;padding:20px 24px 0;border-top:1px solid #e5e7eb;';
+    var h = document.createElement('h3');
+    h.textContent = 'Related Insurance Terms';
+    h.style.cssText = 'font-family:Playfair Display,serif;font-size:1.1rem;font-weight:700;color:#1B3A5C;margin:0 0 14px;';
+    sec.appendChild(h);
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;';
+    terms.forEach(function (t) {
+      var a = document.createElement('a');
+      a.href = '/insurance-terms/' + t.s;
+      a.textContent = t.n;
+      a.style.cssText = 'display:inline-block;padding:7px 14px;border:1.5px solid #B8934A;border-radius:20px;color:#1B3A5C;background:#fff;font-family:Inter,system-ui,sans-serif;font-size:0.875rem;font-weight:500;text-decoration:none;line-height:1.4;';
+      a.addEventListener('mouseover', function () { a.style.background = '#B8934A'; a.style.color = '#fff'; });
+      a.addEventListener('mouseout', function () { a.style.background = '#fff'; a.style.color = '#1B3A5C'; });
+      grid.appendChild(a);
+    });
+    sec.appendChild(grid);
+    return sec;
+  }
+
+  function injectRelatedTerms() {
+    if (document.querySelector('[data-oc-rel-terms]')) return;
+    if (!/^\/faq\/[^/]+/.test(location.pathname)) return;
+    var sl = location.pathname.replace(/^\/faq\//, '').replace(/\/$/, '');
+    // Need FAQ category -- share the cached faq index
+    fetchFaqIdx(function (faqIdx) {
+      if (!faqIdx.length) return;
+      var cur = null;
+      for (var i = 0; i < faqIdx.length; i++) { if (faqIdx[i].s === sl) { cur = faqIdx[i]; break; } }
+      if (!cur) return;
+      var termCats = FAQ_TERM_CATS[cur.c] || ['General'];
+      fetchTermsIdx(function (tIdx) {
+        if (!tIdx.length || document.querySelector('[data-oc-rel-terms]')) return;
+        var matched = tIdx.filter(function (t) { return termCats.indexOf(t.c) !== -1; });
+        if (matched.length < 3) {
+          tIdx.filter(function (t) { return t.c === 'General'; }).forEach(function (t) { matched.push(t); });
+        }
+        // Deduplicate by slug
+        var seen = {}, deduped = [];
+        matched.forEach(function (t) { if (!seen[t.s]) { seen[t.s] = 1; deduped.push(t); } });
+        var subset = deduped.slice(0, 5);
+        if (!subset.length) return;
+        var el = buildRelTermsSection(subset);
+        // Insert after Related Questions section if present, else after FAQ answer
+        var relFaqSec = document.querySelector('[data-oc-rel-faqs]');
+        if (relFaqSec && relFaqSec.parentNode) {
+          relFaqSec.parentNode.insertBefore(el, relFaqSec.nextSibling);
+          return;
+        }
+        var anc = document.querySelector('.oc-faq-a');
+        if (anc) {
+          var ps = anc.closest('section') || anc.parentElement;
+          if (ps && ps.parentNode) { ps.parentNode.insertBefore(el, ps.nextSibling); return; }
+        }
+        (document.querySelector('main,[class*="oc-main"]') || document.body).appendChild(el);
+      });
+    });
+  }
+
+  // ====================================================================
   // 11. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
 
@@ -1315,6 +1421,7 @@
     try { insightsFilter(); } catch (e) {}
     try { revealPageFaqs(); } catch (e) {}
     try { injectRelatedFaqs(); } catch (e) {}
+    try { injectRelatedTerms(); } catch (e) {}
   }
 
   var debounceTimer = null;
