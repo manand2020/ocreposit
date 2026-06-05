@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.4 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.5 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,10 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.5 -- Remove insights email capture components from runOnce() --
+//            injectInsightsInlineCTA, injectInsightsStickyBar,
+//            injectExitIntentModal disabled pending PDF + CLIP wiring.
+//            Code preserved in file; re-enable when ready.
 // v1.11.4 -- Insights capture fixes:
 //   injectExitIntentModal -> "Open Ask Olive" FAB selector updated to include
 //                      `summary.oc-widget-toggle` so clicking the button in
@@ -1862,9 +1866,9 @@
     try { injectMarketingConsentFields(); } catch (e) {}
     try { augmentCarrierReviewRating(); } catch (e) {}
     try { restrictCoverageReviewDropdown(); } catch (e) {}
-    try { injectInsightsInlineCTA(); } catch (e) {}
-    try { injectInsightsStickyBar(); } catch (e) {}
-    try { injectExitIntentModal(); } catch (e) {}
+    // try { injectInsightsInlineCTA(); } catch (e) {}   // disabled: PDF + CLIP not ready
+    // try { injectInsightsStickyBar(); } catch (e) {}   // disabled: PDF + CLIP not ready
+    // try { injectExitIntentModal(); } catch (e) {}     // disabled: PDF + CLIP not ready
     try { injectFooterCTA(); } catch (e) {}
   }
 
