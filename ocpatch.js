@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.2 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.3 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,7 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.3 -- Version bump for Webflow registration (no functional change from v1.11.2).
 // v1.11.2 -- Terms page fixes:
 //   hideDetailedRelTerms -> no longer hides .oc-term-cta-section; native
 //                      contextual CTA ("Want this checked against your actual
