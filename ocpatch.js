@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.21 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.22 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1275,14 +1275,14 @@
       }
       if (!related.length) return;
       var el = buildRelFaqSection(related);
-      // Insert after the section containing the answer or related-terms wrapper
-      var anc = document.querySelector('.oc-term-related-wrap,[class*="oc-term-rel"],.oc-faq-a');
+      // Insert after the section containing the answer or back-link (FAQ detail),
+      // or the related-terms wrapper (term detail). Fall back to before footer.
+      var anc = document.querySelector('.oc-term-related-wrap,[class*="oc-term-rel"],.oc-faq-a,.oc-faq-back-link');
       if (anc) {
         var ps = anc.closest('section') || anc.parentElement;
         if (ps && ps.parentNode) { ps.parentNode.insertBefore(el, ps.nextSibling); return; }
       }
-      var main = document.querySelector('main,[class*="oc-main"]') || document.body;
-      main.appendChild(el);
+      insertBeforeFooter(el);
     });
   }
 
@@ -1353,6 +1353,21 @@
     return sec;
   }
 
+  // Walk up from any oc-footer element to its direct body-child ancestor,
+  // then insert the given element immediately before it. Keeps injected
+  // sections above the footer regardless of where they're called from.
+  function findFooterWrapper() {
+    var fl = document.querySelector('[class*="oc-footer"]');
+    if (!fl) return null;
+    var p = fl;
+    while (p.parentElement && p.parentElement !== document.body) p = p.parentElement;
+    return p.parentElement === document.body ? p : null;
+  }
+  function insertBeforeFooter(el) {
+    var fw = findFooterWrapper();
+    if (fw) { document.body.insertBefore(el, fw); } else { document.body.appendChild(el); }
+  }
+
   var TERM_STOP = /^(what|is|a|an|the|how|does|do|i|my|can|will|are|for|to|in|of|on|with|and|or|if|it|be|not|when|why|which|who|from|at|by|this|that|have|has|had|was|were|should|would|could|may|might|need|use|get|give|make|help|own|set|does|do|covers|covered|cover|work|works)$/;
 
   function slugKeywords(slug) {
@@ -1399,12 +1414,12 @@
           relFaqSec.parentNode.insertBefore(el, relFaqSec.nextSibling);
           return;
         }
-        var anc = document.querySelector('.oc-faq-a');
-        if (anc) {
-          var ps = anc.closest('section') || anc.parentElement;
-          if (ps && ps.parentNode) { ps.parentNode.insertBefore(el, ps.nextSibling); return; }
+        var anc2 = document.querySelector('.oc-faq-a,.oc-faq-back-link');
+        if (anc2) {
+          var ps2 = anc2.closest('section') || anc2.parentElement;
+          if (ps2 && ps2.parentNode) { ps2.parentNode.insertBefore(el, ps2.nextSibling); return; }
         }
-        (document.querySelector('main,[class*="oc-main"]') || document.body).appendChild(el);
+        insertBeforeFooter(el);
       });
     });
   }
