@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.22 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.25 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1505,9 +1505,24 @@
   // Hides the CMS-bound detailed related-terms section on /insurance-terms/{slug}
   // pages since the injected pill section replaces it.
   function hideDetailedRelTerms() {
-    if (!/^\/insurance-terms\/[^/]+/.test(location.pathname)) return;
-    var sec = document.querySelector('.oc-term-related-section');
-    if (sec && sec.style.display !== 'none') sec.style.display = 'none';
+    if (/^\/insurance-terms\/[^/]+/.test(location.pathname)) {
+      ['.oc-term-related-section', '.oc-term-cta-section'].forEach(function (sel) {
+        var sec = document.querySelector(sel);
+        if (sec && sec.style.display !== 'none') sec.style.display = 'none';
+      });
+    }
+    if (/^\/faq\/[^/]+/.test(location.pathname)) {
+      var faqItem = document.querySelector('#faq-item');
+      if (faqItem) {
+        var wrapper = faqItem.firstElementChild;
+        if (wrapper) {
+          var last = wrapper.lastElementChild;
+          if (last && last.querySelector('a[href*="/coverage-review"]') && last.style.display !== 'none') {
+            last.style.display = 'none';
+          }
+        }
+      }
+    }
   }
 
   // Injects a "Free Coverage Review" CTA strip just above the footer on all
@@ -1530,9 +1545,10 @@
     var btn = document.createElement('a');
     btn.href = '/coverage-review';
     btn.textContent = 'Free Coverage Review';
-    btn.style.cssText = 'display:inline-block;padding:0 28px;background:#B8934A;color:#fff;font-family:Inter,system-ui,sans-serif;font-size:0.9375rem;font-weight:600;text-decoration:none;border-radius:4px;height:44px;line-height:44px;';
-    btn.addEventListener('mouseover', function () { btn.style.background = '#C7A24B'; });
-    btn.addEventListener('mouseout', function () { btn.style.background = '#B8934A'; });
+    btn.style.cssText = 'display:inline-block;padding:0 28px;background:#B8934A;font-family:Inter,system-ui,sans-serif;font-size:0.9375rem;font-weight:600;text-decoration:none;border-radius:4px;height:44px;line-height:44px;';
+    btn.style.setProperty('color', '#fff', 'important');
+    btn.addEventListener('mouseover', function () { btn.style.background = '#C7A24B'; btn.style.setProperty('color', '#fff', 'important'); });
+    btn.addEventListener('mouseout', function () { btn.style.background = '#B8934A'; btn.style.setProperty('color', '#fff', 'important'); });
     inner.appendChild(h);
     inner.appendChild(sub);
     inner.appendChild(btn);
