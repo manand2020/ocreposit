@@ -1,4 +1,15 @@
-// ocpatch.js v1.10.5 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.6 -- Consolidated runtime patcher for Olive Cover.
+//
+//   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
+//                      block (.oc-feat-card*) and the category filter bar
+//                      (.oc-news-filter) are built natively in the Designer;
+//                      this (a) loads every paginated card into the grid so
+//                      category filtering spans the whole collection and hides
+//                      the now-redundant pagination, (b) fills the featured
+//                      block from the newest article and removes that duplicate
+//                      card from the grid, (c) builds one chip per distinct
+//                      category and wires show/hide filtering. Behavior + DOM
+//                      only; all styling lives in native classes.
 //
 // Merges five standalone inline-site-scripts that previously each loaded a
 // separate file and/or ran its own MutationObserver + TreeWalker pass on
@@ -874,6 +885,133 @@
     dd.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hide(); } });
   }
 
+  // --- Insights hub (v1.10.6): featured lead block + category filter ---
+  function onInsightsHub() {
+    return location.pathname.replace(/\/+$/, '') === '/insights';
+  }
+
+  function insightsFeatured() {
+    if (!onInsightsHub()) return;
+    var feat = document.querySelector('[class*="oc-feat-card"]');
+    var grid = document.querySelector('.oc-news-grid');
+    if (!feat || !grid) return;
+    if (feat.dataset.ocFilled === '1') return;
+    var item = grid.querySelector('.w-dyn-item');
+    if (!item) return;
+    var card = item.querySelector('a.oc-newscard') || item.querySelector('a');
+    if (!card) return;
+    var pick = function (sel) { var el = card.querySelector(sel); return el ? el.textContent.trim() : ''; };
+    var set = function (sel, val) { var el = feat.querySelector(sel); if (el && val) el.textContent = val; };
+    set('.oc-feat-cat', pick('.oc-newscard-cat'));
+    set('.oc-feat-title', pick('.oc-newscard-title'));
+    set('.oc-feat-excerpt', pick('.oc-newscard-sum'));
+    set('.oc-feat-date', pick('.oc-newscard-date'));
+    set('.oc-feat-read', pick('.oc-newscard-rt'));
+    var srcImg = card.querySelector('.oc-newscard-img');
+    var fImg = feat.querySelector('.oc-feat-img');
+    if (fImg && srcImg) {
+      var s = srcImg.currentSrc || srcImg.getAttribute('src');
+      if (s) { fImg.setAttribute('src', s); fImg.setAttribute('loading', 'eager'); }
+      if (srcImg.getAttribute('alt')) fImg.setAttribute('alt', srcImg.getAttribute('alt'));
+    }
+    var slug = (card.getAttribute('data-insights-slug') || '').trim();
+    if (slug) {
+      feat.setAttribute('href', '/insights/' + slug);
+      feat.setAttribute('data-insights-slug', slug);
+    } else {
+      var h = card.getAttribute('href');
+      if (h && h !== '#') feat.setAttribute('href', h);
+    }
+    feat.dataset.ocFilled = '1';
+    // Remove the now-duplicated newest card from the grid.
+    if (item.parentNode) item.parentNode.removeChild(item);
+  }
+
+  function insightsLoadAll() {
+    if (!onInsightsHub()) return;
+    var grid = document.querySelector('.oc-news-grid');
+    if (!grid) return;
+    var state = grid.getAttribute('data-oc-loadall');
+    if (state === 'loading' || state === 'done') return;
+    var next = document.querySelector('.w-pagination-next');
+    if (!next) { grid.setAttribute('data-oc-loadall', 'done'); return; }
+    grid.setAttribute('data-oc-loadall', 'loading');
+    var seen = {};
+    var keyOf = function (it) {
+      var a = it.querySelector('a[data-insights-slug]');
+      if (a) { return a.getAttribute('data-insights-slug') || a.getAttribute('href') || ''; }
+      var t = it.querySelector('.oc-newscard-title');
+      return t ? t.textContent.trim() : '';
+    };
+    var cur = grid.querySelectorAll('.w-dyn-item');
+    for (var c = 0; c < cur.length; c++) { seen[keyOf(cur[c])] = 1; }
+    var finish = function () {
+      grid.setAttribute('data-oc-loadall', 'done');
+      var pag = document.querySelector('.w-pagination-wrapper');
+      if (pag) pag.style.setProperty('display', 'none');
+    };
+    var fetchPage = function (url, guard) {
+      if (guard > 20) { finish(); return; }
+      fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var items = doc.querySelectorAll('.oc-news-grid .w-dyn-item');
+        for (var i = 0; i < items.length; i++) {
+          var k = keyOf(items[i]);
+          if (k && seen[k]) continue;
+          seen[k] = 1;
+          grid.appendChild(document.importNode(items[i], true));
+        }
+        var nxt = doc.querySelector('.w-pagination-next');
+        if (nxt && nxt.getAttribute('href')) {
+          fetchPage(new URL(nxt.getAttribute('href'), location.origin + location.pathname).toString(), guard + 1);
+        } else { finish(); }
+      }).catch(function () { finish(); });
+    };
+    fetchPage(new URL(next.getAttribute('href'), location.origin + location.pathname).toString(), 0);
+  }
+
+  function insightsFilter() {
+    if (!onInsightsHub()) return;
+    var bar = document.querySelector('.oc-news-filter');
+    var grid = document.querySelector('.oc-news-grid');
+    if (!bar || !grid) return;
+    if (bar.dataset.ocBuilt === '1') return;
+    if (grid.getAttribute('data-oc-loadall') !== 'done') return;
+    var tmpl = bar.querySelector('.oc-news-chip');
+    if (!tmpl) return;
+    bar.dataset.ocBuilt = '1';
+    var items = [].slice.call(grid.querySelectorAll('.w-dyn-item'));
+    var cats = [];
+    items.forEach(function (it) {
+      var ce = it.querySelector('.oc-newscard-cat');
+      var t = ce ? ce.textContent.trim() : '';
+      if (t && cats.indexOf(t) < 0) cats.push(t);
+    });
+    cats.sort();
+    cats.forEach(function (t) {
+      var chip = tmpl.cloneNode(true);
+      chip.classList.remove('oc-news-chip-active');
+      chip.setAttribute('data-cat', t);
+      chip.textContent = t;
+      bar.appendChild(chip);
+    });
+    var apply = function (cat) {
+      items.forEach(function (it) {
+        var ce = it.querySelector('.oc-newscard-cat');
+        var t = ce ? ce.textContent.trim() : '';
+        it.style.display = (!cat || t === cat) ? '' : 'none';
+      });
+    };
+    bar.addEventListener('click', function (e) {
+      var chip = e.target && e.target.closest ? e.target.closest('.oc-news-chip') : null;
+      if (!chip) return;
+      var chips = bar.querySelectorAll('.oc-news-chip');
+      for (var i = 0; i < chips.length; i++) { chips[i].classList.remove('oc-news-chip-active'); }
+      chip.classList.add('oc-news-chip-active');
+      apply(chip.getAttribute('data-cat') || '');
+    });
+  }
+
   // ====================================================================
   // 11. Boot -- one shared, debounced observer drives all idempotent tasks
   // ====================================================================
@@ -898,6 +1036,9 @@
     try { wireAboutDropdown(); } catch (e) {}
     try { fixNewsCardLinks(); } catch (e) {}
     try { eagerCardImages(); } catch (e) {}
+    try { insightsFeatured(); } catch (e) {}
+    try { insightsLoadAll(); } catch (e) {}
+    try { insightsFilter(); } catch (e) {}
   }
 
   var debounceTimer = null;
