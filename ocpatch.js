@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.17 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.18 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1250,17 +1250,25 @@
     fetchFaqIdx(function (idx) {
       if (!idx.length || document.querySelector('[data-oc-rel-faqs]')) return;
       var related;
+      var seenSlugs = {};
+      function dedupFilter(arr) {
+        return arr.filter(function (f) { if (seenSlugs[f.s]) return false; seenSlugs[f.s] = 1; return true; });
+      }
       if (isFaqDetail) {
         var sl = pg.replace(/^\/faq\//, '').replace(/\/$/, '');
         var cur = null;
         for (var i = 0; i < idx.length; i++) { if (idx[i].s === sl) { cur = idx[i]; break; } }
         if (!cur) return;
-        related = idx.filter(function (f) { return f.c === cur.c && f.s !== sl; }).slice(0, 4);
+        related = dedupFilter(idx.filter(function (f) { return f.c === cur.c && f.s !== sl; })).slice(0, 4);
       } else {
-        var catEl = document.querySelector('.oc-it-card-cat,[class*="term-cat"],[class*="oc-cat"]');
-        var tc = catEl ? catEl.textContent.trim() : 'General';
-        var fc = TERM_FAQ_CATS[tc] || TERM_FAQ_CATS['General'];
-        related = idx.filter(function (f) { return fc.indexOf(f.c) !== -1; }).slice(0, 4);
+        // Term page: keyword-match FAQs by H1 term name; fill with General if < 4
+        var h1el = document.querySelector('h1');
+        var termName = h1el ? h1el.textContent.trim().toLowerCase() : '';
+        var byName = termName ? dedupFilter(idx.filter(function (f) { return f.q.toLowerCase().indexOf(termName) !== -1; })) : [];
+        if (byName.length < 4) {
+          dedupFilter(idx.filter(function (f) { return f.c === 'General'; })).forEach(function (f) { byName.push(f); });
+        }
+        related = byName.slice(0, 4);
       }
       if (!related.length) return;
       var el = buildRelFaqSection(related);
