@@ -1,5 +1,11 @@
-// ocpatch.js v1.10.15 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.16 -- Consolidated runtime patcher for Olive Cover.
 //
+//   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
+//                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
+//                      on their own pages -- reveal + clean collapsed accordion
+//                      + hide duplicate short-list + Q/A differentiation + hub
+//                      link. Skips /faq (wired natively). Robust answer-finder
+//                      handles both <p class="oc-faq-a"> and bare <div> answers.
 //   revealCarrierFaqs (v1.10.15): differentiate the FAQ question from its
 //                      answer -- question is bold navy Inter, answer is set off
 //                      with a gold left rule + indent (template rendered both
@@ -1070,28 +1076,23 @@
     });
   }
 
-  // --- Carrier profile FAQ section (v1.10.11) ---
-  // ocfaq-complete.js force-hides per-page FAQ sections (#car-faq etc.) on all
-  // non-/faq pages, and its state filter only runs on /faq. Carrier appointments
-  // are national (where the agency and carrier do business), so carrier FAQs
-  // should show on the carrier profile regardless of the visitor's state, while
-  // any state-regulation-specific FAQ (tagged with a state) shows only when that
-  // state is selected. This reveals #car-faq on /carriers/{slug} and applies that
-  // model: national/untagged FAQs always show; state-tagged FAQs gate on state.
-  function revealCarrierFaqs() {
-    if (location.pathname.indexOf('/carriers/') !== 0) return;
-    var sec = document.getElementById('car-faq');
-    if (!sec) return;
-    // The section renders TWO lists: a questions-only "table of contents"
-    // (.oc-faq-short-list) and the real accordion (#car-faq-collection). The
-    // short list duplicates the accordion's questions, so hide it entirely and
-    // keep only the collapsed accordion below.
+  // --- Page-level FAQ sections (v1.10.16) ---
+  // ocfaq-complete.js force-hides every per-page FAQ section (#car-faq,
+  // #ins-faq, #about-faq, #wwdb-faq) on all non-/faq pages, and only wires the
+  // accordion + state filter on /faq. This reveals each such section on its own
+  // page and makes it a clean, working accordion: hides the duplicate
+  // questions-only "table of contents" (.oc-faq-short-list) when present,
+  // collapses each item by default, reveals the answer on click, differentiates
+  // question vs answer visually, and adds one "View all insurance FAQs ->" hub
+  // link. Appointments are national, so untagged FAQs always show; a FAQ tagged
+  // with a state shows only when that state is the active one.
+  function processFaqSection(sec) {
+    // hide the questions-only "table of contents" duplicate, if present
     var shortList = sec.querySelector('.oc-faq-short-list');
     if (shortList) shortList.style.setProperty('display', 'none', 'important');
-    var coll = sec.querySelector('#car-faq-collection') || sec;
+    var coll = sec.querySelector('[id$="-faq-collection"], .w-dyn-list') || sec;
     var items = [].slice.call(coll.querySelectorAll('.w-dyn-item'));
-    var list = coll;
-    if (!items.length) return; // no FAQs for this carrier -> leave hidden
+    if (!items.length) return; // no FAQs -> leave hidden
     var DEFAULT_STATE = 'national';
     var active = (document.body.getAttribute('data-state') || DEFAULT_STATE).toLowerCase();
     var stateOf = function (it) {
@@ -1110,15 +1111,16 @@
       else { show = false; }
       it.style.display = show ? '' : 'none';
       if (show) anyVis = true;
-      // Wire the accordion: the answer (.oc-faq-a) is hidden by template CSS
-      // regardless of the <details> open state, because the native toggle was
-      // only ever wired by ocfaq-complete.js on /faq. So drive the answer's
-      // visibility from the details' toggle event (collapsed by default,
-      // reveals the answer on click).
+      // Wire the accordion: on some templates the answer (.oc-faq-a) is hidden
+      // by template CSS regardless of the <details> open state (the native
+      // toggle was only ever wired by ocfaq-complete.js on /faq). Drive the
+      // answer's visibility from the details' toggle event (collapsed by
+      // default, reveals on click). Harmless where the answer shows natively.
       var det = it.querySelector('details');
       if (det && !det.getAttribute('data-oc-faq-wired')) {
         det.setAttribute('data-oc-faq-wired', '1');
-        var ans = det.querySelector('.oc-faq-a') || det.querySelector('p');
+        var ans = det.querySelector('.oc-faq-a') || det.querySelector('p') ||
+          [].slice.call(det.children).filter(function (c) { return c.tagName !== 'SUMMARY'; })[0];
         var sum = det.querySelector('summary');
         // Differentiate question from answer: question is bold navy (Inter),
         // answer is set off with a gold left rule + indent so the two read as
@@ -1163,9 +1165,14 @@
         a.style.setProperty('font-weight', '600', 'important');
         a.style.setProperty('text-decoration', 'none', 'important');
         wrap.appendChild(a);
-        list.appendChild(wrap);
+        coll.appendChild(wrap);
       }
     }
+  }
+  function revealPageFaqs() {
+    if (location.pathname.indexOf('/faq') === 0) return; // /faq is wired natively by ocfaq-complete.js
+    var secs = [].slice.call(document.querySelectorAll('[id$="-faq"]'));
+    secs.forEach(function (sec) { try { processFaqSection(sec); } catch (e) {} });
   }
 
   // ====================================================================
@@ -1195,7 +1202,7 @@
     try { insightsFeatured(); } catch (e) {}
     try { insightsLoadAll(); } catch (e) {}
     try { insightsFilter(); } catch (e) {}
-    try { revealCarrierFaqs(); } catch (e) {}
+    try { revealPageFaqs(); } catch (e) {}
   }
 
   var debounceTimer = null;
