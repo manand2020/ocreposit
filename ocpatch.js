@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.6 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.7 -- Consolidated runtime patcher for Olive Cover.
 //
 //   insightsHub      -> /insights enhancements (v1.10.6). The featured lead
 //                      block (.oc-feat-card*) and the category filter bar
@@ -905,8 +905,22 @@
     set('.oc-feat-cat', pick('.oc-newscard-cat'));
     set('.oc-feat-title', pick('.oc-newscard-title'));
     set('.oc-feat-excerpt', pick('.oc-newscard-sum'));
-    set('.oc-feat-date', pick('.oc-newscard-date'));
     set('.oc-feat-read', pick('.oc-newscard-rt'));
+    // Date span: the whtml insert dropped the .oc-feat-date class on this span,
+    // so fall back to the first span in the meta row (the read-time span keeps
+    // its class and is matched separately above).
+    var dateVal = pick('.oc-newscard-date');
+    var dateEl = feat.querySelector('.oc-feat-date');
+    if (!dateEl) {
+      var metaRow = feat.querySelector('.oc-feat-meta');
+      if (metaRow) {
+        var spans = metaRow.querySelectorAll('span');
+        for (var di = 0; di < spans.length; di++) {
+          if (spans[di].className.indexOf('oc-feat-read') < 0) { dateEl = spans[di]; break; }
+        }
+      }
+    }
+    if (dateEl && dateVal) dateEl.textContent = dateVal;
     var srcImg = card.querySelector('.oc-newscard-img');
     var fImg = feat.querySelector('.oc-feat-img');
     if (fImg && srcImg) {
