@@ -1,4 +1,4 @@
-// ocpatch.js v1.10.28 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.10.29 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -865,6 +865,10 @@
     var slug = p.slice('/insurance-terms/'.length);
     if (!slug) return;
     if (document.querySelector('script[data-oc-term-schema="1"]')) return;
+    var existingLd = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var ei = 0; ei < existingLd.length; ei++) {
+      try { if (JSON.parse(existingLd[ei].textContent)['@type'] === 'DefinedTerm') return; } catch (e) {}
+    }
     var h1 = document.querySelector('h1');
     if (!h1) return;
     var termName = (h1.textContent || '').trim();
