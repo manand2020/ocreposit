@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.11 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.12 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,8 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.12 -- processFaqSection placeholder fix: remove excess DOM items (not
+//             just hide them) so processFaqSection state-filter can't re-show them.
 // v1.11.11 -- processFaqSection placeholder fix: limit to 5 questions, deduplicate
 //             by question text prefix, remove 'State' category for cleaner signal.
 // v1.11.10 -- processFaqSection: guard against CMS placeholder text (FAQ
@@ -1471,7 +1473,9 @@
               ans.appendChild(a);
             }
           });
-          for (var i = related.length; i < items.length; i++) items[i].style.display = 'none';
+          for (var i = items.length - 1; i >= related.length; i--) {
+            if (items[i].parentNode) items[i].parentNode.removeChild(items[i]);
+          }
           sec.setAttribute('data-oc-faq-content-fixed', '1');
           processFaqSection(sec);
         });
