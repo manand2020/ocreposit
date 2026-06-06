@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.9 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.10 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,11 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.10 -- processFaqSection: guard against CMS placeholder text (FAQ
+//             Question / FAQ Answer) -- fetches real General+Carrier+State FAQs
+//             from faq-index.json, replaces in-place, then re-wires accordion.
+//             Fixes broken FAQ accordion on /about. injectFooterCTA: add /about
+//             to exclusion list (native CTA section already on page).
 // v1.11.9 -- injectRelatedTerms + injectRelatedFaqs: extend both to run on
 //            /insurance/* and /carriers/* pages, placing RelTerms -> RelFAQs
 //            before footer in a race-safe manner. Slug keywords drive term
@@ -1436,6 +1441,35 @@
   // link. Appointments are national, so untagged FAQs always show; a FAQ tagged
   // with a state shows only when that state is the active one.
   function processFaqSection(sec) {
+    // If the Webflow Designer left CMS placeholder text (binding not set up),
+    // fetch real FAQs from the index, replace in-place, then re-enter.
+    if (!sec.getAttribute('data-oc-faq-content-fixed')) {
+      var phSum = sec.querySelector('.w-dyn-item summary');
+      if (phSum && phSum.textContent.trim() === 'FAQ Question') {
+        fetchFaqIdx(function (idx) {
+          var items = Array.from(sec.querySelectorAll('.w-dyn-item'));
+          var cats = ['General', 'Carrier', 'State'];
+          var related = idx.filter(function (f) { return cats.indexOf(f.c) !== -1; }).slice(0, items.length);
+          related.forEach(function (f, i) {
+            var sum = items[i].querySelector('summary');
+            var ans = items[i].querySelector('details > div, details > p');
+            if (sum) sum.textContent = f.q;
+            if (ans) {
+              ans.textContent = '';
+              var a = document.createElement('a');
+              a.href = '/faq/' + f.s;
+              a.textContent = 'View full answer';
+              a.style.cssText = 'color:#B8934A;font-weight:600;text-decoration:none;font-family:Inter,system-ui,sans-serif;font-size:0.9rem;';
+              ans.appendChild(a);
+            }
+          });
+          for (var i = related.length; i < items.length; i++) items[i].style.display = 'none';
+          sec.setAttribute('data-oc-faq-content-fixed', '1');
+          processFaqSection(sec);
+        });
+        return;
+      }
+    }
     // hide the questions-only "table of contents" duplicate, if present
     var shortList = sec.querySelector('.oc-faq-short-list');
     if (shortList) shortList.style.setProperty('display', 'none', 'important');
@@ -2058,7 +2092,7 @@
   function injectFooterCTA() {
     if (document.querySelector('[data-oc-footer-cta]')) return;
     var pg = location.pathname.replace(/\/$/, '');
-    if (/^\/(coverage-review|contact|book|carriers|insurance(-terms)?|insights)(\/|$)/.test(pg) || pg === '') return;
+    if (/^\/(coverage-review|contact|book|carriers|insurance(-terms)?|insights|about)(\/|$)/.test(pg) || pg === '') return;
     var sec = document.createElement('section');
     sec.setAttribute('data-oc-footer-cta', '1');
     sec.style.cssText = 'background:#F5EDD8;padding:48px 24px;text-align:center;';
