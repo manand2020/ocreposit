@@ -1,8 +1,14 @@
-// Olive Cover -- Coverage Review form behavior v3.4.2
+// Olive Cover -- Coverage Review form behavior v3.4.3
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.4.3 (2026-06-06): State dropdown now lists all US states (except California per
+//   the no-CA rule), defaults from the geo-populated oc_state (ocstateselect/ipapi),
+//   and shows a per-state availability notice (licensed states quote today; others get
+//   an "expanding -- we'll reach out" note, lead still captured). Quick-form dec + policy
+//   upload buttons now sit in one row.
 //
 // v3.4.2 (2026-06-06): (a) State is now the FIRST header field and defaults from the
 //   site-wide oc_state (like the other forms), with the GA licensing-status notice
@@ -681,6 +687,27 @@ async function onSubmit(e) {
 
 // ---- Gateway (choice screen before full / quick form) ----------
 
+// All US states except California (CA license surrendered -- no California references).
+// oc_state is geo-populated by the ocstateselect shim (ipapi.co) + persisted; the
+// dropdown defaults from it. OC_LICENSED drives the per-state availability notice.
+const OC_STATES = [["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["DC","District of Columbia"],["FL","Florida"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"]];
+const OC_LICENSED = ["GA"];
+
+function updateStateNotice() {
+  const sel = $("oc-crv-gw-state");
+  const note = $("oc-crv-gw-state-notice");
+  if (!sel || !note) return;
+  const v = sel.value;
+  if (!v) { note.style.display = "none"; return; }
+  const name = (sel.options[sel.selectedIndex] || {}).text || "your state";
+  if (OC_LICENSED.indexOf(v) !== -1) {
+    note.textContent = "Olive Insurance Services, LLC (dba Olive Cover) is licensed in " + name + ". We can quote and place coverage today.";
+  } else {
+    note.textContent = "We're not yet licensed in " + name + " -- we're expanding. Leave your details and we'll reach out when coverage is available there.";
+  }
+  note.style.display = "";
+}
+
 function injectGateway() {
   const wrap = $("oc-crv-wrap");
   if (!wrap || $("oc-crv-p0")) return;
@@ -692,9 +719,8 @@ function injectGateway() {
       '<label for="oc-crv-gw-state" style="display:block;margin-bottom:6px;font-size:0.9em;font-weight:500;color:#1B3A5C">What state are you in?</label>' +
       '<select id="oc-crv-gw-state" class="w-input w-select" style="width:100%;margin:0;box-sizing:border-box">' +
         '<option value="">Select your state</option>' +
-        '<option value="GA">Georgia</option>' +
       '</select>' +
-      '<div id="oc-crv-gw-state-notice" style="margin:8px 0 14px;font-size:0.85em;line-height:1.45;color:#1B3A5C;opacity:0.85">Olive Insurance Services, LLC (dba Olive Cover) is licensed in Georgia. We can quote and place coverage today.</div>' +
+      '<div id="oc-crv-gw-state-notice" style="display:none;margin:8px 0 14px;font-size:0.85em;line-height:1.45;color:#1B3A5C;opacity:0.85"></div>' +
       '<div style="display:flex;gap:8px;margin-bottom:8px">' +
         '<input id="oc-crv-gw-fn" type="text" placeholder="First name" class="w-input" style="flex:1;margin:0">' +
         '<input id="oc-crv-gw-ln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
@@ -710,12 +736,17 @@ function injectGateway() {
   wrap.insertBefore(el, wrap.firstChild);
   $("oc-crv-tab-quick").addEventListener("click", onTabClick);
   $("oc-crv-tab-full").addEventListener("click", onTabClick);
-  // Default the state from the site-wide oc_state (set by the state pill / other forms)
-  try {
-    const st = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
-    const sel = $("oc-crv-gw-state");
-    if (st && sel && [...sel.options].some((o) => o.value === st)) sel.value = st;
-  } catch (e) {}
+  const stSel = $("oc-crv-gw-state");
+  if (stSel) {
+    OC_STATES.forEach(function (s) { const o = document.createElement("option"); o.value = s[0]; o.textContent = s[1]; stSel.appendChild(o); });
+    stSel.addEventListener("change", updateStateNotice);
+    // Default from the geo-populated, site-wide oc_state (set by ocstateselect via ipapi)
+    try {
+      const st = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
+      if (st && [...stSel.options].some((o) => o.value === st)) stSel.value = st;
+    } catch (e) {}
+    updateStateNotice();
+  }
 }
 
 // The ocstateselect shim module auto-injects a [data-oc-state-wrap] state field into
@@ -764,17 +795,19 @@ function injectQuickForm() {
       '<input id="oc-crv-qem" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
       '<input id="oc-crv-qph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:16px;box-sizing:border-box">' +
     '</div>' +
-    '<div style="margin-bottom:12px">' +
-      '<p style="margin:0 0 6px;font-size:0.9em;font-weight:500">Dec page PDF <span style="opacity:0.6">(optional)</span></p>' +
-      '<a id="oc-crv-qdec-trigger" class="oc-crv-btn-ghost w-button" href="#">Upload dec page</a>' +
-      '<span id="oc-crv-qfname-dec" style="display:none;margin-left:10px;font-size:0.85em"></span>' +
-      '<input id="oc-crv-qfile-dec" type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none">' +
-    '</div>' +
-    '<div style="margin-bottom:20px">' +
-      '<p style="margin:0 0 6px;font-size:0.9em;font-weight:500">Full policy PDF <span style="opacity:0.6">(optional)</span></p>' +
-      '<a id="oc-crv-qpol-trigger" class="oc-crv-btn-ghost w-button" href="#">Upload policy</a>' +
-      '<span id="oc-crv-qfname-pol" style="display:none;margin-left:10px;font-size:0.85em"></span>' +
-      '<input id="oc-crv-qfile-pol" type="file" accept=".pdf" style="display:none">' +
+    '<div style="display:flex;gap:12px;margin-bottom:20px">' +
+      '<div style="flex:1;min-width:0">' +
+        '<p style="margin:0 0 6px;font-size:0.9em;font-weight:500">Dec page PDF <span style="opacity:0.6">(optional)</span></p>' +
+        '<a id="oc-crv-qdec-trigger" class="oc-crv-btn-ghost w-button" href="#" style="display:block;text-align:center">Upload dec page</a>' +
+        '<div id="oc-crv-qfname-dec" style="display:none;margin-top:6px;font-size:0.85em;word-break:break-all"></div>' +
+        '<input id="oc-crv-qfile-dec" type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none">' +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<p style="margin:0 0 6px;font-size:0.9em;font-weight:500">Full policy PDF <span style="opacity:0.6">(optional)</span></p>' +
+        '<a id="oc-crv-qpol-trigger" class="oc-crv-btn-ghost w-button" href="#" style="display:block;text-align:center">Upload policy</a>' +
+        '<div id="oc-crv-qfname-pol" style="display:none;margin-top:6px;font-size:0.85em;word-break:break-all"></div>' +
+        '<input id="oc-crv-qfile-pol" type="file" accept=".pdf" style="display:none">' +
+      '</div>' +
     '</div>' +
     '<div id="oc-crv-qerr" style="display:none;color:#c00;margin-bottom:10px;font-size:0.9em"></div>' +
     '<button type="button" id="oc-crv-qsubmit" class="oc-crv-btn-ghost w-button" style="width:100%">Send for Review</button>';
@@ -1075,8 +1108,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.42) return;
-  window._OC_CRV_VERSION = 3.42;
+  if (window._OC_CRV_VERSION >= 3.43) return;
+  window._OC_CRV_VERSION = 3.43;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
