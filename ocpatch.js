@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.13 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.14 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -1626,6 +1626,7 @@
 
   function injectRelatedFaqs() {
     if (document.querySelector('[data-oc-rel-faqs]')) return;
+    if (document.querySelector('.oc-faq-accordion-item')) return;
     var pg = location.pathname;
     var isFaqDetail = /^\/faq\/[^/]+/.test(pg);
     var isTermDetail = /^\/insurance-terms\/[^/]+/.test(pg);
@@ -1772,6 +1773,7 @@
 
   function injectRelatedTerms() {
     if (document.querySelector('[data-oc-rel-terms]')) return;
+    if (document.querySelector('.oc-pill-list .oc-pill')) return;
     var pg = location.pathname;
     var isFaqDetail = /^\/faq\/[^/]+/.test(pg);
     var isTermDetail = /^\/insurance-terms\/[^/]+/.test(pg);
@@ -2079,15 +2081,9 @@
     }
   }
 
-  // Hides the CMS-bound detailed related-terms section on /insurance-terms/{slug}
-  // pages since the injected pill section replaces it.
+  // Native pill sections now replace injected terms on /insurance-terms/ pages.
+  // Only the legacy FAQ "Have a question" element still needs hiding on /faq/ pages.
   function hideDetailedRelTerms() {
-    if (/^\/insurance-terms\/[^/]+/.test(location.pathname)) {
-      ['.oc-term-related-section'].forEach(function (sel) {
-        var sec = document.querySelector(sel);
-        if (sec && sec.style.display !== 'none') sec.style.display = 'none';
-      });
-    }
     if (/^\/faq\/[^/]+/.test(location.pathname)) {
       var faqItem = document.querySelector('#faq-item');
       if (faqItem) {
