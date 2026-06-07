@@ -1,8 +1,14 @@
-// Olive Cover -- Coverage Review form behavior v3.1.0
+// Olive Cover -- Coverage Review form behavior v3.2.0
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.2.0 (2026-06-06): Add gateway + quick-upload path (Option A). Gateway panel
+//   shown before the 5-step form; users choose "Walk me through it" (full form) or
+//   "Quick upload" (name/email/phone + dec page + policy). Both POST to the same
+//   ENDPOINT with fields.mode = "full" or "quick-upload". Back from step 1 returns
+//   to gateway. Session restore skips gateway and goes directly to saved step.
 //
 // v3.1.0 (2026-05-29): RESTORE file uploads. Form POST still targets olivec-prod
 //   forms function, but dec page and current policy bytes are uploaded to the
@@ -115,6 +121,7 @@ function clearSession() {
 
 const STATE = {
   step: 1,
+  mode: "gateway",  // "gateway" | "full" | "quick"
   track: null,
   contactPref: [],
   personalLines: [],
@@ -138,6 +145,10 @@ const STATE = {
   decFileName: null,
   policyFileUrl: null,
   policyFileName: null,
+  qDecFileUrl: null,
+  qDecFileName: null,
+  qPolFileUrl: null,
+  qPolFileName: null,
   saveTimer: null,
   saving: false,
   restored: false
@@ -188,7 +199,7 @@ function setStep(n, doScroll) {
   const back = $("oc-crv-back");
   const next = $("oc-crv-next");
   const submit = $("oc-crv-submit");
-  if (back) back.style.display = n > 1 ? "" : "none";
+  if (back) back.style.display = (n > 1 || STATE.mode === "full") ? "" : "none";
   if (next) next.style.display = n < 5 ? "" : "none";
   if (submit) submit.style.display = n === 5 ? "" : "none";
   showErr("");
@@ -309,7 +320,12 @@ function validateStep(n) {
   return true;
 }
 
-function onBack(e) { e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); if (STATE.step > 1) setStep(STATE.step - 1, true); }
+function onBack(e) {
+  e.preventDefault();
+  if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+  if (STATE.mode === "full" && STATE.step === 1) { showGateway(true); return; }
+  if (STATE.step > 1) setStep(STATE.step - 1, true);
+}
 function onNext(e) {
   e.preventDefault();
   if (e.stopImmediatePropagation) e.stopImmediatePropagation();
@@ -530,7 +546,11 @@ function tryRestoreSession() {
       const banner = $("oc-crv-resume");
       if (banner) banner.style.display = "";
     }
-    // Jump back to their last step
+    // Jump back to their last step in full-form mode (skips gateway)
+    if (STATE.restored) {
+      STATE.mode = "full";
+      for (let _i = 1; _i <= 5; _i++) { const _s = $("oc-crv-s" + _i); if (_s) _s.style.display = ""; }
+    }
     if (startStep > 1) setStep(startStep);
   } catch (err) { console.warn("[oc-crv] session restore failed:", err); }
 }
@@ -603,6 +623,239 @@ async function onSubmit(e) {
   } catch (err) {
     console.error("[oc-crv] submit failed:", err);
     showErr("Couldn't send right now. Please try again, or email askolive@olivecover.com.");
+    btn.disabled = false;
+    btn.textContent = origText || "Send for Review";
+  }
+}
+
+// ---- Gateway (choice screen before full / quick form) ----------
+
+function injectGateway() {
+  const wrap = $("oc-crv-wrap");
+  if (!wrap || $("oc-crv-p0")) return;
+  const el = document.createElement("div");
+  el.id = "oc-crv-p0";
+  el.innerHTML =
+    '<div class="oc-crv-type-grid">' +
+      '<div class="oc-crv-type-card" id="oc-crv-g-full" data-gw="full">' +
+        '<p><strong>Walk me through it</strong></p>' +
+        '<p style="font-size:0.9em;opacity:0.8;margin:4px 0 0">Answer a few questions about your current coverage -- takes about 3 minutes.</p>' +
+      '</div>' +
+      '<div class="oc-crv-type-card" id="oc-crv-g-quick" data-gw="quick">' +
+        '<p><strong>Quick upload</strong></p>' +
+        '<p style="font-size:0.9em;opacity:0.8;margin:4px 0 0">Just your name, email, and your dec page. We\'ll handle the rest.</p>' +
+      '</div>' +
+    '</div>';
+  wrap.insertBefore(el, wrap.firstChild);
+  $("oc-crv-g-full").addEventListener("click", onGatewaySelect);
+  $("oc-crv-g-quick").addEventListener("click", onGatewaySelect);
+}
+
+function injectQuickForm() {
+  const wrap = $("oc-crv-wrap");
+  if (!wrap || $("oc-crv-pq")) return;
+  const el = document.createElement("div");
+  el.id = "oc-crv-pq";
+  el.style.display = "none";
+  el.innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+      '<input id="oc-crv-qfn" type="text" placeholder="First name" class="w-input" style="flex:1;margin:0">' +
+      '<input id="oc-crv-qln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
+    '</div>' +
+    '<input id="oc-crv-qem" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
+    '<input id="oc-crv-qph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:16px;box-sizing:border-box">' +
+    '<div style="margin-bottom:12px">' +
+      '<p style="margin:0 0 6px;font-size:0.9em;font-weight:500">Dec page PDF <span style="opacity:0.6">(optional)</span></p>' +
+      '<a id="oc-crv-qdec-trigger" class="oc-crv-btn-ghost w-button" href="#">Upload dec page</a>' +
+      '<span id="oc-crv-qfname-dec" style="display:none;margin-left:10px;font-size:0.85em"></span>' +
+      '<input id="oc-crv-qfile-dec" type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none">' +
+    '</div>' +
+    '<div style="margin-bottom:20px">' +
+      '<p style="margin:0 0 6px;font-size:0.9em;font-weight:500">Full policy PDF <span style="opacity:0.6">(optional)</span></p>' +
+      '<a id="oc-crv-qpol-trigger" class="oc-crv-btn-ghost w-button" href="#">Upload policy</a>' +
+      '<span id="oc-crv-qfname-pol" style="display:none;margin-left:10px;font-size:0.85em"></span>' +
+      '<input id="oc-crv-qfile-pol" type="file" accept=".pdf" style="display:none">' +
+    '</div>' +
+    '<div id="oc-crv-qerr" style="display:none;color:#c00;margin-bottom:10px;font-size:0.9em"></div>' +
+    '<div style="display:flex;gap:10px;align-items:center">' +
+      '<a id="oc-crv-qback" class="oc-crv-btn-ghost w-button" href="#" style="white-space:nowrap">← Back</a>' +
+      '<button id="oc-crv-qsubmit" class="oc-crv-btn-ghost w-button" style="flex:1">Send for Review</button>' +
+    '</div>';
+  wrap.appendChild(el);
+  $("oc-crv-qdec-trigger").addEventListener("click", function(e) { e.preventDefault(); $("oc-crv-qfile-dec").click(); });
+  $("oc-crv-qpol-trigger").addEventListener("click", function(e) { e.preventDefault(); $("oc-crv-qfile-pol").click(); });
+  $("oc-crv-qback").addEventListener("click", function(e) { e.preventDefault(); showGateway(true); });
+  $("oc-crv-qsubmit").addEventListener("click", onQuickSubmit);
+  setupQuickFileUpload("oc-crv-qfile-dec", "oc-crv-qfname-dec", "qDecFileUrl", "qDecFileName", "coverage-review/dec-pages", 10);
+  setupQuickFileUpload("oc-crv-qfile-pol", "oc-crv-qfname-pol", "qPolFileUrl", "qPolFileName", "coverage-review/policies", 25);
+}
+
+function showGateway(doScroll) {
+  STATE.mode = "gateway";
+  for (let i = 1; i <= 5; i++) {
+    const p = $("oc-crv-p" + i); if (p) p.style.display = "none";
+    const s = $("oc-crv-s" + i); if (s) s.style.display = "none";
+  }
+  const pq = $("oc-crv-pq"); if (pq) pq.style.display = "none";
+  const p0 = $("oc-crv-p0"); if (p0) p0.style.display = "";
+  const back = $("oc-crv-back"); if (back) back.style.display = "none";
+  const next = $("oc-crv-next"); if (next) next.style.display = "none";
+  const submit = $("oc-crv-submit"); if (submit) submit.style.display = "none";
+  const ht = $("oc-crv-htitle"); if (ht) ht.textContent = "Free Coverage Review";
+  const sub = document.querySelector(".oc-crv-card-sub");
+  if (sub) sub.textContent = "Choose how you'd like to start -- both paths get you a free review from a licensed advisor.";
+  showErr("");
+  if (doScroll) {
+    const f = $("oc-crv-form-section") || $("oc-crv-wrap");
+    window.scrollTo({ top: Math.max(0, f ? f.getBoundingClientRect().top + window.scrollY - 80 : 0), behavior: "smooth" });
+  }
+}
+
+function showQuickForm() {
+  STATE.mode = "quick";
+  const p0 = $("oc-crv-p0"); if (p0) p0.style.display = "none";
+  for (let i = 1; i <= 5; i++) {
+    const p = $("oc-crv-p" + i); if (p) p.style.display = "none";
+    const s = $("oc-crv-s" + i); if (s) s.style.display = "none";
+  }
+  const pq = $("oc-crv-pq"); if (pq) pq.style.display = "";
+  const back = $("oc-crv-back"); if (back) back.style.display = "none";
+  const next = $("oc-crv-next"); if (next) next.style.display = "none";
+  const submit = $("oc-crv-submit"); if (submit) submit.style.display = "none";
+  const ht = $("oc-crv-htitle"); if (ht) ht.textContent = "Quick Coverage Upload";
+  const sub = document.querySelector(".oc-crv-card-sub");
+  if (sub) sub.textContent = "Share your contact info and any documents you have on hand.";
+  showErr("");
+}
+
+function onGatewaySelect(e) {
+  document.querySelectorAll("#oc-crv-p0 .oc-crv-type-card").forEach(function(c) { c.classList.remove("oc-crv-type-card-active"); });
+  e.currentTarget.classList.add("oc-crv-type-card-active");
+  const choice = e.currentTarget.dataset.gw;
+  if (choice === "full") {
+    STATE.mode = "full";
+    const p0 = $("oc-crv-p0"); if (p0) p0.style.display = "none";
+    for (let i = 1; i <= 5; i++) { const s = $("oc-crv-s" + i); if (s) s.style.display = ""; }
+    setStep(1, true);
+  } else if (choice === "quick") {
+    showQuickForm();
+  }
+}
+
+function setupQuickFileUpload(inputId, labelId, stateUrlKey, stateNameKey, folder, maxMB) {
+  const input = $(inputId);
+  if (!input) return;
+  input.addEventListener("change", async function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const lbl = $(labelId);
+    const qerr = $("oc-crv-qerr");
+    if (file.size > maxMB * 1024 * 1024) {
+      if (qerr) { qerr.textContent = "File too large. Max " + maxMB + " MB."; qerr.style.display = "block"; }
+      e.target.value = "";
+      return;
+    }
+    if (lbl) { lbl.textContent = "Uploading..."; lbl.style.display = ""; }
+    if (qerr) qerr.style.display = "none";
+    try {
+      await waitForAuth(4000);
+      const sid = getOrCreateSession();
+      const safeName = sid + "-" + Date.now() + "-" + file.name.replace(/[^A-Za-z0-9._-]/g, "_");
+      const r = ref(_fbStorage, folder + "/" + safeName);
+      await uploadBytes(r, file, { contentType: file.type });
+      STATE[stateUrlKey] = await getDownloadURL(r);
+      STATE[stateNameKey] = file.name;
+      if (lbl) lbl.textContent = file.name;
+    } catch (err) {
+      console.error("[oc-crv] quick upload failed:", err);
+      if (qerr) { qerr.textContent = "Upload failed. Please try again."; qerr.style.display = "block"; }
+      if (lbl) { lbl.textContent = "Upload failed"; }
+    }
+  });
+}
+
+async function onQuickSubmit(e) {
+  e.preventDefault();
+  if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+  const qerr = $("oc-crv-qerr");
+  if (qerr) { qerr.style.display = "none"; qerr.textContent = ""; }
+  const fn = (($("oc-crv-qfn") || {}).value || "").trim();
+  const ln = (($("oc-crv-qln") || {}).value || "").trim();
+  const em = (($("oc-crv-qem") || {}).value || "").trim();
+  const ph = (($("oc-crv-qph") || {}).value || "").trim();
+  if (!fn || !ln) {
+    if (qerr) { qerr.textContent = "Please enter your first and last name."; qerr.style.display = "block"; }
+    return;
+  }
+  if (!/^\S+@\S+\.\S+$/.test(em)) {
+    if (qerr) { qerr.textContent = "Please enter a valid email address."; qerr.style.display = "block"; }
+    return;
+  }
+  const btn = $("oc-crv-qsubmit");
+  if (!btn) return;
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = "Sending...";
+  let stateVal = "";
+  try {
+    const sel = document.getElementById("oc-state-select");
+    if (sel && sel.value) stateVal = sel.value.toUpperCase().trim();
+    if (!stateVal) stateVal = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
+  } catch (_e) {}
+  try {
+    const requestBody = {
+      form_type: "coverage-review",
+      submission_id: uuidv4Submission(),
+      page_url: location.href,
+      submitted_at: new Date().toISOString(),
+      fields: {
+        mode: "quick-upload",
+        track: "personal",
+        status: "submitted",
+        submittedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        contact: { firstName: fn, lastName: ln, email: em, phone: ph, state: stateVal },
+        decFileUrl: STATE.qDecFileUrl || null,
+        decFileName: STATE.qDecFileName || null,
+        policyFileUrl: STATE.qPolFileUrl || null,
+        policyFileName: STATE.qPolFileName || null,
+        utm_source: _utm.utm_source || null,
+        utm_medium: _utm.utm_medium || null,
+        utm_campaign: _utm.utm_campaign || null,
+        gclid: _utm.gclid || null,
+        landing_referrer: _landing_referrer,
+        session_id: window.OC_SESSION ? window.OC_SESSION.uid() : null,
+        userAgent: navigator.userAgent,
+        pageUrl: location.href
+      }
+    };
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "application/json", "X-Forms-Auth": BEARER },
+      body: JSON.stringify(requestBody)
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status + " " + (await res.text().catch(function() { return ""; })));
+    clearSession();
+    const wrap = $("oc-crv-wrap");
+    const ok = $("oc-crv-ok");
+    if (wrap) wrap.style.display = "none";
+    if (ok) ok.style.display = "";
+    try { window.scrollTo({ top: (ok ? ok.getBoundingClientRect().top + window.scrollY - 80 : 0), behavior: "smooth" }); } catch (_e2) {}
+    try {
+      if (window.gtag) {
+        window.gtag("event", "generate_lead", {
+          form_id: "oc-crv-quick",
+          form_location: "coverage-review",
+          mode: "quick-upload",
+          state: stateVal || "unknown",
+          value: 5
+        });
+      }
+    } catch (_e3) {}
+  } catch (err) {
+    console.error("[oc-crv] quick submit failed:", err);
+    if (qerr) { qerr.textContent = "Couldn't send right now. Please try again, or email askolive@olivecover.com."; qerr.style.display = "block"; }
     btn.disabled = false;
     btn.textContent = origText || "Send for Review";
   }
@@ -685,8 +938,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 2.10) return;
-  window._OC_CRV_VERSION = 2.10;
+  if (window._OC_CRV_VERSION >= 3.20) return;
+  window._OC_CRV_VERSION = 3.20;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -749,16 +1002,21 @@ function init() {
   applyFieldDefaults();
   reorderStep4();
 
-  // Initial step
-  setStep(1);
+  // Hide step tabs until user picks the full-form path from the gateway
+  for (let i = 1; i <= 5; i++) { const s = $("oc-crv-s" + i); if (s) s.style.display = "none"; }
+
+  // Inject gateway choice panel (p0) and quick-upload form (pq)
+  injectGateway();
+  injectQuickForm();
 
   // Show only Step 3 personal lines until track chosen (hidden by CSS; shown after track selected)
   const pl = $("oc-crv-pl"); if (pl) pl.style.display = "none";
   const cl = $("oc-crv-cl"); if (cl) cl.style.display = "none";
   const qDetail = $("oc-crv-q-detail"); if (qDetail) qDetail.style.display = "none";
 
-  // Try session recovery
+  // Try session recovery; if nothing to restore, show the gateway choice screen
   tryRestoreSession();
+  if (!STATE.restored) showGateway();
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
