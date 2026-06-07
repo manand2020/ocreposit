@@ -1,8 +1,13 @@
-// Olive Cover -- Coverage Review form behavior v3.3.5
+// Olive Cover -- Coverage Review form behavior v3.4.0
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.4.0 (2026-06-06): Tabbed redesign. Contact (name/email/phone) + state stay as a
+//   persistent header; below it a two-tab switcher -- "Quick upload" (DEFAULT) and
+//   "Walk me through it" -- swaps between the upload form and the multi-step flow.
+//   Replaces the card-choice gateway. Contact is validated on submit of either tab.
 //
 // v3.3.5 (2026-06-06): Fix circle renumber for circles whose number is wrapped in a
 //   <p> (s4/s5). Update the inner <p> when present so the full flow reads 1-2-3-4.
@@ -230,7 +235,7 @@ function setStep(n, doScroll) {
   const back = $("oc-crv-back");
   const next = $("oc-crv-next");
   const submit = $("oc-crv-submit");
-  if (back) back.style.display = (n > 1 || STATE.mode === "full") ? "" : "none";
+  if (back) back.style.display = (n > 1) ? "" : "none";
   if (next) next.style.display = n < 5 ? "" : "none";
   if (submit) submit.style.display = n === 5 ? "" : "none";
   showErr("");
@@ -354,8 +359,7 @@ function validateStep(n) {
 function onBack(e) {
   e.preventDefault();
   if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-  if (STATE.mode === "full" && STATE.step === 1) { showGateway(true); return; }
-  // Step 2 (contact) is collected on the gateway and skipped, so step 3 goes back to step 1
+  // Step 2 (contact) lives in the header and is skipped, so step 3 goes back to step 1
   if (STATE.mode === "full" && STATE.step === 3) { setStep(1, true); return; }
   if (STATE.step > 1) setStep(STATE.step - 1, true);
 }
@@ -581,11 +585,12 @@ function tryRestoreSession() {
       const banner = $("oc-crv-resume");
       if (banner) banner.style.display = "";
     }
-    // Jump back to their last step in full-form mode (skips gateway)
+    // Jump back to their last step on the "Walk me through it" tab (header stays visible)
     if (STATE.restored) {
       STATE.mode = "full";
-      const _p0 = $("oc-crv-p0"); if (_p0) _p0.style.display = "none";
-      // Step 2 (contact) is collected on the gateway in v3.3.0; keep its tab hidden
+      setTabActive("full");
+      const _pq = $("oc-crv-pq"); if (_pq) _pq.style.display = "none";
+      // Step 2 (contact) lives in the header; keep its circle hidden
       for (let _i = 1; _i <= 5; _i++) { const _s = $("oc-crv-s" + _i); if (_s) _s.style.display = (_i === 2) ? "none" : ""; }
     }
     if (startStep > 1) setStep(startStep);
@@ -605,6 +610,8 @@ function uuidv4Submission() {
 async function onSubmit(e) {
   e.preventDefault();
   if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+  // Contact lives in the header; validate it (errors show near the header) + mirror.
+  if (!validateGatewayContact()) { try { $("oc-crv-gw-err").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_e) {} return; }
   if (!STATE.wantsQuotes) { showErr("Please select yes or no for the carrier comparison."); return; }
   const btn = $("oc-crv-submit");
   if (!btn) return;
@@ -688,20 +695,13 @@ function injectGateway() {
       '<div id="oc-crv-gw-state-notice" style="margin-top:8px;font-size:0.85em;line-height:1.45;color:#1B3A5C;opacity:0.85">Olive Insurance Services, LLC (dba Olive Cover) is licensed in Georgia. We can quote and place coverage today.</div>' +
       '<div id="oc-crv-gw-err" style="display:none;color:#c00;margin-top:8px;font-size:0.9em"></div>' +
     '</div>' +
-    '<p style="margin:0 0 10px;font-weight:500">How would you like to continue?</p>' +
-    '<div class="oc-crv-type-grid">' +
-      '<div class="oc-crv-type-card" id="oc-crv-g-full" data-gw="full">' +
-        '<p><strong>Walk me through it</strong></p>' +
-        '<p style="font-size:0.9em;opacity:0.8;margin:4px 0 0">Answer a few questions about your current coverage -- takes about 3 minutes.</p>' +
-      '</div>' +
-      '<div class="oc-crv-type-card" id="oc-crv-g-quick" data-gw="quick">' +
-        '<p><strong>Quick upload</strong></p>' +
-        '<p style="font-size:0.9em;opacity:0.8;margin:4px 0 0">Just upload your dec page -- we already have your contact details. We\'ll handle the rest.</p>' +
-      '</div>' +
+    '<div class="oc-crv-tabbar" style="display:flex;gap:0;border-bottom:1px solid #d8cfc0;margin:18px 0 16px">' +
+      '<button type="button" id="oc-crv-tab-quick" data-tab="quick" class="oc-crv-tab">Quick upload</button>' +
+      '<button type="button" id="oc-crv-tab-full" data-tab="full" class="oc-crv-tab">Walk me through it</button>' +
     '</div>';
   wrap.insertBefore(el, wrap.firstChild);
-  $("oc-crv-g-full").addEventListener("click", onGatewaySelect);
-  $("oc-crv-g-quick").addEventListener("click", onGatewaySelect);
+  $("oc-crv-tab-quick").addEventListener("click", onTabClick);
+  $("oc-crv-tab-full").addEventListener("click", onTabClick);
 }
 
 // The ocstateselect shim module auto-injects a [data-oc-state-wrap] state field into
@@ -775,55 +775,62 @@ function injectQuickForm() {
       '<input id="oc-crv-qfile-pol" type="file" accept=".pdf" style="display:none">' +
     '</div>' +
     '<div id="oc-crv-qerr" style="display:none;color:#c00;margin-bottom:10px;font-size:0.9em"></div>' +
-    '<div style="display:flex;gap:10px;align-items:center">' +
-      '<a id="oc-crv-qback" class="oc-crv-btn-ghost w-button" href="#" style="white-space:nowrap">← Back</a>' +
-      '<button id="oc-crv-qsubmit" class="oc-crv-btn-ghost w-button" style="flex:1">Send for Review</button>' +
-    '</div>';
+    '<button type="button" id="oc-crv-qsubmit" class="oc-crv-btn-ghost w-button" style="width:100%">Send for Review</button>';
   wrap.appendChild(el);
   $("oc-crv-qdec-trigger").addEventListener("click", function(e) { e.preventDefault(); $("oc-crv-qfile-dec").click(); });
   $("oc-crv-qpol-trigger").addEventListener("click", function(e) { e.preventDefault(); $("oc-crv-qfile-pol").click(); });
-  $("oc-crv-qback").addEventListener("click", function(e) { e.preventDefault(); showGateway(true); });
   $("oc-crv-qsubmit").addEventListener("click", onQuickSubmit);
   setupQuickFileUpload("oc-crv-qfile-dec", "oc-crv-qfname-dec", "qDecFileUrl", "qDecFileName", "coverage-review/dec-pages", 10);
   setupQuickFileUpload("oc-crv-qfile-pol", "oc-crv-qfname-pol", "qPolFileUrl", "qPolFileName", "coverage-review/policies", 25);
 }
 
-function showGateway(doScroll) {
-  STATE.mode = "gateway";
-  for (let i = 1; i <= 5; i++) {
-    const p = $("oc-crv-p" + i); if (p) p.style.display = "none";
-    const s = $("oc-crv-s" + i); if (s) s.style.display = "none";
-  }
-  const pq = $("oc-crv-pq"); if (pq) pq.style.display = "none";
-  const p0 = $("oc-crv-p0"); if (p0) p0.style.display = "";
-  const back = $("oc-crv-back"); if (back) back.style.display = "none";
-  const next = $("oc-crv-next"); if (next) next.style.display = "none";
-  const submit = $("oc-crv-submit"); if (submit) submit.style.display = "none";
-  const ht = $("oc-crv-htitle"); if (ht) ht.textContent = "Free Coverage Review";
+// ---- Tabs (Quick upload / Walk me through it) ------------------
+// Contact + state stay in the persistent header (#oc-crv-p0); the tabs swap only the
+// path-specific content. Quick is the default active tab.
+
+const _TAB_BASE = "flex:1;padding:12px 8px;border:none;background:transparent;font-family:Inter,system-ui,sans-serif;font-size:0.95rem;cursor:pointer;border-bottom:3px solid transparent;color:#1B3A5C;";
+const _TAB_ACTIVE = _TAB_BASE + "border-bottom-color:#B8934A;font-weight:600;opacity:1;";
+const _TAB_INACTIVE = _TAB_BASE + "font-weight:500;opacity:0.55;";
+
+function setTabActive(tab) {
+  const q = $("oc-crv-tab-quick"), f = $("oc-crv-tab-full");
+  if (q) q.style.cssText = (tab === "quick") ? _TAB_ACTIVE : _TAB_INACTIVE;
+  if (f) f.style.cssText = (tab === "full") ? _TAB_ACTIVE : _TAB_INACTIVE;
+}
+
+function showTab(tab, doScroll) {
+  setTabActive(tab);
+  const pq = $("oc-crv-pq");
   const sub = document.querySelector(".oc-crv-card-sub");
-  if (sub) sub.textContent = "Choose how you'd like to start -- both paths get you a free review from a licensed advisor.";
-  showErr("");
+  if (tab === "quick") {
+    STATE.mode = "quick";
+    for (let i = 1; i <= 5; i++) {
+      const p = $("oc-crv-p" + i); if (p) p.style.display = "none";
+      const s = $("oc-crv-s" + i); if (s) s.style.display = "none";
+    }
+    if (pq) pq.style.display = "";
+    const back = $("oc-crv-back"); if (back) back.style.display = "none";
+    const next = $("oc-crv-next"); if (next) next.style.display = "none";
+    const submit = $("oc-crv-submit"); if (submit) submit.style.display = "none";
+    if (sub) sub.textContent = "Upload your declarations page (and full policy if you have it). One business day turnaround.";
+    showErr("");
+  } else {
+    STATE.mode = "full";
+    if (pq) pq.style.display = "none";
+    // Step 2 (contact) lives in the header, so its circle stays hidden
+    for (let i = 1; i <= 5; i++) { const s = $("oc-crv-s" + i); if (s) s.style.display = (i === 2) ? "none" : ""; }
+    if (sub) sub.textContent = "Answer a few quick questions so we can review the right coverage.";
+    setStep(1, false);
+  }
   if (doScroll) {
     const f = $("oc-crv-form-section") || $("oc-crv-wrap");
-    window.scrollTo({ top: Math.max(0, f ? f.getBoundingClientRect().top + window.scrollY - 80 : 0), behavior: "smooth" });
+    if (f) window.scrollTo({ top: Math.max(0, f.getBoundingClientRect().top + window.scrollY - 80), behavior: "smooth" });
   }
 }
 
-function showQuickForm() {
-  STATE.mode = "quick";
-  const p0 = $("oc-crv-p0"); if (p0) p0.style.display = "none";
-  for (let i = 1; i <= 5; i++) {
-    const p = $("oc-crv-p" + i); if (p) p.style.display = "none";
-    const s = $("oc-crv-s" + i); if (s) s.style.display = "none";
-  }
-  const pq = $("oc-crv-pq"); if (pq) pq.style.display = "";
-  const back = $("oc-crv-back"); if (back) back.style.display = "none";
-  const next = $("oc-crv-next"); if (next) next.style.display = "none";
-  const submit = $("oc-crv-submit"); if (submit) submit.style.display = "none";
-  const ht = $("oc-crv-htitle"); if (ht) ht.textContent = "Quick Coverage Upload";
-  const sub = document.querySelector(".oc-crv-card-sub");
-  if (sub) sub.textContent = "Upload your declarations page (and full policy if you have it). We already have your contact details.";
-  showErr("");
+function onTabClick(e) {
+  e.preventDefault();
+  showTab(e.currentTarget.dataset.tab, false);
 }
 
 function gatewayContact() {
@@ -854,26 +861,16 @@ function mirrorGatewayContact(c) {
   const sel = $("oc-state-select"); if (sel && c.state) sel.value = c.state;
 }
 
-function onGatewaySelect(e) {
-  const card = e.currentTarget;
+// Validate the header contact block. Returns the contact object (and mirrors it into
+// the path-specific fields) on success, or null after showing an error.
+function validateGatewayContact() {
   const c = gatewayContact();
-  if (!c.fn || !c.ln) { showGwErr("Please enter your first and last name."); return; }
-  if (!/^\S+@\S+\.\S+$/.test(c.em)) { showGwErr("Please enter a valid email address."); return; }
-  if (!c.state) { showGwErr("Please select your state."); return; }
+  if (!c.fn || !c.ln) { showGwErr("Please enter your first and last name."); return null; }
+  if (!/^\S+@\S+\.\S+$/.test(c.em)) { showGwErr("Please enter a valid email address."); return null; }
+  if (!c.state) { showGwErr("Please select your state."); return null; }
   showGwErr("");
   mirrorGatewayContact(c);
-  document.querySelectorAll("#oc-crv-p0 .oc-crv-type-card").forEach(function(x) { x.classList.remove("oc-crv-type-card-active"); });
-  card.classList.add("oc-crv-type-card-active");
-  const choice = card.dataset.gw;
-  if (choice === "full") {
-    STATE.mode = "full";
-    const p0 = $("oc-crv-p0"); if (p0) p0.style.display = "none";
-    // Show step tabs except step 2 (contact already collected on the gateway)
-    for (let i = 1; i <= 5; i++) { const s = $("oc-crv-s" + i); if (s) s.style.display = (i === 2) ? "none" : ""; }
-    setStep(1, true);
-  } else if (choice === "quick") {
-    showQuickForm();
-  }
+  return c;
 }
 
 function setupQuickFileUpload(inputId, labelId, stateUrlKey, stateNameKey, folder, maxMB) {
@@ -913,18 +910,10 @@ async function onQuickSubmit(e) {
   if (e.stopImmediatePropagation) e.stopImmediatePropagation();
   const qerr = $("oc-crv-qerr");
   if (qerr) { qerr.style.display = "none"; qerr.textContent = ""; }
-  const fn = (($("oc-crv-qfn") || {}).value || "").trim();
-  const ln = (($("oc-crv-qln") || {}).value || "").trim();
-  const em = (($("oc-crv-qem") || {}).value || "").trim();
-  const ph = (($("oc-crv-qph") || {}).value || "").trim();
-  if (!fn || !ln) {
-    if (qerr) { qerr.textContent = "Please enter your first and last name."; qerr.style.display = "block"; }
-    return;
-  }
-  if (!/^\S+@\S+\.\S+$/.test(em)) {
-    if (qerr) { qerr.textContent = "Please enter a valid email address."; qerr.style.display = "block"; }
-    return;
-  }
+  // Contact lives in the header; validate it (errors show near the header) + mirror.
+  const gc = validateGatewayContact();
+  if (!gc) { try { $("oc-crv-gw-err").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_e) {} return; }
+  const fn = gc.fn, ln = gc.ln, em = gc.em, ph = gc.ph;
   const btn = $("oc-crv-qsubmit");
   if (!btn) return;
   btn.disabled = true;
@@ -1072,8 +1061,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.35) return;
-  window._OC_CRV_VERSION = 3.35;
+  if (window._OC_CRV_VERSION >= 3.40) return;
+  window._OC_CRV_VERSION = 3.40;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -1145,7 +1134,7 @@ function init() {
   suppressInjectedGatewayState();
   relocateTrustStrip();
   // Contact is collected on the gateway, so the full flow has 4 visible steps.
-  // Step-2 circle is hidden (in onGatewaySelect / restore); renumber the rest 1-2-3-4.
+  // Step-2 circle is hidden (in showTab / restore); renumber the rest 1-2-3-4.
   // Circles are inconsistent markup: some are plain text, some wrap the number in <p>.
   (function () {
     const renum = { "oc-crv-s3": "2", "oc-crv-s4": "3", "oc-crv-s5": "4" };
@@ -1157,9 +1146,9 @@ function init() {
   const cl = $("oc-crv-cl"); if (cl) cl.style.display = "none";
   const qDetail = $("oc-crv-q-detail"); if (qDetail) qDetail.style.display = "none";
 
-  // Try session recovery; if nothing to restore, show the gateway choice screen
+  // Try session recovery; if nothing to restore, default to the Quick upload tab
   tryRestoreSession();
-  if (!STATE.restored) showGateway();
+  if (!STATE.restored) showTab("quick");
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
