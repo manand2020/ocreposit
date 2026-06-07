@@ -1,8 +1,11 @@
-// Olive Cover -- Coverage Review form behavior v3.4.3
+// Olive Cover -- Coverage Review form behavior v3.4.4
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.4.4 (2026-06-06): Shorten the licensed-state notice to "We are licensed in {State}
+//   and can quote and place coverage today." (implicit "we" per brand conversational rule).
 //
 // v3.4.3 (2026-06-06): State dropdown now lists all US states (except California per
 //   the no-CA rule), defaults from the geo-populated oc_state (ocstateselect/ipapi),
@@ -701,7 +704,7 @@ function updateStateNotice() {
   if (!v) { note.style.display = "none"; return; }
   const name = (sel.options[sel.selectedIndex] || {}).text || "your state";
   if (OC_LICENSED.indexOf(v) !== -1) {
-    note.textContent = "Olive Insurance Services, LLC (dba Olive Cover) is licensed in " + name + ". We can quote and place coverage today.";
+    note.textContent = "We are licensed in " + name + " and can quote and place coverage today.";
   } else {
     note.textContent = "We're not yet licensed in " + name + " -- we're expanding. Leave your details and we'll reach out when coverage is available there.";
   }
@@ -1108,8 +1111,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.43) return;
-  window._OC_CRV_VERSION = 3.43;
+  if (window._OC_CRV_VERSION >= 3.44) return;
+  window._OC_CRV_VERSION = 3.44;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
