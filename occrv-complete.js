@@ -1,8 +1,15 @@
-// Olive Cover -- Coverage Review form behavior v3.3.0
+// Olive Cover -- Coverage Review form behavior v3.3.1
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.3.1 (2026-06-06): Suppress the duplicate state field. The ocstateselect shim
+//   module auto-injects a [data-oc-state-wrap] (label + select[name=state] + notice)
+//   into the coverage-review form, which landed inside the new gateway alongside the
+//   gateway's own GA state dropdown -- two visible state fields. The injected wrapper
+//   is now hidden inside #oc-crv-p0 (it still receives the mirrored value, so the
+//   submitted payload is unchanged); the gateway's oc-crv-gw-state is the only one shown.
 //
 // v3.3.0 (2026-06-06): Collect shared contact (first/last name, email, phone, STATE)
 //   on the gateway BEFORE the user picks Quick vs Full. Both paths inherit them:
@@ -678,6 +685,27 @@ function injectGateway() {
   $("oc-crv-g-quick").addEventListener("click", onGatewaySelect);
 }
 
+// The ocstateselect shim module auto-injects a [data-oc-state-wrap] state field into
+// the coverage-review form; it lands inside the gateway and duplicates the gateway's
+// own oc-crv-gw-state dropdown. Hide the injected one (non-destructive -- it still
+// receives the mirrored value, so the submitted payload is unchanged). ocstateselect
+// injects asynchronously, so watch the gateway briefly and re-hide if it reappears.
+function suppressInjectedGatewayState() {
+  const gw = $("oc-crv-p0");
+  if (!gw) return;
+  const hide = () => {
+    gw.querySelectorAll("[data-oc-state-wrap]").forEach((w) => { w.style.display = "none"; });
+    gw.querySelectorAll('select[name="state"]').forEach((s) => {
+      const w = s.closest("[data-oc-state-wrap]");
+      if (w) { w.style.display = "none"; } else { s.style.display = "none"; }
+    });
+  };
+  hide();
+  const mo = new MutationObserver(hide);
+  mo.observe(gw, { childList: true, subtree: true });
+  setTimeout(() => mo.disconnect(), 6000);
+}
+
 function injectQuickForm() {
   const wrap = $("oc-crv-wrap");
   if (!wrap || $("oc-crv-pq")) return;
@@ -1005,8 +1033,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.30) return;
-  window._OC_CRV_VERSION = 3.30;
+  if (window._OC_CRV_VERSION >= 3.31) return;
+  window._OC_CRV_VERSION = 3.31;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -1075,6 +1103,7 @@ function init() {
   // Inject gateway choice panel (p0) and quick-upload form (pq)
   injectGateway();
   injectQuickForm();
+  suppressInjectedGatewayState();
 
   // Show only Step 3 personal lines until track chosen (hidden by CSS; shown after track selected)
   const pl = $("oc-crv-pl"); if (pl) pl.style.display = "none";
