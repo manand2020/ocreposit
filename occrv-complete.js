@@ -1,8 +1,11 @@
-// Olive Cover -- Coverage Review form behavior v3.3.4
+// Olive Cover -- Coverage Review form behavior v3.3.5
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.3.5 (2026-06-06): Fix circle renumber for circles whose number is wrapped in a
+//   <p> (s4/s5). Update the inner <p> when present so the full flow reads 1-2-3-4.
 //
 // v3.3.4 (2026-06-06): Gateway state field now shows the "What state are you in?"
 //   label and the GA licensing notice ("Olive Insurance Services, LLC (dba Olive
@@ -1069,8 +1072,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.34) return;
-  window._OC_CRV_VERSION = 3.34;
+  if (window._OC_CRV_VERSION >= 3.35) return;
+  window._OC_CRV_VERSION = 3.35;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -1143,9 +1146,10 @@ function init() {
   relocateTrustStrip();
   // Contact is collected on the gateway, so the full flow has 4 visible steps.
   // Step-2 circle is hidden (in onGatewaySelect / restore); renumber the rest 1-2-3-4.
+  // Circles are inconsistent markup: some are plain text, some wrap the number in <p>.
   (function () {
     const renum = { "oc-crv-s3": "2", "oc-crv-s4": "3", "oc-crv-s5": "4" };
-    for (const id in renum) { const s = $(id); if (s && s.children.length === 0) s.textContent = renum[id]; }
+    for (const id in renum) { const s = $(id); if (s) (s.querySelector("p") || s).textContent = renum[id]; }
   })();
 
   // Show only Step 3 personal lines until track chosen (hidden by CSS; shown after track selected)
