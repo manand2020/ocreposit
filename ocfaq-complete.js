@@ -1,6 +1,12 @@
 /**
-* ocfaq-complete.js v2.3.0
+* ocfaq-complete.js v2.4.0
 * Olive Cover FAQ rendering engine
+*
+* What changed in v2.4.0 (2026-06-07):
+* - Added FAQ detail page quick-answer module. On /faq/{slug} pages, fetches
+*   faq-index.json (now includes sa=short-answer field), finds the entry for
+*   the current slug, and injects a styled "Quick answer" callout between the
+*   h1 question and the full answer body. No Designer changes needed.
 *
 * What changed in v2.3.0 (2026-05-24):
 * - Hub search now searches across ALL FAQs in the collection (494 items), not just
@@ -496,3 +502,23 @@ window.OC.faqHub = { version: '1.2.0' };
 (function(){var V='2.0.0',path=window.location.pathname;if(path==='/faq'||path.indexOf('/faq/')===0)return;var DS='national';function gs(){return(document.body.getAttribute('data-state')||DS).toLowerCase();}function getLists(){var a=Array.prototype.slice.call(document.querySelectorAll('.oc-faq-list')),b=Array.prototype.slice.call(document.querySelectorAll('[id$="-faq-list"]')),seen={};return a.concat(b).filter(function(el){var k=el.id||el.className;if(seen[k])return false;seen[k]=true;return true;});}function getQ(item){var el=item.querySelector('summary')||item.querySelector('.oc-faq-q');return el?el.textContent.trim():'';}function getSA(item){var el=item.querySelector('.oc-faq-short');var t=el?el.textContent.trim():'';if(t)return t;var ae=item.querySelector('.oc-faq-a');if(!ae)return'';var f=ae.textContent.trim();var d=f.indexOf('. ');return d>0?f.substring(0,d+1):f.substring(0,120);}function getSlug(item){var el=item.querySelector('.oc-faq-slug');return el?el.textContent.trim():'';}function isP(t){return!t||t==='FAQ Question'||t==='FAQ Answer';}function css(){if(document.getElementById('oc-fqs'))return;var s=document.createElement('style');s.id='oc-fqs';s.textContent='.oc-faq-short-item{padding:18px 0;border-bottom:1px solid rgba(27,58,92,.1)}.oc-faq-short-item:last-child{border-bottom:none}.oc-faq-short-q{font-family:"Playfair Display",Georgia,serif;font-size:1.05rem;font-weight:600;color:#1B3A5C;margin:0 0 6px;line-height:1.4}.oc-faq-short-a{font-family:Inter,system-ui,sans-serif;font-size:.9rem;color:#374151;line-height:1.65;margin:0 0 8px;background:transparent!important;padding:0!important}.oc-faq-short-link{font-family:Inter,system-ui,sans-serif;font-size:.82rem;font-weight:600;color:#B8934A;text-decoration:none}.oc-faq-a{display:none!important}.oc-faq-placeholder{display:none!important}';document.head.appendChild(s);}function render(){var activeState=gs();getLists().forEach(function(list){var dis=Array.prototype.slice.call(list.querySelectorAll('.w-dyn-item'));if(!dis.length)return;list.querySelectorAll('.oc-faq-short-list').forEach(function(el){el.parentNode.removeChild(el);});dis.forEach(function(di){di.style.display='';});var cont=document.createElement('div');cont.className='oc-faq-short-list';var n=0;dis.forEach(function(di){var item=di.querySelector('.oc-faq-item')||di;var st=(item.getAttribute('data-state')||DS).toLowerCase();if(st!==DS&&st!==activeState)return;var q=getQ(item),a=getSA(item),sl=getSlug(item);if(isP(q)||!q)return;var row=document.createElement('div');row.className='oc-faq-short-item';var qEl=document.createElement('p');qEl.className='oc-faq-short-q';qEl.textContent=q;row.appendChild(qEl);if(a&&!isP(a)){var aEl=document.createElement('p');aEl.className='oc-faq-short-a';aEl.textContent=a;row.appendChild(aEl);}if(sl){var lk=document.createElement('a');lk.className='oc-faq-short-link';lk.href='/faq/'+sl;lk.textContent='Read full answer →';row.appendChild(lk);}cont.appendChild(row);n++;});if(n>0){dis.forEach(function(di){di.style.display='none';});list.appendChild(cont);}});}function init(){css();render();window.addEventListener('oc:statechange',render);}document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();window.OC=window.OC||{};window.OC.faq={version:V};})();
 
 (function(){var p=window.location.pathname;if(p==='/faq'||p.startsWith('/faq/'))return;function h(){['#ins-faq','#car-faq','#about-faq','#wwdb-faq'].forEach(function(s){var el=document.querySelector(s);if(el){el.style.cssText='display:none!important';el.setAttribute('aria-hidden','true');}});}document.readyState==='loading'?document.addEventListener('DOMContentLoaded',h):h();})();
+
+/* ============================================================
+ * FAQ DETAIL: Quick-answer callout
+ * v2.4.0 -- runs on /faq/{slug} only
+ * Loads faq-index.json (includes sa=short-answer), injects a
+ * "Quick answer" block between the h1 question and full answer.
+ * ============================================================ */
+(function(){
+'use strict';
+var path=window.location.pathname;
+if(path==='/faq'||path.indexOf('/faq/')!==0)return;
+var slug=path.replace(/^\/faq\//,'').replace(/\/+$/,'').toLowerCase();
+if(!slug)return;
+var IDX='https://cdn.jsdelivr.net/gh/manand2020/ocreposit@main/faq-index.json';
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function css(){if(document.getElementById('oc-fqd-css'))return;var s=document.createElement('style');s.id='oc-fqd-css';s.textContent='.oc-faq-quick{background:#F9F5ED;border-left:3px solid #B8934A;border-radius:0 6px 6px 0;padding:14px 20px;margin:0 0 28px}.oc-faq-quick-lbl{font-family:Inter,system-ui,sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#B8934A;margin:0 0 5px}.oc-faq-quick-txt{font-family:Inter,system-ui,sans-serif;font-size:.97rem;line-height:1.7;color:#1B3A5C;margin:0;font-weight:500}';document.head.appendChild(s);}
+function inject(sa){if(!sa||document.querySelector('.oc-faq-quick'))return;var h1=document.querySelector('#faq-item h1');if(!h1)return;var ans=h1.nextElementSibling;if(!ans)return;css();var box=document.createElement('div');box.className='oc-faq-quick';box.innerHTML='<p class="oc-faq-quick-lbl">Quick answer</p><p class="oc-faq-quick-txt">'+esc(sa)+'</p>';h1.parentNode.insertBefore(box,ans);}
+function run(){fetch(IDX,{cache:'force-cache'}).then(function(r){return r.ok?r.json():[];}).then(function(idx){for(var i=0;i<idx.length;i++){if((idx[i].s||'').toLowerCase()===slug){inject(idx[i].sa||idx[i].a||'');return;}}}).catch(function(){});}
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',run):run();
+})();
