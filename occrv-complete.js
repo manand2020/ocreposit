@@ -1,8 +1,13 @@
-// Olive Cover -- Coverage Review form behavior v3.3.3
+// Olive Cover -- Coverage Review form behavior v3.3.4
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.3.4 (2026-06-06): Gateway state field now shows the "What state are you in?"
+//   label and the GA licensing notice ("Olive Insurance Services, LLC (dba Olive
+//   Cover) is licensed in Georgia. We can quote and place coverage today.") before
+//   the Quick/Full choice, matching the ocstateselect block content.
 //
 // v3.3.3 (2026-06-06): Move the trust strip (.oc-trust-strip) out of the form. It was
 //   baked inside <form #oc-crv-wrap> (form card), so it rendered on every step/path.
@@ -671,11 +676,13 @@ function injectGateway() {
         '<input id="oc-crv-gw-ln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
       '</div>' +
       '<input id="oc-crv-gw-em" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
-      '<input id="oc-crv-gw-ph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
+      '<input id="oc-crv-gw-ph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:10px;box-sizing:border-box">' +
+      '<label for="oc-crv-gw-state" style="display:block;margin-bottom:6px;font-size:0.9em;font-weight:500;color:#1B3A5C">What state are you in?</label>' +
       '<select id="oc-crv-gw-state" class="w-input w-select" style="width:100%;margin:0;box-sizing:border-box">' +
         '<option value="">Select your state</option>' +
         '<option value="GA">Georgia</option>' +
       '</select>' +
+      '<div id="oc-crv-gw-state-notice" style="margin-top:8px;font-size:0.85em;line-height:1.45;color:#1B3A5C;opacity:0.85">Olive Insurance Services, LLC (dba Olive Cover) is licensed in Georgia. We can quote and place coverage today.</div>' +
       '<div id="oc-crv-gw-err" style="display:none;color:#c00;margin-top:8px;font-size:0.9em"></div>' +
     '</div>' +
     '<p style="margin:0 0 10px;font-weight:500">How would you like to continue?</p>' +
@@ -1062,8 +1069,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.33) return;
-  window._OC_CRV_VERSION = 3.33;
+  if (window._OC_CRV_VERSION >= 3.34) return;
+  window._OC_CRV_VERSION = 3.34;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
