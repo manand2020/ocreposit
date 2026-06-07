@@ -1,8 +1,13 @@
-// Olive Cover -- Coverage Review form behavior v3.4.1
+// Olive Cover -- Coverage Review form behavior v3.4.2
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.4.2 (2026-06-06): (a) State is now the FIRST header field and defaults from the
+//   site-wide oc_state (like the other forms), with the GA licensing-status notice
+//   beneath it. (b) Hide the whole step chips (.oc-crv-step incl. labels) on the Quick
+//   tab, and hide the CONTACT step chip on the full tab (contact lives in the header).
 //
 // v3.4.1 (2026-06-06): Remove the trust strip from the coverage-review page entirely
 //   (per design feedback). Was relocated to its own section in v3.3.3; now hidden.
@@ -593,8 +598,7 @@ function tryRestoreSession() {
       STATE.mode = "full";
       setTabActive("full");
       const _pq = $("oc-crv-pq"); if (_pq) _pq.style.display = "none";
-      // Step 2 (contact) lives in the header; keep its circle hidden
-      for (let _i = 1; _i <= 5; _i++) { const _s = $("oc-crv-s" + _i); if (_s) _s.style.display = (_i === 2) ? "none" : ""; }
+      setStepChips(true);
     }
     if (startStep > 1) setStep(startStep);
   } catch (err) { console.warn("[oc-crv] session restore failed:", err); }
@@ -684,18 +688,19 @@ function injectGateway() {
   el.id = "oc-crv-p0";
   el.innerHTML =
     '<div style="margin-bottom:18px">' +
-      '<div style="display:flex;gap:8px;margin-bottom:8px">' +
-        '<input id="oc-crv-gw-fn" type="text" placeholder="First name" class="w-input" style="flex:1;margin:0">' +
-        '<input id="oc-crv-gw-ln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
-      '</div>' +
-      '<input id="oc-crv-gw-em" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
-      '<input id="oc-crv-gw-ph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:10px;box-sizing:border-box">' +
+      // State is the first field (matches the other site forms) and defaults from oc_state.
       '<label for="oc-crv-gw-state" style="display:block;margin-bottom:6px;font-size:0.9em;font-weight:500;color:#1B3A5C">What state are you in?</label>' +
       '<select id="oc-crv-gw-state" class="w-input w-select" style="width:100%;margin:0;box-sizing:border-box">' +
         '<option value="">Select your state</option>' +
         '<option value="GA">Georgia</option>' +
       '</select>' +
-      '<div id="oc-crv-gw-state-notice" style="margin-top:8px;font-size:0.85em;line-height:1.45;color:#1B3A5C;opacity:0.85">Olive Insurance Services, LLC (dba Olive Cover) is licensed in Georgia. We can quote and place coverage today.</div>' +
+      '<div id="oc-crv-gw-state-notice" style="margin:8px 0 14px;font-size:0.85em;line-height:1.45;color:#1B3A5C;opacity:0.85">Olive Insurance Services, LLC (dba Olive Cover) is licensed in Georgia. We can quote and place coverage today.</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+        '<input id="oc-crv-gw-fn" type="text" placeholder="First name" class="w-input" style="flex:1;margin:0">' +
+        '<input id="oc-crv-gw-ln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
+      '</div>' +
+      '<input id="oc-crv-gw-em" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
+      '<input id="oc-crv-gw-ph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin:0;box-sizing:border-box">' +
       '<div id="oc-crv-gw-err" style="display:none;color:#c00;margin-top:8px;font-size:0.9em"></div>' +
     '</div>' +
     '<div class="oc-crv-tabbar" style="display:flex;gap:0;border-bottom:1px solid #d8cfc0;margin:18px 0 16px">' +
@@ -705,6 +710,12 @@ function injectGateway() {
   wrap.insertBefore(el, wrap.firstChild);
   $("oc-crv-tab-quick").addEventListener("click", onTabClick);
   $("oc-crv-tab-full").addEventListener("click", onTabClick);
+  // Default the state from the site-wide oc_state (set by the state pill / other forms)
+  try {
+    const st = (localStorage.getItem("oc_state") || "").toUpperCase().trim();
+    const sel = $("oc-crv-gw-state");
+    if (st && sel && [...sel.options].some((o) => o.value === st)) sel.value = st;
+  } catch (e) {}
 }
 
 // The ocstateselect shim module auto-injects a [data-oc-state-wrap] state field into
@@ -789,27 +800,39 @@ function setTabActive(tab) {
   if (f) f.style.cssText = (tab === "full") ? _TAB_ACTIVE : _TAB_INACTIVE;
 }
 
+// Show/hide the whole .oc-crv-step items (number circle + label) for full mode,
+// hiding step 2 (CONTACT) since contact lives in the header.
+function setStepChips(show) {
+  const row = document.querySelector(".oc-crv-steps-row");
+  if (row) row.style.display = show ? "" : "none";
+  if (!show) return;
+  for (let i = 1; i <= 5; i++) {
+    const s = $("oc-crv-s" + i);
+    const item = s ? s.closest(".oc-crv-step") : null;
+    if (item) item.style.display = (i === 2) ? "none" : "";
+  }
+}
+
 function showTab(tab, doScroll) {
   setTabActive(tab);
   const pq = $("oc-crv-pq");
   const sub = document.querySelector(".oc-crv-card-sub");
+  const ht = $("oc-crv-htitle");
   if (tab === "quick") {
     STATE.mode = "quick";
-    for (let i = 1; i <= 5; i++) {
-      const p = $("oc-crv-p" + i); if (p) p.style.display = "none";
-      const s = $("oc-crv-s" + i); if (s) s.style.display = "none";
-    }
+    for (let i = 1; i <= 5; i++) { const p = $("oc-crv-p" + i); if (p) p.style.display = "none"; }
+    setStepChips(false);
     if (pq) pq.style.display = "";
     const back = $("oc-crv-back"); if (back) back.style.display = "none";
     const next = $("oc-crv-next"); if (next) next.style.display = "none";
     const submit = $("oc-crv-submit"); if (submit) submit.style.display = "none";
+    if (ht) ht.textContent = "Free Coverage Review";
     if (sub) sub.textContent = "Upload your declarations page (and full policy if you have it). One business day turnaround.";
     showErr("");
   } else {
     STATE.mode = "full";
     if (pq) pq.style.display = "none";
-    // Step 2 (contact) lives in the header, so its circle stays hidden
-    for (let i = 1; i <= 5; i++) { const s = $("oc-crv-s" + i); if (s) s.style.display = (i === 2) ? "none" : ""; }
+    setStepChips(true);
     if (sub) sub.textContent = "Answer a few quick questions so we can review the right coverage.";
     setStep(1, false);
   }
@@ -1052,8 +1075,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.41) return;
-  window._OC_CRV_VERSION = 3.41;
+  if (window._OC_CRV_VERSION >= 3.42) return;
+  window._OC_CRV_VERSION = 3.42;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
