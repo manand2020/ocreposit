@@ -1,8 +1,12 @@
-// Olive Cover -- Coverage Review form behavior v3.3.1
+// Olive Cover -- Coverage Review form behavior v3.3.2
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.3.2 (2026-06-06): Fix the progress-circle gap. With the contact step (step 2)
+//   moved to the gateway, hiding the step-2 circle left a "1 3 4 5" gap. Renumber the
+//   remaining circles so the full flow reads "1 2 3 4" (s3->"2", s4->"3", s5->"4").
 //
 // v3.3.1 (2026-06-06): Suppress the duplicate state field. The ocstateselect shim
 //   module auto-injects a [data-oc-state-wrap] (label + select[name=state] + notice)
@@ -1033,8 +1037,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.31) return;
-  window._OC_CRV_VERSION = 3.31;
+  if (window._OC_CRV_VERSION >= 3.32) return;
+  window._OC_CRV_VERSION = 3.32;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -1104,6 +1108,12 @@ function init() {
   injectGateway();
   injectQuickForm();
   suppressInjectedGatewayState();
+  // Contact is collected on the gateway, so the full flow has 4 visible steps.
+  // Step-2 circle is hidden (in onGatewaySelect / restore); renumber the rest 1-2-3-4.
+  (function () {
+    const renum = { "oc-crv-s3": "2", "oc-crv-s4": "3", "oc-crv-s5": "4" };
+    for (const id in renum) { const s = $(id); if (s && s.children.length === 0) s.textContent = renum[id]; }
+  })();
 
   // Show only Step 3 personal lines until track chosen (hidden by CSS; shown after track selected)
   const pl = $("oc-crv-pl"); if (pl) pl.style.display = "none";
