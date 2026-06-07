@@ -1,8 +1,15 @@
-// Olive Cover -- Coverage Review form behavior v3.2.0
+// Olive Cover -- Coverage Review form behavior v3.3.0
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.3.0 (2026-06-06): Collect shared contact (first/last name, email, phone, STATE)
+//   on the gateway BEFORE the user picks Quick vs Full. Both paths inherit them:
+//   Quick form then only asks for documents; Full form skips its contact step (step 2).
+//   State is now an explicit required dropdown on the gateway (previously the Quick
+//   form had no visible state field and relied on a hidden selector/localStorage).
+//   ZIP is no longer required (Full form step 2 is skipped).
 //
 // v3.2.0 (2026-06-06): Add gateway + quick-upload path (Option A). Gateway panel
 //   shown before the 5-step form; users choose "Walk me through it" (full form) or
@@ -324,13 +331,17 @@ function onBack(e) {
   e.preventDefault();
   if (e.stopImmediatePropagation) e.stopImmediatePropagation();
   if (STATE.mode === "full" && STATE.step === 1) { showGateway(true); return; }
+  // Step 2 (contact) is collected on the gateway and skipped, so step 3 goes back to step 1
+  if (STATE.mode === "full" && STATE.step === 3) { setStep(1, true); return; }
   if (STATE.step > 1) setStep(STATE.step - 1, true);
 }
 function onNext(e) {
   e.preventDefault();
   if (e.stopImmediatePropagation) e.stopImmediatePropagation();
   if (!validateStep(STATE.step)) return;
-  setStep(STATE.step + 1, true);
+  // Skip step 2 (contact) in full mode -- collected on the gateway
+  const nextStep = (STATE.mode === "full" && STATE.step === 1) ? 3 : STATE.step + 1;
+  setStep(nextStep, true);
   if (STATE.step === 3) {
     const pl = $("oc-crv-pl");
     const cl = $("oc-crv-cl");
@@ -550,7 +561,8 @@ function tryRestoreSession() {
     if (STATE.restored) {
       STATE.mode = "full";
       const _p0 = $("oc-crv-p0"); if (_p0) _p0.style.display = "none";
-      for (let _i = 1; _i <= 5; _i++) { const _s = $("oc-crv-s" + _i); if (_s) _s.style.display = ""; }
+      // Step 2 (contact) is collected on the gateway in v3.3.0; keep its tab hidden
+      for (let _i = 1; _i <= 5; _i++) { const _s = $("oc-crv-s" + _i); if (_s) _s.style.display = (_i === 2) ? "none" : ""; }
     }
     if (startStep > 1) setStep(startStep);
   } catch (err) { console.warn("[oc-crv] session restore failed:", err); }
@@ -637,6 +649,20 @@ function injectGateway() {
   const el = document.createElement("div");
   el.id = "oc-crv-p0";
   el.innerHTML =
+    '<div style="margin-bottom:18px">' +
+      '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+        '<input id="oc-crv-gw-fn" type="text" placeholder="First name" class="w-input" style="flex:1;margin:0">' +
+        '<input id="oc-crv-gw-ln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
+      '</div>' +
+      '<input id="oc-crv-gw-em" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
+      '<input id="oc-crv-gw-ph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
+      '<select id="oc-crv-gw-state" class="w-input w-select" style="width:100%;margin:0;box-sizing:border-box">' +
+        '<option value="">Select your state</option>' +
+        '<option value="GA">Georgia</option>' +
+      '</select>' +
+      '<div id="oc-crv-gw-err" style="display:none;color:#c00;margin-top:8px;font-size:0.9em"></div>' +
+    '</div>' +
+    '<p style="margin:0 0 10px;font-weight:500">How would you like to continue?</p>' +
     '<div class="oc-crv-type-grid">' +
       '<div class="oc-crv-type-card" id="oc-crv-g-full" data-gw="full">' +
         '<p><strong>Walk me through it</strong></p>' +
@@ -644,7 +670,7 @@ function injectGateway() {
       '</div>' +
       '<div class="oc-crv-type-card" id="oc-crv-g-quick" data-gw="quick">' +
         '<p><strong>Quick upload</strong></p>' +
-        '<p style="font-size:0.9em;opacity:0.8;margin:4px 0 0">Just your name, email, and your dec page. We\'ll handle the rest.</p>' +
+        '<p style="font-size:0.9em;opacity:0.8;margin:4px 0 0">Just upload your dec page -- we already have your contact details. We\'ll handle the rest.</p>' +
       '</div>' +
     '</div>';
   wrap.insertBefore(el, wrap.firstChild);
@@ -659,12 +685,16 @@ function injectQuickForm() {
   el.id = "oc-crv-pq";
   el.style.display = "none";
   el.innerHTML =
-    '<div style="display:flex;gap:8px;margin-bottom:8px">' +
-      '<input id="oc-crv-qfn" type="text" placeholder="First name" class="w-input" style="flex:1;margin:0">' +
-      '<input id="oc-crv-qln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
+    // Contact is collected on the gateway (v3.3.0); these mirror fields stay hidden
+    // so onQuickSubmit can read them without change.
+    '<div id="oc-crv-pq-contact" style="display:none">' +
+      '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+        '<input id="oc-crv-qfn" type="text" placeholder="First name" class="w-input" style="flex:1;margin:0">' +
+        '<input id="oc-crv-qln" type="text" placeholder="Last name" class="w-input" style="flex:1;margin:0">' +
+      '</div>' +
+      '<input id="oc-crv-qem" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
+      '<input id="oc-crv-qph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:16px;box-sizing:border-box">' +
     '</div>' +
-    '<input id="oc-crv-qem" type="email" placeholder="Email address" class="w-input" style="width:100%;margin-bottom:8px;box-sizing:border-box">' +
-    '<input id="oc-crv-qph" type="tel" placeholder="Phone (optional)" class="w-input" style="width:100%;margin-bottom:16px;box-sizing:border-box">' +
     '<div style="margin-bottom:12px">' +
       '<p style="margin:0 0 6px;font-size:0.9em;font-weight:500">Dec page PDF <span style="opacity:0.6">(optional)</span></p>' +
       '<a id="oc-crv-qdec-trigger" class="oc-crv-btn-ghost w-button" href="#">Upload dec page</a>' +
@@ -725,18 +755,54 @@ function showQuickForm() {
   const submit = $("oc-crv-submit"); if (submit) submit.style.display = "none";
   const ht = $("oc-crv-htitle"); if (ht) ht.textContent = "Quick Coverage Upload";
   const sub = document.querySelector(".oc-crv-card-sub");
-  if (sub) sub.textContent = "Share your contact info and any documents you have on hand.";
+  if (sub) sub.textContent = "Upload your declarations page (and full policy if you have it). We already have your contact details.";
   showErr("");
 }
 
+function gatewayContact() {
+  return {
+    fn: ((($("oc-crv-gw-fn") || {}).value) || "").trim(),
+    ln: ((($("oc-crv-gw-ln") || {}).value) || "").trim(),
+    em: ((($("oc-crv-gw-em") || {}).value) || "").trim(),
+    ph: ((($("oc-crv-gw-ph") || {}).value) || "").trim(),
+    state: ((($("oc-crv-gw-state") || {}).value) || "").trim().toUpperCase()
+  };
+}
+
+function showGwErr(msg) {
+  const e = $("oc-crv-gw-err");
+  if (!e) return;
+  e.textContent = msg || "";
+  e.style.display = msg ? "block" : "none";
+}
+
+// Mirror the gateway contact block into both the full-form and quick-form fields
+// so the existing payload builders (buildPartialPayload, onQuickSubmit) pick them
+// up unchanged. State is written to localStorage + any global state <select>.
+function mirrorGatewayContact(c) {
+  const set = (id, v) => { const el = $(id); if (el) el.value = v; };
+  set("oc-crv-fn", c.fn); set("oc-crv-ln", c.ln); set("oc-crv-em", c.em); set("oc-crv-ph", c.ph);
+  set("oc-crv-qfn", c.fn); set("oc-crv-qln", c.ln); set("oc-crv-qem", c.em); set("oc-crv-qph", c.ph);
+  try { if (c.state) localStorage.setItem("oc_state", c.state); } catch (e) {}
+  const sel = $("oc-state-select"); if (sel && c.state) sel.value = c.state;
+}
+
 function onGatewaySelect(e) {
-  document.querySelectorAll("#oc-crv-p0 .oc-crv-type-card").forEach(function(c) { c.classList.remove("oc-crv-type-card-active"); });
-  e.currentTarget.classList.add("oc-crv-type-card-active");
-  const choice = e.currentTarget.dataset.gw;
+  const card = e.currentTarget;
+  const c = gatewayContact();
+  if (!c.fn || !c.ln) { showGwErr("Please enter your first and last name."); return; }
+  if (!/^\S+@\S+\.\S+$/.test(c.em)) { showGwErr("Please enter a valid email address."); return; }
+  if (!c.state) { showGwErr("Please select your state."); return; }
+  showGwErr("");
+  mirrorGatewayContact(c);
+  document.querySelectorAll("#oc-crv-p0 .oc-crv-type-card").forEach(function(x) { x.classList.remove("oc-crv-type-card-active"); });
+  card.classList.add("oc-crv-type-card-active");
+  const choice = card.dataset.gw;
   if (choice === "full") {
     STATE.mode = "full";
     const p0 = $("oc-crv-p0"); if (p0) p0.style.display = "none";
-    for (let i = 1; i <= 5; i++) { const s = $("oc-crv-s" + i); if (s) s.style.display = ""; }
+    // Show step tabs except step 2 (contact already collected on the gateway)
+    for (let i = 1; i <= 5; i++) { const s = $("oc-crv-s" + i); if (s) s.style.display = (i === 2) ? "none" : ""; }
     setStep(1, true);
   } else if (choice === "quick") {
     showQuickForm();
@@ -939,8 +1005,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.20) return;
-  window._OC_CRV_VERSION = 3.20;
+  if (window._OC_CRV_VERSION >= 3.30) return;
+  window._OC_CRV_VERSION = 3.30;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
