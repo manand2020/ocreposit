@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.14 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.15 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -110,6 +110,10 @@
 //                      injection -- those templates have a native Webflow CTA
 //                      section, so the injected one was duplicating it. (v1.10.32)
 //
+// v1.11.15 -- hideEmptyRelatedHeadings: on insights/faq/insurance-terms/states
+//             detail pages, hide H2 + CLW when the native collection list wrapper
+//             has no items (empty multi-reference field). Prevents "Related Questions"
+//             and "Related Terms" headings from stacking when both are empty.
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
 // v1.11.13 -- injectFooterCTA: guard against pages that already have a native
@@ -1624,6 +1628,20 @@
     return sec;
   }
 
+  function hideEmptyRelatedHeadings() {
+    if (!/^\/(?:insights|faq|insurance-terms|states)\/[^/]+/.test(location.pathname)) return;
+    document.querySelectorAll('.w-dyn-list').forEach(function(list) {
+      var items = list.querySelector('.w-dyn-items');
+      if (items && items.children.length === 0) {
+        var prev = list.previousElementSibling;
+        if (prev && /^H[1-6]$/i.test(prev.tagName) && /related/i.test(prev.textContent)) {
+          prev.style.display = 'none';
+        }
+        list.style.display = 'none';
+      }
+    });
+  }
+
   function injectRelatedFaqs() {
     if (document.querySelector('[data-oc-rel-faqs]')) return;
     if (document.querySelector('.oc-faq-accordion-item')) return;
@@ -1957,6 +1975,7 @@
     try { insightsLoadAll(); } catch (e) {}
     try { insightsFilter(); } catch (e) {}
     try { revealPageFaqs(); } catch (e) {}
+    try { hideEmptyRelatedHeadings(); } catch (e) {}
     try { injectRelatedFaqs(); } catch (e) {}
     try { injectRelatedTerms(); } catch (e) {}
     try { hideDetailedRelTerms(); } catch (e) {}
