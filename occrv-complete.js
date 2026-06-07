@@ -549,6 +549,7 @@ function tryRestoreSession() {
     // Jump back to their last step in full-form mode (skips gateway)
     if (STATE.restored) {
       STATE.mode = "full";
+      const _p0 = $("oc-crv-p0"); if (_p0) _p0.style.display = "none";
       for (let _i = 1; _i <= 5; _i++) { const _s = $("oc-crv-s" + _i); if (_s) _s.style.display = ""; }
     }
     if (startStep > 1) setStep(startStep);
