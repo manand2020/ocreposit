@@ -1,4 +1,4 @@
-// ocpatch.js v1.11.12 -- Consolidated runtime patcher for Olive Cover.
+// ocpatch.js v1.11.13 -- Consolidated runtime patcher for Olive Cover.
 //
 //   revealPageFaqs (v1.10.16): generalized the carrier FAQ fix to ALL page-level
 //                      FAQ sections (#car-faq, #ins-faq, #about-faq, #wwdb-faq)
@@ -112,6 +112,9 @@
 //
 // v1.11.1 -- nodeMatters() fix: added "office visits by appointment only" pattern
 //            so patchText() TreeWalker visits footer appointment text nodes.
+// v1.11.13 -- injectFooterCTA: guard against pages that already have a native
+//             .oc-article-cta section (claims, insights) so the injected CTA
+//             strip does not stack a duplicate above the footer.
 // v1.11.12 -- processFaqSection placeholder fix: remove excess DOM items (not
 //             just hide them) so processFaqSection state-filter can't re-show them.
 // v1.11.11 -- processFaqSection placeholder fix: limit to 5 questions, deduplicate
@@ -2103,6 +2106,9 @@
   // pages except the coverage-review and contact forms themselves.
   function injectFooterCTA() {
     if (document.querySelector('[data-oc-footer-cta]')) return;
+    // Skip pages that already have a template CTA above the footer (e.g. claims /
+    // article pages with .oc-article-cta) so we don't stack a duplicate CTA.
+    if (document.querySelector('.oc-article-cta')) return;
     var pg = location.pathname.replace(/\/$/, '');
     if (/^\/(coverage-review|contact|book|carriers|insurance(-terms)?|insights|about)(\/|$)/.test(pg) || pg === '') return;
     var sec = document.createElement('section');
