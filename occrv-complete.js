@@ -1,8 +1,11 @@
-// Olive Cover -- Coverage Review form behavior v3.4.0
+// Olive Cover -- Coverage Review form behavior v3.4.1
 // Posts to olivec-prod forms Cloud Function (canonical Clip pipeline).
 // Uploads dec-page + policy files to olive-cover-prod Firebase Storage (legacy bucket,
 // retained until olivec-prod public file-upload endpoint ships).
 // Source: github.com/manand2020/ocreposit/occrv-complete.js
+//
+// v3.4.1 (2026-06-06): Remove the trust strip from the coverage-review page entirely
+//   (per design feedback). Was relocated to its own section in v3.3.3; now hidden.
 //
 // v3.4.0 (2026-06-06): Tabbed redesign. Contact (name/email/phone) + state stay as a
 //   persistent header; below it a two-tab switcher -- "Quick upload" (DEFAULT) and
@@ -725,24 +728,12 @@ function suppressInjectedGatewayState() {
   setTimeout(() => mo.disconnect(), 6000);
 }
 
-// Move the trust strip out of the form into its own section. It was baked inside
-// <form #oc-crv-wrap>, so it rendered on every step/path. Relocate it below the form
-// section, centered to the form card width. Idempotent.
-function relocateTrustStrip() {
-  const section = $("oc-crv-form-section");
-  const strip = document.querySelector(".oc-trust-strip");
-  if (!section || !strip) return;
-  if (strip.closest("#oc-crv-trust-section")) return; // already moved
-  if (!section.contains(strip)) return;
-  const sec = document.createElement("section");
-  sec.id = "oc-crv-trust-section";
-  sec.style.cssText = "background:#FFFFFF;padding:32px 24px;";
-  const inner = document.createElement("div");
-  inner.style.cssText = "max-width:720px;margin:0 auto;";
-  strip.style.marginBottom = "0";
-  inner.appendChild(strip);
-  sec.appendChild(inner);
-  section.parentNode.insertBefore(sec, section.nextSibling);
+// Remove the trust strip entirely. It was baked inside <form #oc-crv-wrap> as a static
+// band; per design feedback it's removed from the coverage-review page. Also hides any
+// standalone trust section a prior build relocated it into.
+function removeTrustStrip() {
+  document.querySelectorAll(".oc-trust-strip").forEach((el) => { el.style.display = "none"; });
+  const sec = $("oc-crv-trust-section"); if (sec) sec.style.display = "none";
 }
 
 function injectQuickForm() {
@@ -1061,8 +1052,8 @@ function reorderStep4() {
 
 function init() {
   // Version guard: always let the newest script win over stale app-registered loaders
-  if (window._OC_CRV_VERSION >= 3.40) return;
-  window._OC_CRV_VERSION = 3.40;
+  if (window._OC_CRV_VERSION >= 3.41) return;
+  window._OC_CRV_VERSION = 3.41;
 
   // Forcibly reset all step panels to hidden so stale init calls from old scripts
   // cannot leave p4/p5 visible while p1 is also showing
@@ -1132,7 +1123,7 @@ function init() {
   injectGateway();
   injectQuickForm();
   suppressInjectedGatewayState();
-  relocateTrustStrip();
+  removeTrustStrip();
   // Contact is collected on the gateway, so the full flow has 4 visible steps.
   // Step-2 circle is hidden (in showTab / restore); renumber the rest 1-2-3-4.
   // Circles are inconsistent markup: some are plain text, some wrap the number in <p>.
